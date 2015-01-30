@@ -1355,6 +1355,12 @@ public class SpriteJoint extends TopicModel {
 
 	@Override
 	public void collectSamples() { }
+
+	@Override
+	public double computeLL(int[][][] corpus) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 	
 }
 

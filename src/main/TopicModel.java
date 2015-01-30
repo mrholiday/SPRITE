@@ -47,7 +47,7 @@ public abstract class TopicModel implements Trainable {
 	
 	public double computeLL() { return computeLL(docs); } // Compute log-likelihood on training data
 	
-	public abstract void initialize();
+	protected abstract void initialize();
 	
 	/**
 	 * A single iteration of the main training loop.

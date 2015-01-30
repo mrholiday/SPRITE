@@ -132,8 +132,7 @@ public class SpriteICWSM extends TopicModel implements Serializable {
 	private boolean computePerplexity; // If true, will train on half of tokens, and print out held-out perplexity.
 	
 	public SpriteICWSM(int z, double sigmaAlpha0, double sigmaA0, double sigmaAB0, double sigmaW0, double sigmaWB0,
-			double stepSizeADZ0, double stepSizeAZ0, double stepSizeAB0, double stepSizeW0, double stepSizeWB0,
-			double stepSizeB0, double delta00, double delta10, double deltaB0, double omegaB0, int likelihoodFreq0,
+			double deltaB0, double omegaB0, int likelihoodFreq0,
 			String prefix, double stepA0, int seed0, int numThreads0, boolean computePerplexity0) {
 		Z = z;
 		
@@ -147,12 +146,6 @@ public class SpriteICWSM extends TopicModel implements Serializable {
 		sigmaAB = sigmaAB0;
 		sigmaW = sigmaW0;
 		sigmaWB = sigmaWB0;
-		stepSizeADZ = stepSizeADZ0;
-		stepSizeAZ = stepSizeAZ0;
-		stepSizeAB = stepSizeAB0;
-		stepSizeW = stepSizeW0;
-		stepSizeWB = stepSizeWB0;
-		stepSizeB = stepSizeB0;
 		deltaB = deltaB0;
 		omegaB = omegaB0;
 		
@@ -1295,5 +1288,11 @@ public class SpriteICWSM extends TopicModel implements Serializable {
 
 	@Override
 	public void collectSamples() { }
+
+	@Override
+	public double computeLL(int[][][] corpus) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 	
 }

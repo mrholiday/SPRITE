@@ -1196,5 +1196,11 @@ public class SpriteLDA extends TopicModel implements Serializable {
 
 	@Override
 	public void collectSamples() { }
+
+	@Override
+	public double computeLL(int[][][] corpus) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
 	
 }

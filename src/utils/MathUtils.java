@@ -39,5 +39,8 @@ public class MathUtils {
 	// Singleton source of randomness.  Saves me from passing it around.
 	public static Random r;
 	
+	public static void initRandomStream() { r = new Random(); }
+	
 	public static void initRandomStream(int seed) { r = new Random(seed); }
+	
 }

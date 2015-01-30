@@ -21,8 +21,8 @@ public interface Trainable {
 	public abstract void collectSamples();
 	
 	/*
-	 * Compute log-likelihood of corpus -- array of documents to token IDs.
+	 * Compute log-likelihood of corpus -- array of document to view to token IDs.
 	 */
-	public abstract double computeLL(int[][] corpus);
+	public abstract double computeLL(int[][][] corpus);
 	
 }

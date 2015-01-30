@@ -1,7 +1,6 @@
 package main;
 
-import java.util.Random;
-
+import utils.Log;
 import utils.MathUtils;
 
 /**
@@ -19,18 +18,18 @@ public class Factor {
 	public boolean betaPositive  = false;
 	public boolean deltaPositive = false;
 	
-	// Should we beta and delta be tied?  This will set delta <- beta
+	// Should beta and delta be tied?  This will set delta <- beta
 	// after each gradient step.
 	public boolean tieBetaAndDelta = false;
 	
 	// Parameters.  Note, no bias since those are in SpritePhiPrior and
 	// SpriteThetaPrior.
-	public double[][] alpha; // Document-to-component, for theta
-	public double[][] delta; // Component-to-topic, for theta
+	public double[][] alpha; // Document-to-Component, for theta.  Shared across all views with this factor
+	public double[][][] delta; // View-to-Component-to-Topic, for theta.  Per view, since views have different number of topics.
 	
-	public double[][] beta;  // Topic-to-component, for phi
-	public double[][] betaB; // Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1
-	public double[][] omega; // Component-to-token, for phi
+	public double[][][] beta;  // View-to-Topic-to-component, for phi.  Per view, since views have different number of topics.
+	public double[][][] betaB; // View-to-Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1.  Sparsity enforced within a view.
+	public double[][] omega;   // Component-to-token, for phi.  Shared across all views with this factor.
 	
 	// Variance of Gaussian priors.  Default to 1.
 	private double sigmaBeta  = 1.0;
@@ -46,55 +45,65 @@ public class Factor {
 	
 	// For learning these parameters.  Keeps track of gradient history.
 	public double[][] adaAlpha; // Unused if this factor is observed
-	public double[][] adaDelta;
-	public double[][] adaBeta;
-	public double[][] adaBetaB;
+	public double[][][] adaDelta;
+	public double[][][] adaBeta;
+	public double[][][] adaBetaB;
 	public double[][] adaOmega;
 	
 	// Current estimate of gradient
 	public double[][] gradientOmega;
-	public double[][] gradientBeta;
-	public double[][] gradientBetaB;
+	public double[][][] gradientBeta;
+	public double[][][] gradientBetaB;
 	
-	public double[][] gradientDelta;
+	public double[][][] gradientDelta;
 	public double[][] gradientAlpha;
 	
 	// Is the value for this factor observed?  If so, then alpha is given.
 	// Changing this mid-training should cause document labels to be adjusted.
 	private boolean observed;
 	
-	private final int C;
-	private final int Z;
-	private final int W;
-	private final int D;
-	private double rho;
+	public int[] viewIndices; // The index of each view this factor affects
+	
+	public int C;
+	public int[] Z; // Different number of topics per view
+	public int[] W; // Different vocabulary per view
+	public int D;
+	
+	public double rho;
 	public final String factorName;
 	
 	/**
-	 * Latent factor.  Need to infer component values for each document
-	 * as well as weights for each from factor components to topics.
+	 * Latent/observed factor.  If it is observed, you should intiialize
+	 * alpha with the initialize method.
 	 * 
-	 * @param numComponents0
-	 * @param Z0 Number of topics in the whole model
-	 * @param W0 Number of token types
-	 * @param D0 Number of documents
+	 * @param numComponents0 Number of components/super-topics
+	 * @param viewIndices of each of the views this maps onto
+	 * @param Z0 Number of topics for each view this feeds into
 	 * @param rho0 If >=1 then we do not apply component->topic sparsity
 	 *             (beta drawn from a zero-mean gaussian).
-	 *             If <1, then beta is drawn from symmetric Dirichlet prior
+	 *             If <1, then B is drawn from symmetric Dirichlet prior
 	 *             with rho being the weight on alpha (U-shaped since rho<1).
-	 *             Beta may also be weighted.
-	 * @param tieBetaAndDelta0 These values should be tied together when updating.
-	 * @param factorName0
+	 *             Beta is also weighted
+	 * @param tieBetaAndDelta0 These values should be tied together when updating
+	 * @param sigmaBeta0  Beta prior stddev
+	 * @param sigmaOmega0 Omega prior stddev
+	 * @param sigmaAlpha0 Alpha prior stddev
+	 * @param sigmaDelta0 Delta prior stddev
+	 * @param alphaPositive0 Alpha is strictly positive
+	 * @param betaPositive0 Beta is strictly positive
+	 * @param deltaPositive0 Delta is strictly positive
+	 * @param factorName0 An informative name for this bag of doubles
 	 * 
 	 */
-	public Factor(int numComponents0, int Z0, int W0, int D0, double rho0, boolean tieBetaAndDelta0,
+	public Factor(int numComponents0, int[] viewIndices0, int[] Z0, double rho0, boolean tieBetaAndDelta0,
 				  double sigmaBeta0, double sigmaOmega0, double sigmaAlpha0, double sigmaDelta0, boolean alphaPositive0,
-				  boolean betaPositive0, boolean deltaPositive0, String factorName0) {
-		observed = false;
+				  boolean betaPositive0, boolean deltaPositive0, String factorName0, boolean observed0) {
+		observed = observed0;
+		
+		viewIndices = viewIndices0;
+		Z = Z0;
+		
 		C = numComponents0;
-		Z = Z0;
-		W = W0;
-		D = D0;
 		rho = rho0;
 		
 		sigmaBeta = sigmaBeta0;
@@ -108,53 +117,16 @@ public class Factor {
 		
 		tieBetaAndDelta = tieBetaAndDelta0;
 		factorName = factorName0;
-		
-		initialize();
 	}
 	
-	/**
-	 * Pass a weighting over components in this factor -- observed.
-	 * 
-	 * @param docLabels Real value for each document, for each component.
-	 * @param Z0 Number of topics in the whole model
-	 * @param D0 Number of documents
-	 * @param rho If >=1 then we do not apply component->topic sparsity.
-	 *            If <1, then beta is drawn from Dirichlet prior
-	 *            with rho (U-shaped since rho<1).
-	 * @param tieBetaAndDelta0 These values should be tied together when updating.
-	 * 
-	 */
-	public Factor(double[][] docLabels0, int Z0, int W0, double rho0, boolean tieBetaAndDelta0,
-					double sigmaBeta0, double sigmaOmega0, double sigmaAlpha0, double sigmaDelta0,
-					boolean alphaPositive0, boolean betaPositive0, boolean deltaPositive0,
-					String factorName0) {
-		observed = true;
-		alpha = docLabels0;
-		C = alpha[0].length;
-		Z = Z0;
-		W = W0;
-		D = alpha.length;
-		rho = rho0;
-		
-		sigmaBeta = sigmaBeta0;
-		sigmaOmega = sigmaOmega0;
-		sigmaAlpha = sigmaAlpha0;
-		sigmaDelta = sigmaDelta0;
-		
-		alphaPositive = alphaPositive0;
-		betaPositive  = betaPositive0;
-		deltaPositive = deltaPositive0;
-		
-		tieBetaAndDelta = tieBetaAndDelta0;
-		factorName = factorName0;
-		
-		initialize();
+	public void initialize(int[] W0) {
+		initialize(null, W0);
 	}
 	
-	private void initialize() {
-		System.out.println(String.format("Initializing factor %s: C=%d, observed=%d, rho=%e",
-					        factorName, C, observed ? 1 : 0, rho)
-					       );
+	public void initialize(double[][] docScores, int[] W0) {
+		Log.info("Factor",
+				String.format("Initializing factor %s: C=%d, observed=%d, rho=%e",
+					          factorName, C, observed ? 1 : 0, rho));
 		
 		sigmaBeta_sqr = Math.pow(sigmaBeta, 2.0);
 		sigmaAlpha_sqr = Math.pow(sigmaAlpha, 2.0);
@@ -293,7 +265,15 @@ public class Factor {
 		return weight;
 	}
 	
-	public boolean getObserved() { return observed; }
+	/**
+	 * Logs the values at this iteration.
+	 */
+	public void logState() {
+		
+		
+	}
+	
+	public boolean isObserved() { return observed; }
 	
 	public void setObserved(boolean observed0) { observed = observed0; }
 	

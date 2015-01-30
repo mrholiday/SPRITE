@@ -1,171 +1,154 @@
 package main;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+
 import java.util.HashMap;
+
+import utils.Log;
+import utils.MathUtils;
 
 public class LearnTopicModel {
 	
-	public static HashMap<String,String> arguments;
+	private static class CmdArgs {
+		@Parameter(names = "-model", description = "Type of topic model to run", required=true)
+		private String model;
+
+		@Parameter(names="-input", description="Path to training file", required=true)
+		String filename;
+
+		@Parameter(names="-Z", description="Number of topics", required=true)
+		int z;
+
+		@Parameter(names="-sigmaAlpha", description="Stddev for component to document assignments.  Defaults to 1.0")
+		double sigmaAlpha = 1.0;
+
+		@Parameter(names="-sigmaDelta", description="Stddev for delta.  Defaults to 1.0")
+		double sigmaDelta = 1.0;
+
+		@Parameter(names="-sigmaDeltaB", description="Stddev for delta bias.  Defaults to 1.0")
+		double sigmaDeltaBias = 1.0;
+
+		@Parameter(names="-sigmaOmega", description="Stddev for omega.  Defaults to 1.0")
+		double sigmaOmega = 1.0;
+
+		@Parameter(names="-sigmaOmegaB", description="Stddev for omega bias.  Defaults to 10.0")
+		double sigmaOmegaBias = 10.0;
+
+		@Parameter(names="-deltaB", description="Initial value for delta bias (on \\widetilde{\\theta}).  Defaults to -5.0")
+		double deltaBias = -5.0;
+
+		@Parameter(names="-omegaB", description="Initial value for omega bias (on \\widetilde{\\phi}).  Defaults to -5.0")
+		double omegaBias = -5.0;
+
+		@Parameter(names="-step", description="Master step size.  Defaults to 0.01")
+		double step = 0.01;
+
+		@Parameter(names="-Cth", description="Number of components across \\theta's factors.  Defaults to 11.")
+		int Cth = 11;
+
+		@Parameter(names="-Cph", description="Number of components across \\phi's factors.  Defaults to 11.")
+		int Cph = 11;
+
+		//@Parameter(names="-temper", description="Temperature constant")
+		//double temper = 1.0;
+
+		@Parameter(names="-seed", description="Random seed.  Default is to use machine clock time")
+		int seed = -1;
+
+		@Parameter(names="-likelihoodFreq", description="How often to print out likelihood/perplexity.  Setting less than 1 will disable printing.  Defaults to every 100 iterations.")
+		int likelihoodFreq = 100;
+
+		@Parameter(names="-nthreads", description="Number of threads that will sample and take gradient steps in parallel.  Defaults to 1.")
+		int numThreads = 1;
+
+		@Parameter(names="-computePerplexity", description="Whether held-out perplexity should be computed on half the data (other half used for training)")
+		boolean computePerplexity = false;
+
+		// The fold to assign topic vectors to (excluded from training)
+		// This is for the case where we want to predict document scores using inferred topic vectors
+		@Parameter(names="-predFold", description="Which fold to exclude from training.  Used for the prediction task.  If non-negative, input file should be in the correct format for the prediction task (second field is the fold index per document)")
+		int predFold = -1;
+		
+		@Parameter(names="-iters", description="Number of iterations for training total.  Defaults to 5000")
+		int iters = 5000;
+		
+		@Parameter(names="-samples", description="Number of samples to take for the final estimate.  Defaults to 100")
+		int samples = 100;
+		
+		@Parameter(names="-logPath", description="Where to log the training output.  Defaults to stdout")
+		String logPath = null;
+		
+		@Parameter(names = "--help", help = true)
+		private boolean help;
+	}
+	
+	private static void init(int seed, String logPath) {
+		if (seed == -1) {
+			MathUtils.initRandomStream();
+		}
+		else {
+			MathUtils.initRandomStream(seed);
+		}
+		
+		if (logPath != null) {
+			Log.initFileLogger(logPath);
+		}
+	}
 	
 	public static void main(String[] args) throws Exception {
-		arguments = new HashMap<String,String>();
-		
-		for (int i = 0; i < args.length; i += 2) {
-			arguments.put(args[i], args[i+1]);
-		}
-		
-		String model = arguments.get("-model");
-		String filename = arguments.get("-input");
-		
-		if (model == null) {
-			System.out.println("No model specified.");
-			return;
-		}
-		
-		if (filename == null) {
-			System.out.println("No input file given.");
-			return;
-		}
-		
 		TopicModel topicModel = null;
-
-			if (!arguments.containsKey("-Z")) {
-				System.out.println("Must specify number of topics using -Z");
-				return;
-			}
-			
-			int z = Integer.parseInt(arguments.get("-Z"));
-			
-			double sigmaAlpha = 1.0;
-			if (arguments.containsKey("-sigmaAlpha"))
-				sigmaAlpha = Double.parseDouble(arguments.get("-sigmaAlpha"));
-			
-			double sigmaA = 1.0;
-			if (arguments.containsKey("-sigmaA")) 
-				sigmaA = Double.parseDouble(arguments.get("-sigmaA"));
-			double sigmaAB = 1.0;
-			if (arguments.containsKey("-sigmaAB")) 
-				sigmaAB = Double.parseDouble(arguments.get("-sigmaAB"));
-			double sigmaW = 1.0;
-			if (arguments.containsKey("-sigmaW")) 
-				sigmaW = Double.parseDouble(arguments.get("-sigmaW"));
-			double sigmaWB = 10.0;
-			if (arguments.containsKey("-sigmaWB")) 
-				sigmaWB = Double.parseDouble(arguments.get("-sigmaWB"));
-			double delta0 = 0.1;
-			if (arguments.containsKey("-delta0")) 
-				delta0 = Double.parseDouble(arguments.get("-delta0"));
-			double delta1 = 0.1;
-			if (arguments.containsKey("-delta1")) 
-				delta1 = Double.parseDouble(arguments.get("-delta1"));
-			double deltaB = -5.0;
-			if (arguments.containsKey("-deltaB")) 
-				deltaB = Double.parseDouble(arguments.get("-deltaB"));
-			double omegaB = -5.0;
-			if (arguments.containsKey("-omegaB")) 
-				omegaB = Double.parseDouble(arguments.get("-omegaB"));
-			double stepSizeADZ = 1e-2;
-			if (arguments.containsKey("-stepSizeADZ")) 
-				stepSizeADZ = Double.parseDouble(arguments.get("-stepSizeADZ"));
-			double stepSizeAZ = stepSizeADZ / 100.0;
-			if (arguments.containsKey("-stepSizeAZ")) 
-				stepSizeAZ = Double.parseDouble(arguments.get("-stepSizeAZ"));
-			double stepSizeAB = stepSizeADZ / 100.0;
-			if (arguments.containsKey("-stepSizeAB")) 
-				stepSizeAB = Double.parseDouble(arguments.get("-stepSizeAB"));
-			double stepSizeW = 1e-3;
-			if (arguments.containsKey("-stepSizeW")) 
-				stepSizeW = Double.parseDouble(arguments.get("-stepSizeW"));
-			double stepSizeWB = stepSizeW / 100.0;
-			if (arguments.containsKey("-stepSizeWB")) 
-				stepSizeWB = Double.parseDouble(arguments.get("-stepSizeWB"));
-			double stepSizeB = 1e-3;
-			if (arguments.containsKey("-stepSizeB")) 
-				stepSizeB = Double.parseDouble(arguments.get("-stepSizeB"));
-
-			double stepA = 0.1;
-			if (arguments.containsKey("-step")) 
-				stepA = Double.parseDouble(arguments.get("-step"));
-			int Cth = 11;
-			if (arguments.containsKey("-Cth")) 
-				Cth = Integer.parseInt(arguments.get("-Cth"));
-			int Cph = 11;
-			if (arguments.containsKey("-Cph")) 
-				Cph = Integer.parseInt(arguments.get("-Cph"));
-			double temper = 1.0;
-			if (arguments.containsKey("-temper")) 
-				temper = Double.parseDouble(arguments.get("-temper"));
-			int seed = -1;
-			if (arguments.containsKey("-seed")) 
-				seed = Integer.parseInt(arguments.get("-seed"));
-
-			String priorPrefix = "";
-			if (arguments.containsKey("-priorPrefix")) 
-				priorPrefix = arguments.get("-priorPrefix");
-
-			int likelihoodFreq = 100;
-			if (arguments.containsKey("-likelihoodFreq")) 
-				likelihoodFreq = Integer.parseInt(arguments.get("-likelihoodFreq"));
-			if (likelihoodFreq == 0) likelihoodFreq = 1;
-			else if (likelihoodFreq == -1) likelihoodFreq = Integer.MAX_VALUE; 
-			else if (likelihoodFreq < -1) {
-				System.out.println("Invalid value for likelihoodFreq; must be positive");
-				return;	
-			}
-			
-			int numThreads = 1;
-			if (arguments.containsKey("-nthreads")) 
-				numThreads = Integer.parseInt(arguments.get("-nthreads"));
-			boolean computePerplexity = false;
-			if (arguments.containsKey("-computePerplexity")) 
-				computePerplexity = Boolean.parseBoolean(arguments.get("-computePerplexity"));
-			
-			// The fold to assign topic vectors to (excluded from training)
-			// This is for the case where we want to predict document scores using inferred topic vectors
-			int predFold = -1;
-			if (arguments.containsKey("-predFold"))
-				predFold = Integer.parseInt(arguments.get("-predFold"));
-			
-		if (model.equals("sprite")) {
+		
+		CmdArgs c = new CmdArgs();
+		new JCommander(c, args);
+		
+		if (c.model.equals("sprite")) {
 			//topicModel = new SpriteJoint(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
 			//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
 			//		                     stepA, Cth, Cph, seed, numThreads);
-			if (predFold >= 0) {
-				topicModel = new SpriteICWSMPred(z, sigmaAlpha, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ,
-					stepSizeAZ, stepSizeAB, stepSizeW, stepSizeWB, stepSizeB, delta0, delta1, deltaB,
-					omegaB, likelihoodFreq, priorPrefix, stepA, seed, numThreads, predFold);
+			if (c.predFold >= 0) {
+				// -1 or "" are for arguments that were obligatory but never used...
+				topicModel = new SpriteICWSMPred(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1,
+						-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.predFold);
 			}
 			else {
 				//topicModel = new SpriteJointThreeFactor(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
 				//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
 				//		                     stepA, Cth, Cph, seed, numThreads, computePerplexity);
-				topicModel = new SpriteICWSM(z, sigmaAlpha, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ,
-						stepSizeAZ, stepSizeAB, stepSizeW, stepSizeWB, stepSizeB, delta0, delta1, deltaB,
-						omegaB, likelihoodFreq, priorPrefix, stepA, seed, numThreads, computePerplexity);
+				topicModel = new SpriteICWSM(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
 		
-		else if (model.equals("sprite_lda")) {
-			if (predFold >= 0) {
-				  topicModel = new SpriteLDAPred(z, sigmaAlpha, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ,
-							stepSizeAZ, stepSizeAB, stepSizeW, stepSizeWB, stepSizeB, delta0, delta1, deltaB,
-							omegaB, likelihoodFreq, priorPrefix, stepA, seed, numThreads, predFold);
+		else if (c.model.equals("sprite_lda")) {
+			if (c.predFold >= 0) {
+				  topicModel = new SpriteLDAPred(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+							c.sigmaOmegaBias, -1,
+							-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+							c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.predFold);
 			}
 			else {
-				  topicModel = new SpriteLDA(z, sigmaAlpha, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ,
-							stepSizeAZ, stepSizeAB, stepSizeW, stepSizeWB, stepSizeB, delta0, delta1, deltaB,
-							omegaB, likelihoodFreq, priorPrefix, stepA, seed, numThreads, computePerplexity);
+				  topicModel = new SpriteLDA(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+							c.sigmaOmegaBias, -1,
+							-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+							c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
-		else if (model.equals("sprite_unsupervised")) {
-			if (predFold >= 0) {
-				  topicModel = new SpriteUnsupervisedPred(z, sigmaAlpha, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ,
-							stepSizeAZ, stepSizeAB, stepSizeW, stepSizeWB, stepSizeB, delta0, delta1, deltaB,
-							omegaB, likelihoodFreq, priorPrefix, stepA, seed, numThreads, predFold);
+		else if (c.model.equals("sprite_unsupervised")) {
+			if (c.predFold >= 0) {
+				  topicModel = new SpriteUnsupervisedPred(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+							c.sigmaOmegaBias, -1,
+							-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+							c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.predFold);
 			}
 			else {
-				  topicModel = new SpriteUnsupervised(z, sigmaAlpha, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ,
-							stepSizeAZ, stepSizeAB, stepSizeW, stepSizeWB, stepSizeB, delta0, delta1, deltaB,
-							omegaB, likelihoodFreq, priorPrefix, stepA, seed, numThreads, computePerplexity);
+				  topicModel = new SpriteUnsupervised(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+							c.sigmaOmegaBias, -1,
+							-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+							c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
 		else {
@@ -173,14 +156,10 @@ public class LearnTopicModel {
 			return;
 		}
 		
-		int iters = 5000;
-		if (arguments.containsKey("-iters")) 
-			iters = Integer.parseInt(arguments.get("-iters"));
-		int samples = 100;
-		if (arguments.containsKey("-samples")) 
-			samples = Integer.parseInt(arguments.get("-samples"));
+		// Initializes random stream and logger
+		init(c.seed, c.logPath);
 		
-		topicModel.train(iters, samples, filename);
+		topicModel.train(c.iters, c.samples, c.filename);
 	}
 
 }

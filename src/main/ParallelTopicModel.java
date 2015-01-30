@@ -1,7 +1,5 @@
 package main;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import utils.Tup2;
@@ -28,14 +26,14 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	// need to set to something reasonable.
 	protected int[][] varDims;
 	
-	public ParallelTopicModel(int numThreads0, int[][] varDims0) {
+	protected void setParallelParams(int numThreads0, int[][] varDims0) {
 		numThreads = numThreads0;
 		varDims = varDims0;
 	}
 	
 	@Override
 	@SuppressWarnings("unchecked")
-	public void initialize() {
+	protected void initialize() {
 		/*
 		 * Spins up worker threads.  Implementation will want to add to this
 		 * by initializing parameters.
