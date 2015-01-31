@@ -40,10 +40,10 @@ public class SpritePhiPrior {
 		currentView = currentView0;
 		initOmegaBias = omegaInitBias0;
 		
-		init();
+		initialize();
 	}
 	
-	private void init() {
+	private void initialize() {
 		omegaBias = new double[W];
 		for (int i = 0; i < W; i++) {
 			omegaBias[i] = initOmegaBias;

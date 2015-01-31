@@ -36,10 +36,10 @@ public class SpriteThetaPrior {
 		initDeltaBias = initDeltaBias0;
 		currentView = currentView0;
 		
-		init();
+		initialize();
 	}
 	
-	private void init() {
+	private void initialize() {
 		deltaBias = new double[Z];
 		for (int i = 0; i < Z; i++) {
 			deltaBias[i] = initDeltaBias;

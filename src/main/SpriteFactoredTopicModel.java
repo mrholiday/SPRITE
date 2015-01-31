@@ -11,6 +11,7 @@ import java.util.Random;
 import prior.SpritePhiPrior;
 import prior.SpriteThetaPrior;
 
+import utils.MathUtils;
 import utils.Tup2;
 import utils.Tup4;
 
@@ -35,11 +36,11 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected int[] W;   // Each view has its own alphabet.
 	protected int numViews = 0; // Number of different views for the document
 	
-	protected int[][][] docs;
+	protected int[][][] docs; // Loaded documents.  Document -> View -> Words
 	
 	// Current sampled topic assignments
-	protected int[][] docsZ;
-	protected int[][][] docsZZ;
+	protected int[][][] docsZ;    // Burned-in samples of Document -> View -> Word Index 
+	protected int[][][][] docsZZ; // Burned-in samples of Document -> View -> Word Index -> Topic
 	
 	// Samples
 	protected int[][][] nDZ; // Document -> View -> Topic samples
@@ -115,8 +116,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	@Override
 	public void initialize() {
-		docsZ = new int[D][];
-		docsZZ = new int[D][][];
+		docsZ = new int[D][numViews][];
+		docsZZ = new int[D][numViews][][];
 		
 		// Initialize samples.  Since each view has its own set of topics, we need to sample for
 		// each one separately.
@@ -134,11 +135,25 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			nZ[v]  = new int[Z[v]];
 		}
 		
-		for (int z = 0; z < Z; z++) {
-			deltaBias[z] = initDeltaB;
-		}
-		for (int w = 0; w < W; w++) {
-			omegaBias[w] = initOmegaB;
+		for (int d = 0; d < D; d++) { 
+			for (int v = 0; v < numViews; v++) {
+				docsZ[d][v]  = new int[docs[d][v].length];
+				docsZZ[d][v] = new int[docs[d][v].length][Z[v]];
+
+				for (int n = 0; n < docs[d][v].length; n++) {
+					int w = docs[d][v][n];
+					
+					int z = MathUtils.r.nextInt(Z[v]); // sample uniformly
+					docsZ[d][v][n] = z;
+					
+					// update counts
+					
+					nZW[v][z][w] += 1;	
+					nZ[v][z] += 1;
+					nDZ[v][d][z] += 1;
+					nD[v][d] += 1;
+				}
+			}
 		}
 		
 		varDims = new int[numViews][3];
