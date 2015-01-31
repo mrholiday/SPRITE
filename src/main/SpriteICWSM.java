@@ -733,7 +733,7 @@ public class SpriteICWSM extends TopicModel implements Serializable {
 					e.printStackTrace();
 				}
 			}
-
+			
 			updateLambda();
 		}
 		

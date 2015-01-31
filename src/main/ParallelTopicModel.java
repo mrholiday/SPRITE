@@ -2,6 +2,7 @@ package main;
 
 import java.util.concurrent.ArrayBlockingQueue;
 
+import utils.Log;
 import utils.Tup2;
 
 import main.SpriteWorker.ThreadCommand;
@@ -148,14 +149,14 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		logIteration();
 		
 		if (iter % likelihoodFreq == 0) {
-			System.out.println("Log-likelihood: " + computeLL());
+			Log.info("topic_model", "Log-likelihood: " + computeLL());
 		}
 		
 		collectSamples();
 		
 		if (TIME_ITERATIONS) {
 			long endTime = System.currentTimeMillis();
-			System.out.println(String.format("Iteration time:\t%d\t%d", iter, endTime - startTime));
+			Log.info("topic_model", String.format("Iteration time:\t%d\t%d", iter, endTime - startTime));
 		}
 	}
 	

@@ -145,88 +145,21 @@ public class Factor {
 		sigmaDelta_sqr = Math.pow(sigmaDelta, 2.0);
 		sigmaOmega_sqr = Math.pow(sigmaOmega, 2.0);
 		
-		if (adaAlpha == null) {
-			adaAlpha = new double[D][C]; // Latent factor
-		}
-		else {
-			adaAlpha = docScores; // This factor's components are observed
-		}
-		
+		adaAlpha = new double[D][C];
 		adaDelta = new double[numViews][C][];
-		for (int v = 0; v < numViews; v++) {
-			for (int c = 0; c < C; c++) {
-				adaDelta[v][c] = new double[Z[v]];
-			}
-		}
-		
 		adaBeta  = new double[numViews][][];
-		for (int v = 0; v < numViews; v++) {
-			adaBeta[v] = new double[Z[v]][C];
-		}
-		
 		adaBetaB = new double[numViews][][];
-		for (int v = 0; v < numViews; v++) {
-			adaBetaB[v] = new double[Z[v]][C];
-		}
-		
 		adaOmega = new double[numViews][C][];
-		for (int v = 0; v < numViews; v++) {
-			for (int c = 0; c < C; c++) {
-				adaOmega[v][c] = new double[W[v]];
-			}
-		}
-		
-		gradientOmega = new double[numViews][C][];
-		for (int v = 0; v < numViews; v++) {
-			for (int c = 0; c < C; c++) {
-				gradientOmega[v][c] = new double[W[v]];
-			}
-		}
-		
-		gradientBeta  = new double[numViews][][];
-		for (int v = 0; v < numViews; v++) {
-			gradientBeta[v] = new double[Z[v]][C];
-		}
-		
-		gradientBetaB = new double[numViews][][];
-		for (int v = 0; v < numViews; v++) {
-			gradientBetaB[v] = new double[Z[v]][C];
-		}
 		
 		gradientAlpha = new double[D][C];
 		gradientDelta = new double[numViews][C][];
-		for (int v = 0; v < numViews; v++) {
-			for (int c = 0; c < C; c++) {
-				gradientDelta[v][c] = new double[Z[v]];
-			}
-		}
+		gradientBeta  = new double[numViews][][];
+		gradientBetaB = new double[numViews][][];
+		gradientOmega = new double[numViews][C][];
 		
-		beta  = new double[numViews][][]; // Topic-to-component, for phi
-		for (int v = 0; v < numViews; v++) {
-			beta[v] = new double[Z[v]][C];
-		}
-		
-		betaB = new double[numViews][][]; // Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1
-		for (int v = 0; v < numViews; v++) {
-			beta[v] = new double[Z[v]][C];
-		}
-		
-		omega = new double[numViews][C][]; // Component-to-token, for phi
-		for (int v = 0; v < numViews; v++) {
-			for (int c = 0; c < C; c++) {
-				gradientOmega[v][c] = new double[W[v]];
-			}
-		}
-		
-		alpha = new double[D][C]; // Document-to-component, for theta
-		delta = new double[numViews][C][]; // Component-to-topic, for theta
-		for (int v = 0; v < numViews; v++) {
-			for (int c = 0; c < C; c++) {
-				delta[v][c] = new double[Z[v]];
-			}
-		}
-		
-		if (!observed) {
+		// Init alpha, component weight for each document
+		if (docScores == null) {
+			alpha = new double[D][C]; // Latent factor
 			for (int d = 0; d < D; d++) {
 				for (int c = 0; c < C; c++) {
 					if (!alphaPositive) {
@@ -238,9 +171,20 @@ public class Factor {
 				}
 			}
 		}
+		else {
+			alpha = docScores; // Observed
+		}
+		delta = new double[numViews][C][]; // Component-to-topic, for theta
+		beta  = new double[numViews][][]; // Topic-to-component, for phi
+		betaB = new double[numViews][][]; // Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1
+		omega = new double[numViews][C][]; // Component-to-token, for phi
 		
 		for (int v = 0; v < numViews; v++) {
 			for (int c = 0; c < C; c++) {
+				// Init delta
+				adaDelta[v][c] = new double[Z[v]];
+				gradientDelta[v][c] = new double[Z[v]];
+				delta[v][c] = new double[Z[v]];
 				for (int z = 0; z < Z[v]; z++) {
 					if (!deltaPositive) {
 						delta[v][c][z] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
@@ -250,21 +194,18 @@ public class Factor {
 					}
 				}
 			}
-		}
-
-		for (int v = 0; v < numViews; v++) {
-			for (int c = 0; c < C; c++) {
-				for (int w = 0; w < W[v]; w++) {
-					omega[v][c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
-				}
-			}
-		}
-		
-		for (int v = 0; v < numViews; v++) {
+			
+			// Init beta/beta bias
+			adaBeta[v] = new double[Z[v]][C];
+			adaBetaB[v] = new double[Z[v]][C];
+			gradientBeta[v] = new double[Z[v]][C];
+			gradientBetaB[v] = new double[Z[v]][C];
+			beta[v] = new double[Z[v]][C];
+			betaB[v] = new double[Z[v]][C];
 			for (int z = 0; z < Z[v]; z++) {
 				for (int c = 0; c < C; c++) {
 					betaB[v][z][c] = 1.0;
-
+					
 					if (tieBetaAndDelta) {
 						beta[v][z][c] = delta[v][c][z];
 					}
@@ -279,8 +220,17 @@ public class Factor {
 
 				}
 			}
+			
+			// Init omega
+			adaOmega[v]      = new double[C][W[v]];
+			gradientOmega[v] = new double[C][W[v]];
+			omega[v]         = new double[C][W[v]];
+			for (int c = 0; c < C; c++) {
+				for (int w = 0; w < W[v]; w++) {
+					omega[v][c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+				}
+			}
 		}
-		
 	}
 	
 	/**
@@ -349,11 +299,41 @@ public class Factor {
 	}
 	
 	/**
-	 * Logs values for this iteration.
+	 * Logs current values for this iteration.  Bias values are printed out by Sprite(Theta|Phi)Prior.
 	 */
 	public void logState() {
-		
-		
+		for (int v = 0; v < numViews; v++) {
+			for (int z = 0; z < Z[v]; z++) {
+				StringBuilder b = new StringBuilder();
+				
+				b.append(String.format("delta_%d_%d", v, z));
+				for (int c = 0; c < C; c++) {
+					b.append(String.format(" %.3f", delta[v][c][z]));
+				}
+				
+				Log.info("factor " + factorName + " iteration", b.toString());
+			}
+			for (int z = 0; z < Z[v]; z++) {
+				StringBuilder b = new StringBuilder();
+				
+				b.append(String.format("beta_%d_%d", v, z));
+				for (int c = 0; c < C; c++) {
+					b.append(String.format(" %.3f", beta[v][z][c]));
+				}
+				
+				Log.info("factor " + factorName + " iteration", b.toString());
+			}
+			
+			for (int w = 0; w < W[v]; w += 10000) {
+				StringBuilder b = new StringBuilder();
+				
+				b.append(String.format("omega_%d_%d", v, w));
+				for (int c = 0; c < C; c++) {
+					b.append(String.format(" %.3f", omega[v][c][w]));
+				}
+				Log.info("factor " + factorName + " iteration", b.toString());
+			}
+		}
 	}
 	
 	public boolean isObserved() { return observed; }

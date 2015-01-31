@@ -42,10 +42,10 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected int[][][] docsZZ;
 	
 	// Samples
-	protected int[][] nDZ;
-	protected int[]    nD;
-	protected int[][] nZW;
-	protected int[]    nZ;
+	protected int[][][] nDZ; // Document -> View -> Topic samples
+	protected int[][]    nD; // Document -> View samples (number of tokens in each, set at initialization)
+	protected int[][][] nZW; // View -> Topic -> Word samples
+	protected int[][]    nZ; // View -> Topic samples
 	
 	protected int numFactorsObserved = 0;
 	protected int[] observedFactorSizes;
@@ -118,22 +118,20 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		docsZ = new int[D][];
 		docsZZ = new int[D][][];
 		
-		nDZ = new int[D][Z];
-		nD = new int[D];
-		nZW = new int[Z][W];
-		nZ = new int[Z];
+		// Initialize samples.  Since each view has its own set of topics, we need to sample for
+		// each one separately.
+		nDZ = new int[D][numViews][];
+		nD  = new int[D][numViews];
+		nZW = new int[numViews][][];
+		nZ  = new int[numViews][];
 		
-		// Init factors
-		factors = new Factor[factorSizes.length];
-		int j = 0;
-		for (int i = 0 ; i < factorSizes.length; i++) {
-			if ( factorObserved[i] ) {
-				factors[i] = new Factor(docsC[j], Z, W, factorRhos[i], factorNames[i]);
-				j++;
+		for (int v = 0; v < numViews; v++) {
+			for (int d = 0; d < D; d++) {
+				nDZ[d][v] = new int[Z[v]];
 			}
-			else {
-				factors[i] = new Factor(factorSizes[i], Z, W, D, factorRhos[i], factorNames[i]);
-			}
+			
+			nZW[v] = new int[Z[v]][W[v]];
+			nZ[v]  = new int[Z[v]];
 		}
 		
 		for (int z = 0; z < Z; z++) {
@@ -143,15 +141,31 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			omegaBias[w] = initOmegaB;
 		}
 		
-		varDims = new int[] {Z, D, W};
+		varDims = new int[numViews][3];
+		for (int v = 0; v < numViews; v++) {
+			varDims[v][0] = Z[v];
+			varDims[v][1] = D;
+			varDims[v][2] = W[v];
+		}
 		
 		super.initialize(); // Spin up threads
 	}
 	
 	@Override
 	public void logIteration() {
-		// TODO Auto-generated method stub
+		// Print out delta bias vectors
+		for (SpriteThetaPrior prior : thetaPriors) {
+			prior.logState();
+		}
+		// Print out omega bias vectors
+		for (SpritePhiPrior prior : phiPriors) {
+			prior.logState();
+		}
 		
+		// Print out per-component weights
+		for (Factor f : factors) {
+			f.logState();
+		}
 	}
 	
 	@Override
@@ -214,6 +228,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				W_subset[i] = W[f.viewIndices[i]];
 			}
 			
+			// Initialize factors -- observed and latent.
 			if (f.isObserved()) {
 				f.initialize(observedValues[factorIdx], W_subset);
 				factorIdx++;

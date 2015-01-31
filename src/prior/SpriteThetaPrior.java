@@ -1,5 +1,6 @@
 package prior;
 
+import utils.Log;
 import main.Factor;
 
 /**
@@ -98,6 +99,20 @@ public class SpriteThetaPrior {
 	
 	private void updateThetaNorm() {
 		updateThetaNorm(0, Z);
+	}
+	
+
+	/**
+	 * Logs bias term for this iteration.
+	 */
+	public void logState() {
+		StringBuilder b = new StringBuilder();
+		b.append(String.format("deltaBias_%d", currentView));
+		for (int z = 0; z < Z; z++) {
+			b.append(String.format(" %.3f", deltaBias[z]));
+		}
+		
+		Log.info("thetaPrior_" + currentView + " iteration", b.toString());
 	}
 	
 }

@@ -20,7 +20,7 @@ public class SpriteJoint extends TopicModel {
 	public HashMap<Integer,String> wordMapInv;
 
 	private Random r;
-
+	
 	public String priorPrefix;
 
 	public int[][] docs;
