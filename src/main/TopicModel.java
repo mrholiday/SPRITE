@@ -1,6 +1,13 @@
 package main;
 
-public abstract class TopicModel implements Trainable {
+import java.io.File;
+import java.io.Serializable;
+
+public abstract class TopicModel implements Trainable, Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -5947800023944902504L;
 	
 	public String inputFilename;
 	
@@ -58,7 +65,11 @@ public abstract class TopicModel implements Trainable {
 	
 	public abstract void readDocs(String filename) throws Exception;
 	
-	public abstract void writeOutput(String filename) throws Exception;
+	public abstract void writeOutput(String filename, String outputDir) throws Exception;
+	
+	public void writeOutput(String filename) throws Exception {
+		writeOutput(filename, new File(filename).getParent());
+	}
 	
 	public abstract void cleanUp() throws Exception;
 	

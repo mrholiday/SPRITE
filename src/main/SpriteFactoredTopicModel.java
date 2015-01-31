@@ -1,12 +1,10 @@
 package main;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.Map;
-import java.util.Random;
 
 import prior.SpritePhiPrior;
 import prior.SpriteThetaPrior;
@@ -16,9 +14,9 @@ import utils.Tup2;
 import utils.Tup4;
 
 /**
- * Should be equivalent to SpriteJoint model but allows for multiple,
- * possibly categorical, factors.  Factors may be observed, or latent
- * This is an attempt to make SpriteJoint more generic.  Not hopeful though.
+ * Should be equivalent to SpriteJoint model but allows for multiple
+ * factors.  Factors may be observed, or latent this is an attempt to
+ * make SpriteJoint more generic.  At the moment, not hopeful though.
  * 
  * @author adrianb
  *
@@ -200,19 +198,19 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		// TODO Auto-generated method stub
 		
 	}
-
+	
 	@Override
 	public void sampleBatch(Tup2<Integer, Integer>[][] parameterRanges) {
 		// TODO Auto-generated method stub
 		
 	}
-
+	
 	@Override
 	public void updateGradient(Tup2<Integer, Integer>[][] parameterRanges) {
 		// TODO Auto-generated method stub
 		
 	}
-
+	
 	@Override
 	public void doGradientStep(Tup2<Integer, Integer>[][] parameterRanges) {
 		// TODO Auto-generated method stub
@@ -255,12 +253,33 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		
 	}
 	
-	@Override
 	public void writeOutput(String filename) throws Exception {
+		writeOutput(filename, new File(filename).getParent()); // Write to the same directory as the input file.
+	}
+	
+	@Override
+	public void writeOutput(String filename, String outputDir) throws Exception {
 		// TODO Auto-generated method stub
+		String baseName = new File(filename).getName();
+		
+		// Write topic assignments file
 		
 		
+		// Write bias terms
 		
+		// Write factor parameters
+		
+		// Serialize the model so we can use it/continue training later if necessary
+		// Serialize this model so we can load it later
+		try {
+			FileOutputStream fileOut = new FileOutputStream(new File(outputDir, baseName + ".ser"));
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			out.writeObject(this);
+			out.close();
+			fileOut.close();
+		} catch(IOException e) {
+		   	e.printStackTrace();
+		}
 	}
 
 }

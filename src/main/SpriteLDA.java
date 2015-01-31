@@ -1011,9 +1011,7 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		System.out.println(W + " word types");
 	}
 	
-	public void writeOutput(String filename) throws Exception {
-		File outputDir = new File(new File(filename).getParent(), String.format("output_ICWSM_%d_%.2f_%.2f", Z, stepA, sigmaAlpha));
-		outputDir.mkdir();
+	public void writeOutput(String filename, String outputDir) throws Exception {
 		String baseName = new File(filename).getName();
 		
 		FileWriter fw = new FileWriter(new File(outputDir, baseName + ".lda.assign"));

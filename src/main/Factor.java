@@ -1,5 +1,7 @@
 package main;
 
+import java.io.Serializable;
+
 import utils.Log;
 import utils.MathUtils;
 
@@ -12,7 +14,12 @@ import utils.MathUtils;
  * @author adrianb
  * 
  */
-public class Factor {
+public class Factor implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 5910933371949825941L;
+	
 	// Which parameters are restricted to be positive.
 	public boolean alphaPositive = false;
 	public boolean betaPositive  = false;

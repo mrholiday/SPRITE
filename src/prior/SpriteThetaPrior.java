@@ -1,5 +1,7 @@
 package prior;
 
+import java.io.Serializable;
+
 import utils.Log;
 import main.Factor;
 
@@ -10,7 +12,12 @@ import main.Factor;
  * @author adrianb
  *
  */
-public class SpriteThetaPrior {
+public class SpriteThetaPrior implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 4886307604396203824L;
+
 	// The factors that feed into this prior.
 	private Factor[] factors;
 	

@@ -1247,9 +1247,7 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 		System.out.println(W + " word types");
 	}
 	
-	public void writeOutput(String filename) throws Exception {
-		File outputDir = new File(new File(filename).getParent(), String.format("output_%d_%d_%.2f", Z, Cph, deltaB));
-		outputDir.mkdir();
+	public void writeOutput(String filename, String outputDir) throws Exception {
 		String baseName = new File(filename).getName();
 		
 		FileWriter fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.assign", predFold)));
