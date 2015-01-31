@@ -8,7 +8,7 @@ public abstract class TopicModel implements Trainable {
 	protected boolean burnedIn = false;
 	protected int writeFreq = 1000;
 	
-	protected int[][] docs;
+	protected int[][][] docs;
 	
 	public void train(int iters, int samples, String filename) throws Exception {
 		try {

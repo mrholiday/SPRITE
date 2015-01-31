@@ -278,7 +278,7 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 			docsZZ[d] = new int[docs[d].length][Z];
 			
 			for (int n = 0; n < docs[d].length; n++) {
-				int w = docs[d][n];
+				int w = docs[0][d][n];
 				
 				int z = r.nextInt(Z); // sample uniformly
 				docsZ[d][n] = z;
@@ -1104,7 +1104,7 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 	}
 	
 	public void sample(int d, int n) {
-		int w = docs[d][n];
+		int w = docs[0][d][n];
 		int topic = docsZ[d][n];
 		
 		// decrement counts
@@ -1197,7 +1197,7 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 			D++;
 		}
 		
-		docs = new int[D][];
+		docs = new int[1][D][];
 		docsC0 = new double[D];
 		docsC1 = new double[D];
 		docsC2 = new double[D];
@@ -1214,7 +1214,7 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 			
 			int N = tokens.length;
 			
-			docs[d] = new int[N-5];
+			docs[0][d] = new int[N-5];
 			docToFold[d] = Integer.parseInt(tokens[1]);
 			docsC0[d] = Double.parseDouble(tokens[2]);
 			docsC1[d] = Double.parseDouble(tokens[3]);
@@ -1232,7 +1232,7 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 					key = ((Integer) wordMap.get(word)).intValue();
 				}
 				
-				docs[d][n-5] = key;
+				docs[0][d][n-5] = key;
 			}
 			
 			d++;
@@ -1415,6 +1415,11 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 
 	@Override
 	public void collectSamples() { }
+
+	@Override
+	public double computeLL(int[][][] corpus) {
+		return computeLL(corpus[0]);
+	}
 	
 }
 

@@ -64,7 +64,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		for (int i = 0; i < tpriors.length; i++) {
 			ranges[i][0] = tpriors[i].Z;
 			ranges[i][0] = tpriors[i].D;
-			ranges[i][0] = ppriors[i].V;
+			ranges[i][0] = ppriors[i].W;
 		}
 		
 		return ranges;
@@ -228,6 +228,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	@Override
 	public void writeOutput(String filename) throws Exception {
 		// TODO Auto-generated method stub
+		
+		
 		
 	}
 

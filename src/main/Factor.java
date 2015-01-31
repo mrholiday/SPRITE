@@ -29,7 +29,7 @@ public class Factor {
 	
 	public double[][][] beta;  // View-to-Topic-to-component, for phi.  Per view, since views have different number of topics.
 	public double[][][] betaB; // View-to-Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1.  Sparsity enforced within a view.
-	public double[][] omega;   // Component-to-token, for phi.  Shared across all views with this factor.
+	public double[][][] omega;   // Component-to-token, for phi.  Per view since we have different vocabularies for each view.
 	
 	// Variance of Gaussian priors.  Default to 1.
 	private double sigmaBeta  = 1.0;
@@ -48,10 +48,10 @@ public class Factor {
 	public double[][][] adaDelta;
 	public double[][][] adaBeta;
 	public double[][][] adaBetaB;
-	public double[][] adaOmega;
+	public double[][][] adaOmega;
 	
 	// Current estimate of gradient
-	public double[][] gradientOmega;
+	public double[][][] gradientOmega;
 	public double[][][] gradientBeta;
 	public double[][][] gradientBetaB;
 	
@@ -62,6 +62,7 @@ public class Factor {
 	// Changing this mid-training should cause document labels to be adjusted.
 	private boolean observed;
 	
+	public int numViews;
 	public int[] viewIndices; // The index of each view this factor affects
 	
 	public int C;
@@ -101,6 +102,8 @@ public class Factor {
 		observed = observed0;
 		
 		viewIndices = viewIndices0;
+		numViews    = viewIndices.length;
+		
 		Z = Z0;
 		
 		C = numComponents0;
@@ -123,35 +126,105 @@ public class Factor {
 		initialize(null, W0);
 	}
 	
+	/**
+	 * Painful initialization.  Silly me for trying to support more than one view.
+	 * TODO: Figure out how to initialize more gracefully.
+	 * 
+	 * @param docScores If this factor is observed, alpha is set to these values.
+	 * @param W0 Vocabulary size for each view this factor is responsible for.
+	 */
 	public void initialize(double[][] docScores, int[] W0) {
 		Log.info("Factor",
 				String.format("Initializing factor %s: C=%d, observed=%d, rho=%e",
 					          factorName, C, observed ? 1 : 0, rho));
+		
+		W = W0;
 		
 		sigmaBeta_sqr = Math.pow(sigmaBeta, 2.0);
 		sigmaAlpha_sqr = Math.pow(sigmaAlpha, 2.0);
 		sigmaDelta_sqr = Math.pow(sigmaDelta, 2.0);
 		sigmaOmega_sqr = Math.pow(sigmaOmega, 2.0);
 		
-		adaAlpha = new double[D][C]; // Unused if this factor is observed
-		adaDelta = new double[C][Z];
-		adaBeta  = new double[Z][C];
-		adaBetaB = new double[Z][C];
-		adaOmega = new double[C][W];
+		if (adaAlpha == null) {
+			adaAlpha = new double[D][C]; // Latent factor
+		}
+		else {
+			adaAlpha = docScores; // This factor's components are observed
+		}
 		
-		gradientOmega = new double[C][W];
-		gradientBeta  = new double[Z][C];
-		gradientBetaB = new double[Z][C];
+		adaDelta = new double[numViews][C][];
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				adaDelta[v][c] = new double[Z[v]];
+			}
+		}
+		
+		adaBeta  = new double[numViews][][];
+		for (int v = 0; v < numViews; v++) {
+			adaBeta[v] = new double[Z[v]][C];
+		}
+		
+		adaBetaB = new double[numViews][][];
+		for (int v = 0; v < numViews; v++) {
+			adaBetaB[v] = new double[Z[v]][C];
+		}
+		
+		adaOmega = new double[numViews][C][];
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				adaOmega[v][c] = new double[W[v]];
+			}
+		}
+		
+		gradientOmega = new double[numViews][C][];
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				gradientOmega[v][c] = new double[W[v]];
+			}
+		}
+		
+		gradientBeta  = new double[numViews][][];
+		for (int v = 0; v < numViews; v++) {
+			gradientBeta[v] = new double[Z[v]][C];
+		}
+		
+		gradientBetaB = new double[numViews][][];
+		for (int v = 0; v < numViews; v++) {
+			gradientBetaB[v] = new double[Z[v]][C];
+		}
 		
 		gradientAlpha = new double[D][C];
-		gradientDelta = new double[C][Z];
+		gradientDelta = new double[numViews][C][];
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				gradientDelta[v][c] = new double[Z[v]];
+			}
+		}
 		
-		beta  = new double[Z][C]; // Topic-to-component, for phi
-		betaB = new double[Z][C]; // Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1
-		omega = new double[C][W]; // Component-to-token, for phi
+		beta  = new double[numViews][][]; // Topic-to-component, for phi
+		for (int v = 0; v < numViews; v++) {
+			beta[v] = new double[Z[v]][C];
+		}
+		
+		betaB = new double[numViews][][]; // Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1
+		for (int v = 0; v < numViews; v++) {
+			beta[v] = new double[Z[v]][C];
+		}
+		
+		omega = new double[numViews][C][]; // Component-to-token, for phi
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				gradientOmega[v][c] = new double[W[v]];
+			}
+		}
 		
 		alpha = new double[D][C]; // Document-to-component, for theta
-		delta = new double[C][Z]; // Component-to-topic, for theta
+		delta = new double[numViews][C][]; // Component-to-topic, for theta
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				delta[v][c] = new double[Z[v]];
+			}
+		}
 		
 		if (!observed) {
 			for (int d = 0; d < D; d++) {
@@ -166,41 +239,48 @@ public class Factor {
 			}
 		}
 		
-		for (int c = 0; c < C; c++) { 
-			for (int z = 0; z < Z; z++) {
-				if (!deltaPositive) {
-					delta[c][z] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
-				}
-				else {
-					delta[c][z] = -2.0; // Small positive number when exped
-				}
-			}
-		}
-		
-		for (int c = 0; c < C; c++) {
-			for (int w = 0; w < W; w++) {
-				omega[c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
-			}
-		}
-		
-		for (int z = 0; z < Z; z++) {
+		for (int v = 0; v < numViews; v++) {
 			for (int c = 0; c < C; c++) {
-				betaB[z][c] = 1.0;
-				
-				if (tieBetaAndDelta) {
-					beta[z][c] = delta[c][z];
-				}
-				else {
-					if (!betaPositive) {
-						beta[z][c] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+				for (int z = 0; z < Z[v]; z++) {
+					if (!deltaPositive) {
+						delta[v][c][z] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
 					}
 					else {
-						beta[z][c] = -2.0; // Small positive number when exped
+						delta[v][c][z] = -2.0; // Small positive number when exped
 					}
 				}
-					
 			}
 		}
+
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				for (int w = 0; w < W[v]; w++) {
+					omega[v][c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+				}
+			}
+		}
+		
+		for (int v = 0; v < numViews; v++) {
+			for (int z = 0; z < Z[v]; z++) {
+				for (int c = 0; c < C; c++) {
+					betaB[v][z][c] = 1.0;
+
+					if (tieBetaAndDelta) {
+						beta[v][z][c] = delta[v][c][z];
+					}
+					else {
+						if (!betaPositive) {
+							beta[v][z][c] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+						}
+						else {
+							beta[v][z][c] = -2.0; // Small positive number when exped
+						}
+					}
+
+				}
+			}
+		}
+		
 	}
 	
 	/**
@@ -232,16 +312,17 @@ public class Factor {
 	
 	/**
 	 * 
+	 * @param v View index
 	 * @param z Topic index
 	 * @param w Word index
 	 * @return Partial sum for \widetilde{phi} for components in this factor.
 	 */
-	public double getPriorPhi(int z, int w) {
+	public double getPriorPhi(int v, int z, int w) {
 		double weight = 0.0;
 		
 		for (int c = 0; c < C; c++) {
-			double betaRightSign = betaPositive ? Math.exp(beta[z][c]) : beta[z][c];
-			weight += betaB[z][c] * betaRightSign * omega[c][w];
+			double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
+			weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
 		}
 		
 		return Math.exp(weight);
@@ -249,24 +330,26 @@ public class Factor {
 	
 	/**
 	 * 
+	 * @param v View index
 	 * @param d Document index
 	 * @param z Topic index
+	 * 
 	 * @return The partial sum for \widetilde{theta} for components in this factor.
 	 */
-	public double getPriorTheta(int d, int z) {
+	public double getPriorTheta(int v, int d, int z) {
 		double weight = 0.0;
 		
 		for (int c = 0; c < C; c++) {
-			double deltaRightSign = deltaPositive  ? Math.exp(delta[c][z]) : delta[z][c];
+			double deltaRightSign = deltaPositive  ? Math.exp(delta[v][c][z]) : delta[v][z][c];
 			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
-			weight += alphaRightSign * betaB[z][c] * deltaRightSign;
+			weight += alphaRightSign * betaB[v][z][c] * deltaRightSign;
 		}
 		
 		return weight;
 	}
 	
 	/**
-	 * Logs the values at this iteration.
+	 * Logs values for this iteration.
 	 */
 	public void logState() {
 		

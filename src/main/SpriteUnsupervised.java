@@ -287,7 +287,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 			
 			if (!computePerplexity) {
 				for (int n = 0; n < docs[d].length; n++) {
-					int w = docs[d][n];
+					int w = docs[0][d][n];
 					
 					int z = r.nextInt(Z); // sample uniformly
 					docsZ[d][n] = z;
@@ -302,7 +302,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 			}
 			else { // Train on every other token.  Ignore the other tokens.
 				for (int n = 0; n < docs[d].length; n += 2) {
-					int w = docs[d][n];
+					int w = docs[0][d][n];
 					
 					int z = r.nextInt(Z); // sample uniformly
 					docsZ[d][n] = z;
@@ -871,7 +871,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 	}
 	
 	public void sample(int d, int n) {
-		int w = docs[d][n];
+		int w = docs[0][d][n];
 		int topic = docsZ[d][n];
 		
 		// decrement counts
@@ -926,7 +926,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 		for (int d = 0; d < D; d++) {
 			int startN = isHeldOut ? 1 : 0;
 			for (int n = startN; n < docs[d].length; n += 2) {
-				int w = docs[d][n];
+				int w = docs[0][d][n];
 				
 				double tokenLL = 0;
 				
@@ -953,7 +953,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 			
 			if (isHeldOut) { // Compute LL on the held-out set
 				for (int n = 1; n < docs[d].length; n += 2) {
-					int w = docs[d][n];
+					int w = docs[0][d][n];
 					
 					double tokenLL = 0;
 					
@@ -970,7 +970,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 			else { // Compute LL over the training data
 				if (!computePerplexity) { // LL over all examples
 					for (int n = 0; n < docs[d].length; n++) { 
-						int w = docs[d][n];
+						int w = docs[0][d][n];
 						
 						double tokenLL = 0;
 						
@@ -986,7 +986,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 				}
 				else {
 					for (int n = 0; n < docs[d].length; n += 2) { 
-						int w = docs[d][n];
+						int w = docs[0][d][n];
 						
 						double tokenLL = 0;
 						
@@ -1054,7 +1054,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 		}
 		
 		docIds = new BigInteger[D];
-		docs = new int[D][];
+		docs   = new int[1][D][];
 		docsC0 = new double[D];
 		docsC1 = new double[D];
 		docsC2 = new double[D];
@@ -1070,11 +1070,11 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 			
 			int N = tokens.length;
 			
-			docs[d]   = new int[N-4];
-			docIds[d] = new BigInteger(tokens[0]);
-			docsC0[d] = 0.; //Double.parseDouble(tokens[1]); // So gun stance points in the same direction as ownership
-			docsC1[d] = 0.; //Double.parseDouble(tokens[2]); 
-			docsC2[d] = 0.; //Double.parseDouble(tokens[3]);
+			docs[0][d] = new int[N-4];
+			docIds[d]  = new BigInteger(tokens[0]);
+			docsC0[d]  = 0.; //Double.parseDouble(tokens[1]); // So gun stance points in the same direction as ownership
+			docsC1[d]  = 0.; //Double.parseDouble(tokens[2]); 
+			docsC2[d]  = 0.; //Double.parseDouble(tokens[3]);
 			
 			for (int n = 4; n < N; n++) {
 				String word = tokens[n];
@@ -1088,7 +1088,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 					key = ((Integer) wordMap.get(word)).intValue();
 				}
 				
-				docs[d][n-4] = key;
+				docs[1][d][n-4] = key;
 			}
 			
 			d++;
@@ -1293,5 +1293,10 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 
 	@Override
 	public void collectSamples() { }
+
+	@Override
+	public double computeLL(int[][][] corpus) {
+		return computeLL(corpus[0]);
+	}
 	
 }

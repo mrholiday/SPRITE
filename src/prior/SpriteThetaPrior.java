@@ -26,11 +26,14 @@ public class SpriteThetaPrior {
 	// Document -> Topic -> weight.  \widetilde{theta} in TACL paper
 	private double[][] thetaTilde;
 	
-	public SpriteThetaPrior(Factor[] factors0, int Z0, int D0, double initDeltaBias0) {
+	private int currentView; // View this prior over theta is responsible for.
+	
+	public SpriteThetaPrior(Factor[] factors0, int Z0, int D0, int currentView0, double initDeltaBias0) {
 		factors = factors0;
 		Z = Z0;
 		D = D0;
 		initDeltaBias = initDeltaBias0;
+		currentView = currentView0;
 		
 		init();
 	}
@@ -54,7 +57,7 @@ public class SpriteThetaPrior {
 		double weight = deltaBias[z];
 		
 		for (Factor f : factors) {
-			weight += f.getPriorTheta(d, z);
+			weight += f.getPriorTheta(currentView, d, z);
 		}
 		
 		return Math.exp(weight);

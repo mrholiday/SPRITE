@@ -14,7 +14,7 @@ public class SpritePhiPrior {
 	private Factor[] factors;
 	
 	public int Z; // Number of topics
-	public int V; // Vocabulary size
+	public int W; // Vocabulary size
 	
 	// Bias term.  Assuming this is ever-present.
 	private double[] omegaBias;
@@ -26,22 +26,25 @@ public class SpritePhiPrior {
 	// Topic -> Word -> weight.  \widetilde{phi} in TACL paper
 	private double[][] phiTilde;
 	
+	private int currentView; // The view this \widetilde{\phi} is responsible for.
+	
 	// For optimization
 	//private double[][] gradientPhi;
 	//private double[][] adaDeltaPhi;
 	
-	public SpritePhiPrior(Factor[] factors0, int Z0, int V0, double omegaInitBias0) {
+	public SpritePhiPrior(Factor[] factors0, int Z0, int W0, int currentView0, double omegaInitBias0) {
 		factors = factors0;
 		Z = Z0;
-		V = V0;
+		W = W0;
+		currentView = currentView0;
 		initOmegaBias = omegaInitBias0;
 		
 		init();
 	}
 	
 	private void init() {
-		omegaBias = new double[V];
-		for (int i = 0; i < V; i++) {
+		omegaBias = new double[W];
+		for (int i = 0; i < W; i++) {
 			omegaBias[i] = initOmegaBias;
 		}
 		
@@ -51,11 +54,11 @@ public class SpritePhiPrior {
 	
 	// Returns the phi_zw prior given all the parameters.  Factors are
 	// responsible for computing their portion of the sums.
-	private double priorZW(int z, int w) {
+	private double priorZW(int v, int z, int w) {
 		double weight = omegaBias[w];
 		
 		for (Factor f : factors) {
-			weight += f.getPriorPhi(z, w);
+			weight += f.getPriorPhi(v, z, w);
 		}
 		
 		return Math.exp(weight);
@@ -75,8 +78,8 @@ public class SpritePhiPrior {
 	
 	private void updatePhiTilde(int minZ, int maxZ) {
 		for (int z = minZ; z < maxZ; z++) {
-			for (int w = 0; w < V; w++) {
-				phiTilde[z][w] = priorZW(z, w);
+			for (int w = 0; w < W; w++) {
+				phiTilde[z][w] = priorZW(currentView, z, w);
 			}
 		}
 	}
@@ -84,7 +87,7 @@ public class SpritePhiPrior {
 	private void updatePhiNorm(int minZ, int maxZ) {
 		for (int j = minZ; j < maxZ; j++) {
 			phiNorm[j] = 0.;
-			for (int i = 0; i < V; i++) {
+			for (int i = 0; i < W; i++) {
 				phiNorm[j] += phiTilde[j][i];
 			}
 		}
