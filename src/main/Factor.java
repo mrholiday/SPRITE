@@ -245,7 +245,6 @@ public class Factor implements Serializable {
 	 */
 	public double[][] getPriorAlpha() {
 		
-		
 		return null;
 	}
 	
@@ -253,7 +252,7 @@ public class Factor implements Serializable {
 	 * Returns the prior P(\Beta).
 	 */
 	public double[][] getPriorBeta() {
-		
+		// TODO
 		
 		return null;
 	}
@@ -262,7 +261,7 @@ public class Factor implements Serializable {
 	 * Returns the prior P(b).  Sparse Dirichlet prior.
 	 */
 	public double[][] getPriorBetaB() {
-		
+		// TODO
 		
 		return null;
 	}
@@ -282,7 +281,7 @@ public class Factor implements Serializable {
 			weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
 		}
 		
-		return Math.exp(weight);
+		return weight; // Sprite(Theta/Phi)Prior will exponentiate this
 	}
 	
 	/**

@@ -9,6 +9,7 @@ import java.util.Map;
 import prior.SpritePhiPrior;
 import prior.SpriteThetaPrior;
 
+import utils.IO;
 import utils.MathUtils;
 import utils.Tup2;
 import utils.Tup4;
@@ -22,6 +23,10 @@ import utils.Tup4;
  *
  */
 public class SpriteFactoredTopicModel extends ParallelTopicModel {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -7666805827230028611L;
 	public Map<String, Integer>[] wordMaps;
 	public Map<Integer,String>[] wordMapInvs;
     
@@ -49,8 +54,11 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected int numFactorsObserved = 0;
 	protected int[] observedFactorSizes;
 	
-	protected int[] priorToView; // Maps each theta/phi prior to the view it is responsible for.
+	// TODO: Removed this since I think it complicates things too much.  Just
+	// assume a separate \widetilde{\theta} and \widetilde{\phi} for each view.
+	//protected int[] priorToView; // Maps each theta/phi prior to the view it is responsible for.
 	
+	// Should be the same size, one per view
 	protected SpriteThetaPrior[] thetaPriors;
 	protected SpritePhiPrior[]   phiPriors;
 	
@@ -62,21 +70,20 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		int[][] ranges = new int[tpriors.length][3];
 		for (int i = 0; i < tpriors.length; i++) {
 			ranges[i][0] = tpriors[i].Z;
-			ranges[i][0] = tpriors[i].D;
-			ranges[i][0] = ppriors[i].W;
+			ranges[i][1] = tpriors[i].D;
+			ranges[i][2] = ppriors[i].W;
 		}
 		
 		return ranges;
 	}
 	
 	public SpriteFactoredTopicModel(SpriteThetaPrior[] thetaPriors0, SpritePhiPrior[] phiPriors0,
-									Factor[] factors0, int[] priorToView0, int numThreads0) {
+									Factor[] factors0, int numThreads0) {
 		super.setParallelParams(numThreads0, getDataRanges(thetaPriors0, phiPriors0));
 		
 		thetaPriors = thetaPriors0;
 		phiPriors   = phiPriors0;
 		
-		priorToView = priorToView0;
 		factors     = factors0;
 		
 		numFactorsObserved = 0;
@@ -86,7 +93,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
-		// Initialize observed factor sizes for loading documents
+		// Initialize observed factor sizes (number of observed components) for loading documents
 		observedFactorSizes = new int[numFactorsObserved];
 		int factorIdx = 0;
 		for (Factor f : factors) {
@@ -96,20 +103,23 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
+		// TODO: Number of theta/phi priors same as number of views
+		numViews = thetaPriors.length;
+		
+		/*
 		// Kind of annoying... maybe just pass numViews as a parameter
 		for (int i = 0; i < priorToView.length; i++) {
 			if ((priorToView[i]+1) > numViews+1) {
 				numViews = priorToView[i] + 1;
 			}
 		}
+		*/
 		
-		// Each view has its own set of topics.  May be joined by supertopics.
+		// Each view has its own set of topics.  May be joined by supertopics represented by factors.
 		Z = new int[numViews];
-		for (int i = 0; i < priorToView.length; i++) {
-			Z[priorToView[i]] = thetaPriors[i].Z;
+		for (int i = 0; i < thetaPriors.length; i++) {
+			Z[i] = thetaPriors[i].Z;
 		}
-		
-		numFactorsObserved = observedFactorSizes.length;
 	}
 	
 	@Override
@@ -135,10 +145,12 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		
 		for (int d = 0; d < D; d++) { 
 			for (int v = 0; v < numViews; v++) {
-				docsZ[d][v]  = new int[docs[d][v].length];
-				docsZZ[d][v] = new int[docs[d][v].length][Z[v]];
-
-				for (int n = 0; n < docs[d][v].length; n++) {
+				int numDocTokens = docs[d][v].length;
+				
+				docsZ[d][v]  = new int[numDocTokens];
+				docsZZ[d][v] = new int[numDocTokens][Z[v]];
+				
+				for (int n = 0; n < numDocTokens; n++) {
 					int w = docs[d][v][n];
 					
 					int z = MathUtils.r.nextInt(Z[v]); // sample uniformly
@@ -148,12 +160,13 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 					
 					nZW[v][z][w] += 1;	
 					nZ[v][z] += 1;
-					nDZ[v][d][z] += 1;
-					nD[v][d] += 1;
+					nDZ[d][v][z] += 1;
+					nD[d][v] += 1;
 				}
 			}
 		}
 		
+		// The min/max number of topics/documents/words for each view.  We partition threads accordingly.
 		varDims = new int[numViews][3];
 		for (int v = 0; v < numViews; v++) {
 			varDims[v][0] = Z[v];
@@ -185,18 +198,60 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	public void collectSamples() {
 		// TODO Auto-generated method stub
 		
+		
+		
 	}
 	
 	@Override
 	public double computeLL(int[][][] corpus) {
-		// TODO Auto-generated method stub
-		return 0;
+		// TODO: For now assumes that we've already aggregated samples for
+		// this corpus.  Should probably pull out a separate function that
+		// will take samples and then compute log-likelihood.  Ultimately
+		// I should remove global references to the corpus and sample counts
+		// and pass these in between functions.
+		
+		double LL = 0;
+		
+		for (int d = 0; d < D; d++) {
+			for (int v = 0; v < numViews; v++) {
+				int numDocTokens = corpus[d][v].length;
+				
+				for (int n = 0; n < numDocTokens; n++) { 
+					int w = corpus[d][v][n];
+					
+					double tokenLL = 0;
+					
+					// marginalize over z
+					for (int z = 0; z < Z[v]; z++) {
+						//tokenLL += (nDZ[d][v][z] + priorDZ[d][v][z]) / (nD[d][v] + thetaNormPerView[v][d])*
+						//		(nZW[v][z][w] + priorZW[v][z][w]) / (nZ[v][z] + phiNormPerView[v][z]);
+						
+						tokenLL += (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z]) / (nD[d][v] + thetaPriors[v].thetaNorm[d])*
+								(nZW[v][z][w] + phiPriors[v].phiTilde[z][w]) / (nZ[v][z] + phiPriors[v].phiNorm[z]);
+					}
+					
+					LL += Math.log(tokenLL);
+				}
+			}
+		}
+		
+		return LL;
 	}
-
+	
 	@Override
 	public void updatePriors(Tup2<Integer, Integer>[][] parameterRanges) {
-		// TODO Auto-generated method stub
+		// Only update the priors for topics minZ to maxZ for each view
 		
+		for (int v = 0; v < numViews; v++) {
+			int minZ = parameterRanges[v][0]._1();
+			int maxZ = parameterRanges[v][0]._2();
+			
+			int minD = parameterRanges[v][1]._1();
+			int maxD = parameterRanges[v][1]._2();
+			
+			thetaPriors[v].updatePrior(minD, maxD); // We split computation of theta across documents
+			phiPriors[v].updatePrior(minZ, maxZ);   // Split computation of phi across topics
+		}
 	}
 	
 	@Override

@@ -29,10 +29,10 @@ public class SpritePhiPrior implements Serializable {
 	private double initOmegaBias; // Initial value for omegaBias
 	
 	// Sum over vocabulary for each topic.
-	private double[] phiNorm;
+	public double[] phiNorm;
 	
 	// Topic -> Word -> weight.  \widetilde{phi} in TACL paper
-	private double[][] phiTilde;
+	public double[][] phiTilde;
 	
 	private int currentView; // The view this \widetilde{\phi} is responsible for.
 	

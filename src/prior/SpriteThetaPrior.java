@@ -28,11 +28,11 @@ public class SpriteThetaPrior implements Serializable {
 	private double[] deltaBias;
 	private double initDeltaBias; // Initial value for deltaBias
 	
-	// Sum over documents for each topic.
-	private double[] thetaNorm;
+	// Sum over topics for each document.
+	public double[] thetaNorm;
 	
 	// Document -> Topic -> weight.  \widetilde{theta} in TACL paper
-	private double[][] thetaTilde;
+	public double[][] thetaTilde;
 	
 	private int currentView; // View this prior over theta is responsible for.
 	
@@ -59,7 +59,7 @@ public class SpriteThetaPrior implements Serializable {
 		updateThetaNorm();
 	}
 	
-	// Returns the phi_zw prior given all the parameters.  Factors are
+	// Returns the phi_dz prior given all the parameters.  Factors are
 	// responsible for computing their portion of the sums.
 	private double priorDZ(int d, int z) {
 		double weight = deltaBias[z];
