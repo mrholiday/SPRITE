@@ -39,6 +39,11 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected int[] W;   // Each view has its own alphabet.
 	protected int numViews = 0; // Number of different views for the document
 	
+	// To index thread locks
+	protected int[] runningZSums;
+	protected int[] runningDSums;
+	protected int[] runningWSums;
+	
 	protected int[][][] docs; // Loaded documents.  Document -> View -> Words
 	
 	// Current sampled topic assignments
@@ -122,8 +127,13 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 	}
 	
-	private int getLock(int v, int index) {
-		return v*10000000 + index;
+	private int getLock(int v, int[] runningSum, int index) {
+		if (v > 0) {
+			return runningSum[v] + index;
+		}
+		else {
+			return index;
+		}
 	}
 	
 	@Override
@@ -170,6 +180,18 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
+		runningZSums = Z;
+		runningDSums = new int[numViews];
+		runningDSums[0] = D;
+		runningWSums    = W;
+		
+		// Compute running sums of topics/words to initialize thread locks
+		for (int v = 1; v < numViews; v++) {
+			runningWSums[v] += runningWSums[v-1];
+			runningZSums[v] += runningZSums[v-1];
+			runningDSums[v] = D;
+		}
+		
 		// The min/max number of topics/documents/words for each view.  We partition threads accordingly.
 		varDims = new int[numViews][3];
 		for (int v = 0; v < numViews; v++) {
@@ -177,17 +199,16 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			varDims[v][1] = D;
 			varDims[v][2] = W[v];
 			
-			// Kluge to store one integer per lock.  Should be fine so long as we have less than 10M words/topics/documents
 			for (int w = 0; w < W[v]; w++) {
-				int wLock = getLock(v, w);
+				int wLock = getLock(v, runningWSums, w);
 				wordLocks[wLock] = wLock;
 			}
 			for (int d = 0; d < D; d++) {
-				int dLock = getLock(0, d);
+				int dLock = getLock(0, runningDSums, d);
 				docLocks[dLock] = dLock;
 			}
 			for (int z = 0; z < Z[v]; z++) {
-				int zLock = getLock(v, z);
+				int zLock = getLock(v, runningZSums, z);
 				wordLocks[zLock] = zLock;
 			}
 		}
@@ -282,8 +303,20 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	@Override
 	public void sampleBatch(Tup2<Integer, Integer>[][] parameterRanges) {
-		// TODO Auto-generated method stub
-		
+		for (int v = 0; v < numViews; v++) {
+			int minD = parameterRanges[v][1]._1();
+			int maxD = parameterRanges[v][1]._2();
+			
+			for (int d = minD; d < maxD; d++) {
+				for (int n = 0; n < docs[d][v].length; n++) {
+					sample(d, v, n);
+				}
+				
+				if (d % 10000 == 0) {
+					System.out.println(String.format("Done view %d, document %d", v, d));
+				}
+			}
+		}
 	}
 	
 	private void sample(int d, int v, int n) {
@@ -292,7 +325,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		
 		// decrement counts
 		
-		synchronized(topicLocks[topic]) {
+		synchronized(topicLocks[getLock(v, runningZSums, topic)]) {
 			nZW[v][topic][w] -= 1;
 			nZ[v][topic] -= 1;
 			nDZ[d][v][topic] -= 1;
@@ -304,8 +337,11 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		double pTotal = 0;
 		
 		for (int z = 0; z < Z[v]; z++) {
-			p[z] = (nDZ[d][z] + priorDZ[d][v][z]) *
-					(nZW[z][w] + priorZW[v][z][w]) / (nZ[z] + phiNorm[v][z]);
+			//p[z] = (nDZ[d][z] + priorDZ[d][v][z]) *
+			//		(nZW[z][w] + priorZW[v][z][w]) / (nZ[z] + phiNorm[v][z]);
+			
+			p[z] = (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z]) *
+					(nZW[v][z][w] + phiPriors[v].phiTilde[z][w]) / (nZ[v][z] + phiPriors[v].phiNorm[z]);
 			
 			pTotal += p[z];
 		}
@@ -324,7 +360,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		
 		// increment counts
 		
-		synchronized(topicLocks[topic]) {
+		synchronized(topicLocks[getLock(v, runningZSums, topic)]) {
 			nZW[v][topic][w] += 1;	
 			nZ[v][topic] += 1;
 			nDZ[d][v][topic] += 1;

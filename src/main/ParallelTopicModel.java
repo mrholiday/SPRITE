@@ -104,6 +104,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 			}
 		}
 		
+		// Begin hyperparameter updates after a couple hundred iterations
 		if (iter >= burnInIters) {
 			// Calculate gradient for hyperparameters (if any)
 			try {
@@ -157,7 +158,6 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		
 		// Log parameter values
 		logIteration();
-		
 		
 		if (((iter % likelihoodFreq) == 0) || (likelihoodFreq == 0)) {
 			Log.info("topic_model", "Log-likelihood: " + computeLL());
