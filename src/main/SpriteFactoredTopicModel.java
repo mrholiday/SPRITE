@@ -535,96 +535,50 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		// Write factor parameters
-		
-		for (int v = 0; v < numViews; v++) {
-			for (Factor f : factors) {
-				fw = new FileWriter(new File(outputDir, String.format("%s.%s.beta", baseName, f.factorName)));
+
+		for (Factor f : factors) {
+			fw = new FileWriter(new File(outputDir, String.format("%s.%s.beta", baseName, f.factorName)));
+			bw = new BufferedWriter(fw);
+
+			f.writeBeta(bw, false);
+			
+			bw.close();
+			fw.close();
+			
+			fw = new FileWriter(new File(outputDir, String.format("%s.%s.betaB", baseName, f.factorName)));
+			bw = new BufferedWriter(fw);
+			
+			f.writeBeta(bw, true);
+			
+			bw.close();
+			fw.close();
+			
+			for (int v : f.revViewIndices.keySet()) {
+				fw = new FileWriter(new File(outputDir, String.format("%s.%s.%d.omega", baseName, f.factorName)));
 				bw = new BufferedWriter(fw);
-
-				f.writeBeta(bw);
-
+				
+				f.writeOmega(bw, v, wordMapInvs[f.revViewIndices.get(v)]);
+				
 				bw.close();
 				fw.close();
 			}
-		}
-		
-		fw = new FileWriter(new File(outputDir, baseName+".betaB"));
-		bw = new BufferedWriter(fw);
-		for (int z = 0; z < Z; z++) { 
-			for (int c = 0; c < Cph; c++) {
-				bw.write(betaB[z][c]+" ");
-			}
-			bw.newLine();
-		}
-		bw.close();
-		fw.close();
-		
-		fw = new FileWriter(new File(outputDir, baseName+".omega"));
-		bw = new BufferedWriter(fw);
-		for (int w = 0; w < W; w++) {
-			String word = wordMapInv.get(w);
-			bw.write(word);
 			
-			for (int c = 0; c < Cph; c++) { 
-				bw.write(" " + omega[c][w]);
-			}
-			bw.newLine();
-		}
-		bw.close();
-		fw.close();
-		
-		fw = new FileWriter(new File(outputDir, baseName+".alpha"));
-		bw = new BufferedWriter(fw);
-		for (int d = 0; d < D; d++) {
-			//for (int c = 0; c < 1; c++) {
-			//bw.write(docsC0[d] + " ");
-			//bw.write(docsC1[d] + " ");
-			//bw.write(docsC2[d] + " ");
+			fw = new FileWriter(new File(outputDir, String.format("%s.%s.alpha", baseName, f.factorName)));
+			bw = new BufferedWriter(fw);
 			
-			for (int c = 0; c < Cth; c++) { 
-				bw.write(Math.exp(alpha[d][c])+" ");
-			}
+			f.writeAlpha(bw);
 			
-			//for (int c = 1; c < Cth; c++) { 
-			//for (int c = 0; c < 3; c++) {
-			//	bw.write(alpha[d][c]+" ");
-			//}
-			//for (int c = 1; c < alpha[d].length; c++) { 
-			//	bw.write(Math.exp(alpha[d][c])+" ");
-			//}
-			bw.newLine();
-		}
-		bw.close();
-		fw.close();
-		
-		fw = new FileWriter(new File(outputDir, baseName+".delta"));
-		bw = new BufferedWriter(fw);
-		for (int z = 0; z < Z; z++) {
-			bw.write(""+z);
+			bw.close();
+			fw.close();
 			
-			//for (int c = 0; c < 1; c++) { 
-			//for (int c = 0; c < 3; c++) { 
-			//	bw.write(" "+delta[c][z]);
-			//}
+			fw = new FileWriter(new File(outputDir, String.format("%s.%s.delta", baseName, f.factorName)));
+			bw = new BufferedWriter(fw);
 			
-			//for (int c = 1; c < Cth; c++) { 
-			for (int c = 0; c < Cth; c++) { 
-				bw.write(" "+Math.exp(delta[c][z]));
-			}
-			bw.newLine();
+			f.writeDelta(bw);
+			
+			bw.close();
+			fw.close();
 		}
-		bw.close();
-		fw.close();
-		
-		fw = new FileWriter(new File(outputDir, baseName+".deltaBias"));
-		bw = new BufferedWriter(fw);
-		for (int z = 0; z < Z; z++) {
-			bw.write(""+z);
-			bw.write(" "+deltaBias[z]);
-			bw.newLine();
-		}
-		bw.close();
-		fw.close();
 		
 		// Serialize the model so we can use it/continue training later if necessary
 		// Serialize this model so we can load it later

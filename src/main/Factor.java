@@ -520,36 +520,62 @@ public class Factor implements Serializable {
 		return builder.toString();
 	}
 	
-	public void writeBeta(BufferedWriter bw) throws IOException {
+	public void writeBeta(BufferedWriter bw, boolean printBiasTerm) throws IOException {
 		for (int v = 0; v < numViews; v++) {
 			int view = viewIndices[v];
 			for (int c = 0; c < C; c++) {
 				bw.write(String.format("%d_%d", view, c));
 				for (int z = 0; z < Z[v]; z++) {
-					bw.write(" " + beta[v][z][c]);
+					double value = printBiasTerm ? betaB[v][z][c] : beta[v][z][c];
+					
+					if (!printBiasTerm && betaPositive)
+						value = Math.exp(beta[v][z][c]);
+					
+					bw.write(" " + value);
 				}
 				bw.newLine();
 			}
 		}
 	}
 	
-	/*
-	private double[][] getPriorAlpha() {
+	public void writeOmega(BufferedWriter bw, int v, Map<Integer, String> wordMapInv) throws IOException {
+		v = revViewIndices.get(v);
 		
-		return null;
+		for (int w = 0; w < W[v]; w++) {
+			String word = wordMapInv.get(w);
+			bw.write(word);
+			
+			for (int c = 0; c < C; c++) { 
+				bw.write(" " + omega[v][c][w]);
+			}
+			bw.newLine();
+		}
 	}
 	
-	private double[][] getPriorBeta() {
-		// TODO
-		
-		return null;
+	public void writeDelta(BufferedWriter bw) throws IOException {
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				int view = revViewIndices.get(v);
+				bw.write(String.format("%d_%d", view, c));
+				
+				for (int z = 0; z < Z[v]; z++) {
+					double deltaRightSign = deltaPositive ? Math.exp(delta[v][c][z]) : delta[v][c][z];
+					bw.write(" " + deltaRightSign);
+				}
+				bw.newLine();
+			}
+		}
 	}
 	
-	private double[][] getPriorBetaB() {
-		// TODO
-		
-		return null;
+	public void writeAlpha(BufferedWriter bw) throws IOException {
+		for (int d = 0; d < D; d++) {
+			for (int c = 0; c < C; c++) { 
+				double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
+				bw.write(alphaRightSign + " ");
+			}
+			
+			bw.newLine();
+		}
 	}
-	*/
 	
 }
