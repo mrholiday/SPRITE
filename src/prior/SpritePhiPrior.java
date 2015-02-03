@@ -3,6 +3,7 @@ package prior;
 import java.io.Serializable;
 
 import utils.Log;
+import utils.MathUtils;
 import main.Factor;
 
 /**
@@ -36,6 +37,8 @@ public class SpritePhiPrior implements Serializable {
 	
 	private int currentView; // The view this \widetilde{\phi} is responsible for.
 	
+	private double[] gradientOmegaBias;
+	
 	// For optimization
 	//private double[][] gradientPhi;
 	//private double[][] adaDeltaPhi;
@@ -52,6 +55,7 @@ public class SpritePhiPrior implements Serializable {
 	
 	private void initialize() {
 		omegaBias = new double[W];
+		gradientOmegaBias = new double[W];
 		for (int i = 0; i < W; i++) {
 			omegaBias[i] = initOmegaBias;
 		}
@@ -70,6 +74,34 @@ public class SpritePhiPrior implements Serializable {
 		}
 		
 		return Math.exp(weight);
+	}
+	
+	/**
+	 * Updates the gradient for factor parameters feeding into \widetilde{\phi}
+	 * 
+	 * @param z Topic
+	 * @param w Word
+	 * @param topicCount Number of times topic z was sampled for this view
+	 * @param topicWordCount Number of times word w was sampled for topic z of this view
+	 * @param wordLock Lock for this thread
+	 */
+	public void updateGradient(int z, int w, int topicCount, int topicWordCount, Integer wordLock) {
+		double priorZW  = phiTilde[z][w];
+		double phiNormZ = phiNorm[z];
+		
+		double dg1  = MathUtils.digamma0(phiNormZ + MathUtils.eps);
+		double dg2  = MathUtils.digamma0(phiNormZ + topicCount + MathUtils.eps);
+		double dgW1 = MathUtils.digamma0(priorZW  + topicWordCount + MathUtils.eps);
+		double dgW2 = MathUtils.digamma0(priorZW  + MathUtils.eps);
+		
+		double gradientTerm = priorZW * (dg1-dg2+dgW1-dgW2);
+		
+		synchronized(wordLock) {
+			for (Factor f : factors) {
+				f.updatePhiGradient(gradientTerm, z, currentView, w);
+			}
+			gradientOmegaBias[w] += gradientTerm;
+		}
 	}
 	
 	/**

@@ -78,6 +78,7 @@ public class Factor implements Serializable {
 	public int D;
 	
 	public double rho;
+	public boolean isSparse;
 	public final String factorName;
 	
 	/**
@@ -115,6 +116,7 @@ public class Factor implements Serializable {
 		
 		C = numComponents0;
 		rho = rho0;
+		isSparse = rho < 1;
 		
 		sigmaBeta = sigmaBeta0;
 		sigmaOmega = sigmaOmega0;
@@ -241,9 +243,78 @@ public class Factor implements Serializable {
 	}
 	
 	/**
+	 * 
+	 * @param gradientTerm Gradient for LL
+	 * @param z Topic
+	 * @param v View
+	 * @param w Word
+	 */
+	public void updatePhiGradient(double gradientTerm, int z, int v, int w) {
+		for (int c = 0; c < C; c++) {
+			double betaRightSign    = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
+			
+			if (isSparse) {
+				gradientBeta[v][z][c] += omega[v][c][w] * betaB[v][z][c] * gradientTerm;
+				gradientBetaB[v][z][c] += betaRightSign * omega[v][c][w] * gradientTerm;
+			}
+			else {
+				gradientBeta[v][z][c] += omega[v][c][w] * gradientTerm;
+			}
+
+			gradientOmega[v][c][w] += betaRightSign * betaB[v][z][c] * gradientTerm;
+		}
+	}
+	
+	public void updateThetaGradient(double gradientTerm, int z, int v, int d) {
+		//				for (int c = 0; c < 1; c++) { // factor
+		//					gradientAlpha[d][c] += delta[c][z] * gradientTerm;
+		//					gradientBeta[z][c] += alpha[d][c] * gradientTerm;
+		//				}
+		/*for (int c = 3; c < Cth; c++) { // hierarchy
+		gradientAlpha[d][c] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
+		gradientDelta[c][z] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
+		gradientBetaB[z][c] += Math.exp(alpha[d][c]) * Math.exp(delta[c][z]) * gradientTerm;
+	}*/
+		for (int c = 0; c < C; c++) {
+			double deltaRightSign = deltaPositive ? Math.exp(delta[v][c][z]) : delta[v][c][z];
+			double alphaRightSign = alphaPositive ? Math.exp(alpha[c][z]) : alpha[c][z];
+			double betaRightSign  = betaPositive  ? Math.exp(beta[v][z][c]) : beta[v][z][c];
+
+			if (tieBetaAndDelta) { // Will assign beta to delta after the gradient step
+				if (isSparse) {
+					gradientBeta[v][z][c] += alphaRightSign * betaB[v][z][c] * gradientTerm;
+				}
+				else {
+					gradientBeta[v][z][c] += alphaRightSign * gradientTerm;
+				}
+			}
+			else {
+				if (isSparse) {
+					gradientDelta[v][c][z] += alphaRightSign * betaB[v][z][c] * gradientTerm;
+				}
+				else {
+					gradientDelta[v][c][z] += alphaRightSign * gradientTerm;
+				}
+			}
+			
+			if (isSparse)
+				gradientBetaB[v][z][c] += alphaRightSign * deltaRightSign * gradientTerm;
+			
+			if (!observed) {
+				if (isSparse) {
+					gradientAlpha[d][c] += betaB[v][z][c] * deltaRightSign * gradientTerm;
+				}
+				else {
+					gradientAlpha[d][c] += deltaRightSign * gradientTerm;
+				}
+			}
+		}
+	}
+	
+	/**
 	 * Returns the prior P(\alpha).  Assumes a sparse Dirichlet prior.
 	 */
-	public double[][] getPriorAlpha() {
+	private double[][] getPriorAlpha() {
 		
 		return null;
 	}
@@ -251,7 +322,7 @@ public class Factor implements Serializable {
 	/**
 	 * Returns the prior P(\Beta).
 	 */
-	public double[][] getPriorBeta() {
+	private double[][] getPriorBeta() {
 		// TODO
 		
 		return null;
@@ -260,7 +331,7 @@ public class Factor implements Serializable {
 	/**
 	 * Returns the prior P(b).  Sparse Dirichlet prior.
 	 */
-	public double[][] getPriorBetaB() {
+	private double[][] getPriorBetaB() {
 		// TODO
 		
 		return null;

@@ -112,7 +112,6 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		numViews = thetaPriors.length;
 		
 		/*
-		// Kind of annoying... maybe just pass numViews as a parameter
 		for (int i = 0; i < priorToView.length; i++) {
 			if ((priorToView[i]+1) > numViews+1) {
 				numViews = priorToView[i] + 1;
@@ -127,7 +126,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 	}
 	
-	private int getLock(int v, int[] runningSum, int index) {
+	private Integer getLock(int v, int[] runningSum, int index) {
 		if (v > 0) {
 			return runningSum[v] + index;
 		}
@@ -181,8 +180,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		runningZSums = Z;
-		runningDSums = new int[numViews];
-		runningDSums[0] = D;
+		runningDSums = new int[numViews]; runningDSums[0] = D;
 		runningWSums    = W;
 		
 		// Compute running sums of topics/words to initialize thread locks
@@ -201,15 +199,15 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			
 			for (int w = 0; w < W[v]; w++) {
 				int wLock = getLock(v, runningWSums, w);
-				wordLocks[wLock] = wLock;
+				wordLocks[wLock] = (Integer)wLock;
 			}
 			for (int d = 0; d < D; d++) {
 				int dLock = getLock(0, runningDSums, d);
-				docLocks[dLock] = dLock;
+				docLocks[dLock] = (Integer)dLock;
 			}
 			for (int z = 0; z < Z[v]; z++) {
 				int zLock = getLock(v, runningZSums, z);
-				wordLocks[zLock] = zLock;
+				wordLocks[zLock] = (Integer)zLock;
 			}
 		}
 		
@@ -370,11 +368,32 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		docsZ[d][v][n] = topic;
 	}
 	
-	
 	@Override
 	public void updateGradient(Tup2<Integer, Integer>[][] parameterRanges) {
-		// TODO Auto-generated method stub
+		// Compute gradients
 		
+		for (int v = 0; v < numViews; v++) {
+			int minZ = parameterRanges[v][0]._1();
+			int maxZ = parameterRanges[v][0]._2();
+			
+			for (int z = minZ; z < maxZ; z++) {
+				for (int w = 0; w < W[v]; w++) {
+					phiPriors[v].updateGradient(z, w, nZ[v][z], nZW[v][z][w], getLock(v, this.runningWSums, w));
+				}
+			}
+		}
+		
+		for (int v = 0; v < numViews; v++) {
+			int minZ = parameterRanges[v][0]._1();
+			int maxZ = parameterRanges[v][0]._2();
+			for (int z = minZ; z < maxZ; z++) {
+				for (int d = 0; d < D; d++) {
+					int docCount = nD[d][v];
+					int docTopicCount = nDZ[d][v][z];
+					thetaPriors[v].updateGradient(z, d, docCount, docTopicCount, getLock(v, runningDSums, d));
+				}
+			}
+		}
 	}
 	
 	@Override

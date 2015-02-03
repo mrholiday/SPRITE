@@ -32,7 +32,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	// need to set to something reasonable.
 	protected int[][] varDims;
 	
-	// For locking during the parallel sampling step
+	// For locking during the parallel sampling/hyperparameter gradient step
 	protected Integer[] wordLocks;
 	protected Integer[] topicLocks;
 	protected Integer[] docLocks;

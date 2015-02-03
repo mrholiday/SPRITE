@@ -3,6 +3,7 @@ package prior;
 import java.io.Serializable;
 
 import utils.Log;
+import utils.MathUtils;
 import main.Factor;
 
 /**
@@ -36,6 +37,8 @@ public class SpriteThetaPrior implements Serializable {
 	
 	private int currentView; // View this prior over theta is responsible for.
 	
+	private double[] gradientDeltaBias;
+	
 	public SpriteThetaPrior(Factor[] factors0, int Z0, int D0, int currentView0, double initDeltaBias0) {
 		factors = factors0;
 		Z = Z0;
@@ -48,6 +51,7 @@ public class SpriteThetaPrior implements Serializable {
 	
 	private void initialize() {
 		deltaBias = new double[Z];
+		gradientDeltaBias = new double[Z];
 		for (int i = 0; i < Z; i++) {
 			deltaBias[i] = initDeltaBias;
 		}
@@ -57,6 +61,33 @@ public class SpriteThetaPrior implements Serializable {
 		
 		updateThetaTilde();
 		updateThetaNorm();
+	}
+	
+	/**
+	 * 
+	 * @param z Topic
+	 * @param v View
+	 * @param d Document
+	 * @param docCount Number of samples for document d
+	 * @param docTopicCount Number of samples of topic z for document d
+	 */
+	public void updateGradient(int z, int d, int docCount, int docTopicCount, Integer docLock) {
+		double priorDZ    = thetaTilde[d][z];
+		double thetaNormZ = thetaNorm[z];
+		
+		double dg1  = MathUtils.digamma0(thetaNormZ + MathUtils.eps);
+		double dg2  = MathUtils.digamma0(thetaNormZ + docCount + MathUtils.eps);
+		double dgW1 = MathUtils.digamma0(priorDZ + docTopicCount + MathUtils.eps);
+		double dgW2 = MathUtils.digamma0(priorDZ + MathUtils.eps);
+		
+		double gradientTerm = priorDZ * (dg1-dg2+dgW1-dgW2);
+		
+		synchronized(docLock) {
+			for (Factor f : factors) {
+				f.updateThetaGradient(gradientTerm, z, currentView, d);
+			}
+			gradientDeltaBias[z] += gradientTerm;
+		}
 	}
 	
 	// Returns the phi_dz prior given all the parameters.  Factors are
