@@ -10,6 +10,11 @@ import main.SpriteWorker.ThreadCommunication;
 
 public abstract class ParallelTopicModel extends TopicModel implements Trainable {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -3336308017072889625L;
+	
 	protected int numThreads    = 1;
 	protected String threadName = "MASTER";
 	
@@ -26,6 +31,11 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	// The dimension of parameters we want to parallelize over.  Subclasses
 	// need to set to something reasonable.
 	protected int[][] varDims;
+	
+	// For locking during the parallel sampling step
+	protected Integer[] wordLocks;
+	protected Integer[] topicLocks;
+	protected Integer[] docLocks;
 	
 	protected void setParallelParams(int numThreads0, int[][] varDims0) {
 		numThreads = numThreads0;
@@ -148,7 +158,8 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		// Log parameter values
 		logIteration();
 		
-		if (iter % likelihoodFreq == 0) {
+		
+		if (((iter % likelihoodFreq) == 0) || (likelihoodFreq == 0)) {
 			Log.info("topic_model", "Log-likelihood: " + computeLL());
 		}
 		

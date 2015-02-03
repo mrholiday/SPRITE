@@ -26,7 +26,7 @@ public abstract class TopicModel implements Trainable, Serializable {
 			System.out.println("Sampling...");
 			
 			for (int iter = 1; iter <= iters; iter++) {
-				if (iter >= (iters - 100)) burnedIn = true;
+				if (iter >= (iters - burnInIters)) burnedIn = true; // Keep the last couple hundred samples for final estimates
 				
 				System.out.println("Iteration " + iter);
 				doSampling(iter);

@@ -122,6 +122,10 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 	}
 	
+	private int getLock(int v, int index) {
+		return v*10000000 + index;
+	}
+	
 	@Override
 	public void initialize() {
 		docsZ = new int[D][numViews][];
@@ -172,6 +176,20 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			varDims[v][0] = Z[v];
 			varDims[v][1] = D;
 			varDims[v][2] = W[v];
+			
+			// Kluge to store one integer per lock.  Should be fine so long as we have less than 10M words/topics/documents
+			for (int w = 0; w < W[v]; w++) {
+				int wLock = getLock(v, w);
+				wordLocks[wLock] = wLock;
+			}
+			for (int d = 0; d < D; d++) {
+				int dLock = getLock(0, d);
+				docLocks[dLock] = dLock;
+			}
+			for (int z = 0; z < Z[v]; z++) {
+				int zLock = getLock(v, z);
+				wordLocks[zLock] = zLock;
+			}
 		}
 		
 		super.initialize(); // Spin up threads
@@ -196,10 +214,18 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	@Override
 	public void collectSamples() {
-		// TODO Auto-generated method stub
+		// Only collect samples for the last couple hundred iterations
 		
-		
-		
+		if (burnedIn) {
+			for (int v = 0; v < numViews; v++) {
+				for (int d = 0; d < D; d++) {
+					for (int n = 0; n < docs[d][v].length; n++) { 
+						int x = docsZ[d][v][n];
+						docsZZ[d][v][n][x] += 1; // Cache the sampled topic for this single word
+					}
+				}
+			}
+		}
 	}
 	
 	@Override
@@ -259,6 +285,55 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		// TODO Auto-generated method stub
 		
 	}
+	
+	private void sample(int d, int v, int n) {
+		int w = docs[d][v][n];
+		int topic = docsZ[d][v][n];
+		
+		// decrement counts
+		
+		synchronized(topicLocks[topic]) {
+			nZW[v][topic][w] -= 1;
+			nZ[v][topic] -= 1;
+			nDZ[d][v][topic] -= 1;
+		}
+		
+		// sample new topic value 
+		
+		double[] p = new double[Z[v]];
+		double pTotal = 0;
+		
+		for (int z = 0; z < Z[v]; z++) {
+			p[z] = (nDZ[d][z] + priorDZ[d][v][z]) *
+					(nZW[z][w] + priorZW[v][z][w]) / (nZ[z] + phiNorm[v][z]);
+			
+			pTotal += p[z];
+		}
+		
+		double u = MathUtils.r.nextDouble() * pTotal;
+		
+		double probVal = 0.0;
+		for (int z = 0; z < Z[v]; z++) {
+			probVal += p[z];
+			
+			if (probVal > u) {
+				topic = z;
+				break;
+			}
+		}
+		
+		// increment counts
+		
+		synchronized(topicLocks[topic]) {
+			nZW[v][topic][w] += 1;	
+			nZ[v][topic] += 1;
+			nDZ[d][v][topic] += 1;
+		}
+		
+		// set new assignments
+		docsZ[d][v][n] = topic;
+	}
+	
 	
 	@Override
 	public void updateGradient(Tup2<Integer, Integer>[][] parameterRanges) {
