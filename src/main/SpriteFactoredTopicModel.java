@@ -1,9 +1,12 @@
 package main;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.math.BigInteger;
 import java.util.Map;
 
 import prior.SpritePhiPrior;
@@ -13,6 +16,7 @@ import utils.IO;
 import utils.MathUtils;
 import utils.Tup2;
 import utils.Tup4;
+import utils.Tup5;
 
 /**
  * Should be equivalent to SpriteJoint model but allows for multiple
@@ -44,6 +48,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected int[] runningDSums;
 	protected int[] runningWSums;
 	
+	protected BigInteger[] docIds; // Unused except for printing to output
 	protected int[][][] docs; // Loaded documents.  Document -> View -> Words
 	
 	// Current sampled topic assignments
@@ -402,17 +407,24 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	@Override
 	public void doGradientStep(Tup2<Integer, Integer>[][] parameterRanges) {
+		for (Factor f: factors) {
+			for (int v : f.revViewIndices.keySet()) {
+				int minZ = parameterRanges[v][0]._1();
+				int maxZ = parameterRanges[v][0]._2();
+				int minD = parameterRanges[v][1]._1();
+				int maxD = parameterRanges[v][1]._2();
+				int minW = parameterRanges[v][2]._1();
+				int maxW = parameterRanges[v][2]._2();
+				
+				f.doGradientStep(v, minZ, maxZ, minD, maxD, minW, maxW, stepSize);
+			}
+		}
+		
 		for (int v = 0; v < numViews; v++) {
 			int minZ = parameterRanges[v][0]._1();
 			int maxZ = parameterRanges[v][0]._2();
-			int minD = parameterRanges[v][1]._1();
-			int maxD = parameterRanges[v][1]._2();
 			int minW = parameterRanges[v][2]._1();
 			int maxW = parameterRanges[v][2]._2();
-			
-			for (Factor f: factors) {
-				f.doGradientStep(v, minZ, maxZ, minD, maxD, minW, maxW, stepSize);
-			}
 			
 			thetaPriors[v].doGradientStep(minZ, maxZ, stepSize); // Update delta bias
 			phiPriors[v].doGradientStep(minW, maxW, stepSize); // Update omega bias
@@ -421,13 +433,14 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	@Override
 	public void readDocs(String filename) throws Exception {
-		Tup4<Map<String, Integer>[], Map<Integer, String>[],
+		Tup5<BigInteger[], Map<String, Integer>[], Map<Integer, String>[],
 		     double[][][], int[][][]> loadedValues = IO.readTrainInput(filename, observedFactorSizes, numViews);
 		
-		wordMaps    = loadedValues._1();
-		wordMapInvs = loadedValues._2();
-		double[][][] observedValues = loadedValues._3(); // Factor -> Doc -> Component
-		docs = loadedValues._4();
+		docIds      = loadedValues._1();
+		wordMaps    = loadedValues._2();
+		wordMapInvs = loadedValues._3();
+		double[][][] observedValues = loadedValues._4(); // Factor -> Doc -> Component
+		docs = loadedValues._5();
 		
 		D = docs.length;
 		W = new int[numViews];
@@ -462,14 +475,156 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	@Override
 	public void writeOutput(String filename, String outputDir) throws Exception {
 		// TODO Auto-generated method stub
+		
 		String baseName = new File(filename).getName();
 		
-		// Write topic assignments file
+		//Write topic assignments file
 		
+		FileWriter fw = new FileWriter(new File(outputDir, baseName + ".assign"));
+		BufferedWriter bw = new BufferedWriter(fw);
 		
-		// Write bias terms
+		for (int d = 0; d < D; d++) {
+			bw.write(docIds[d].toString());
+			for (Factor f: factors) {
+				if (f.isObserved()) {
+					bw.write("\t" + f.getAlphaString(d));
+				}
+			}
+			
+			bw.write("\t");
+			
+			for (int v = 0; v < numViews; v++) {
+				for (int n = 0; n < docs[d][v].length; n++) {
+					String word = this.wordMapInvs[v].get(docs[d][v][n]);
+					
+					bw.write(word);  // for multiple samples
+					for (int zz = 0; zz < Z[v]; zz++) {
+						bw.write(":" + docsZZ[d][v][n][zz]);
+					}
+					
+					if (n < (docs[d][v].length - 1))
+						bw.write(" ");
+				}
+			}
+			
+			bw.newLine();
+		}
+		
+		bw.close();
+		fw.close();
+		
+		// Write omega/delta bias terms
+		for (int v = 0; v < numViews; v++) {
+			fw = new FileWriter(new File(outputDir, String.format("%s.v%d.deltabias", baseName, v)));
+			bw = new BufferedWriter(fw);
+			
+			SpriteThetaPrior tprior = thetaPriors[v];
+			tprior.writeDeltaBias(bw);
+			
+			bw.close();
+			fw.close();
+			
+			fw = new FileWriter(new File(outputDir, String.format("%s.v%d.omegabias", baseName, v)));
+			bw = new BufferedWriter(fw);
+			
+			SpritePhiPrior pprior = phiPriors[v];
+			pprior.writeOmegaBias(bw, wordMapInvs[v]);
+			
+			bw.close();
+			fw.close();
+		}
 		
 		// Write factor parameters
+		
+		for (int v = 0; v < numViews; v++) {
+			for (Factor f : factors) {
+				fw = new FileWriter(new File(outputDir, String.format("%s.%s.beta", baseName, f.factorName)));
+				bw = new BufferedWriter(fw);
+
+				f.writeBeta(bw);
+
+				bw.close();
+				fw.close();
+			}
+		}
+		
+		fw = new FileWriter(new File(outputDir, baseName+".betaB"));
+		bw = new BufferedWriter(fw);
+		for (int z = 0; z < Z; z++) { 
+			for (int c = 0; c < Cph; c++) {
+				bw.write(betaB[z][c]+" ");
+			}
+			bw.newLine();
+		}
+		bw.close();
+		fw.close();
+		
+		fw = new FileWriter(new File(outputDir, baseName+".omega"));
+		bw = new BufferedWriter(fw);
+		for (int w = 0; w < W; w++) {
+			String word = wordMapInv.get(w);
+			bw.write(word);
+			
+			for (int c = 0; c < Cph; c++) { 
+				bw.write(" " + omega[c][w]);
+			}
+			bw.newLine();
+		}
+		bw.close();
+		fw.close();
+		
+		fw = new FileWriter(new File(outputDir, baseName+".alpha"));
+		bw = new BufferedWriter(fw);
+		for (int d = 0; d < D; d++) {
+			//for (int c = 0; c < 1; c++) {
+			//bw.write(docsC0[d] + " ");
+			//bw.write(docsC1[d] + " ");
+			//bw.write(docsC2[d] + " ");
+			
+			for (int c = 0; c < Cth; c++) { 
+				bw.write(Math.exp(alpha[d][c])+" ");
+			}
+			
+			//for (int c = 1; c < Cth; c++) { 
+			//for (int c = 0; c < 3; c++) {
+			//	bw.write(alpha[d][c]+" ");
+			//}
+			//for (int c = 1; c < alpha[d].length; c++) { 
+			//	bw.write(Math.exp(alpha[d][c])+" ");
+			//}
+			bw.newLine();
+		}
+		bw.close();
+		fw.close();
+		
+		fw = new FileWriter(new File(outputDir, baseName+".delta"));
+		bw = new BufferedWriter(fw);
+		for (int z = 0; z < Z; z++) {
+			bw.write(""+z);
+			
+			//for (int c = 0; c < 1; c++) { 
+			//for (int c = 0; c < 3; c++) { 
+			//	bw.write(" "+delta[c][z]);
+			//}
+			
+			//for (int c = 1; c < Cth; c++) { 
+			for (int c = 0; c < Cth; c++) { 
+				bw.write(" "+Math.exp(delta[c][z]));
+			}
+			bw.newLine();
+		}
+		bw.close();
+		fw.close();
+		
+		fw = new FileWriter(new File(outputDir, baseName+".deltaBias"));
+		bw = new BufferedWriter(fw);
+		for (int z = 0; z < Z; z++) {
+			bw.write(""+z);
+			bw.write(" "+deltaBias[z]);
+			bw.newLine();
+		}
+		bw.close();
+		fw.close();
 		
 		// Serialize the model so we can use it/continue training later if necessary
 		// Serialize this model so we can load it later

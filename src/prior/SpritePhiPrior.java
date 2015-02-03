@@ -1,6 +1,9 @@
 package prior;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.Map;
 
 import utils.Log;
 import utils.MathUtils;
@@ -40,6 +43,13 @@ public class SpritePhiPrior implements Serializable {
 	private double   sigmaOmegaBias;
 	
 	private int currentView; // The view this \widetilde{\phi} is responsible for.
+	
+	public void writeOmegaBias(BufferedWriter bw, Map<Integer, String> wordMapInv) throws IOException {
+		for (int w = 0; w < W; w++) {
+			String word = wordMapInv.get(w);
+			bw.write(String.format("%s %f\n", word, omegaBias[w]));
+		}
+	}
 	
 	public SpritePhiPrior(Factor[] factors0, int Z0, int W0, int currentView0, double omegaInitBias0, double sigmaOmegaBias0) {
 		factors = factors0;

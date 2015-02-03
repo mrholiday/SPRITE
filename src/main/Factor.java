@@ -1,6 +1,10 @@
 package main;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 import utils.Log;
 import utils.MathUtils;
@@ -81,6 +85,8 @@ public class Factor implements Serializable {
 	public boolean isSparse;
 	public final String factorName;
 	
+	public Map<Integer, Integer> revViewIndices;
+	
 	/**
 	 * Latent/observed factor.  If it is observed, you should intiialize
 	 * alpha with the initialize method.
@@ -148,6 +154,10 @@ public class Factor implements Serializable {
 					          factorName, C, observed ? 1 : 0, rho));
 		
 		W = W0;
+		
+		revViewIndices = new HashMap<Integer, Integer>();
+		for (int i = 0; i < viewIndices.length; i++)
+			revViewIndices.put(viewIndices[i], i);
 		
 		sigmaBeta_sqr = Math.pow(sigmaBeta, 2.0);
 		sigmaAlpha_sqr = Math.pow(sigmaAlpha, 2.0);
@@ -250,6 +260,8 @@ public class Factor implements Serializable {
 	 * @param w Word
 	 */
 	public void updatePhiGradient(double gradientTerm, int z, int v, int w) {
+		v = revViewIndices.get(v);
+		
 		for (int c = 0; c < C; c++) {
 			double betaRightSign    = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
 			
@@ -266,15 +278,8 @@ public class Factor implements Serializable {
 	}
 	
 	public void updateThetaGradient(double gradientTerm, int z, int v, int d) {
-		//				for (int c = 0; c < 1; c++) { // factor
-		//					gradientAlpha[d][c] += delta[c][z] * gradientTerm;
-		//					gradientBeta[z][c] += alpha[d][c] * gradientTerm;
-		//				}
-		/*for (int c = 3; c < Cth; c++) { // hierarchy
-		gradientAlpha[d][c] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-		gradientDelta[c][z] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-		gradientBetaB[z][c] += Math.exp(alpha[d][c]) * Math.exp(delta[c][z]) * gradientTerm;
-	}*/
+		v = revViewIndices.get(v);
+		
 		for (int c = 0; c < C; c++) {
 			double deltaRightSign = deltaPositive ? Math.exp(delta[v][c][z]) : delta[v][c][z];
 			double alphaRightSign = alphaPositive ? Math.exp(alpha[c][z]) : alpha[c][z];
@@ -322,6 +327,8 @@ public class Factor implements Serializable {
 	 * @param stepSize
 	 */
 	public void doGradientStep(int v, int minZ, int maxZ, int minD, int maxD, int minW, int maxW, double stepSize) {
+		v = revViewIndices.get(v);
+		
 		for (int z = minZ; z < maxZ; z++) {
 			for (int c = 0; c < C; c++) {
 				gradientBeta[v][z][c] += -(beta[v][z][c]) / sigmaBeta_sqr;
@@ -420,6 +427,8 @@ public class Factor implements Serializable {
 	 * @return Partial sum for \widetilde{phi} for components in this factor.
 	 */
 	public double getPriorPhi(int v, int z, int w) {
+		v = revViewIndices.get(v);
+		
 		double weight = 0.0;
 		
 		for (int c = 0; c < C; c++) {
@@ -439,6 +448,8 @@ public class Factor implements Serializable {
 	 * @return The partial sum for \widetilde{theta} for components in this factor.
 	 */
 	public double getPriorTheta(int v, int d, int z) {
+		v = revViewIndices.get(v);
+		
 		double weight = 0.0;
 		
 		for (int c = 0; c < C; c++) {
@@ -491,6 +502,36 @@ public class Factor implements Serializable {
 	public boolean isObserved() { return observed; }
 	
 	public void setObserved(boolean observed0) { observed = observed0; }
+	
+	/**
+	 * For printing out document component assignments to .assign file.
+	 * 
+	 * @param d Document
+	 * @return String to print to .assign
+	 */
+	public String getAlphaString(int d) {
+		StringBuilder builder = new StringBuilder();
+		
+		builder.append("" + this.alpha[d][0]);
+		for (int c = 1; c < C; c++) {
+			builder.append(" " + this.alpha[d][c]);
+		}
+		
+		return builder.toString();
+	}
+	
+	public void writeBeta(BufferedWriter bw) throws IOException {
+		for (int v = 0; v < numViews; v++) {
+			int view = viewIndices[v];
+			for (int c = 0; c < C; c++) {
+				bw.write(String.format("%d_%d", view, c));
+				for (int z = 0; z < Z[v]; z++) {
+					bw.write(" " + beta[v][z][c]);
+				}
+				bw.newLine();
+			}
+		}
+	}
 	
 	/*
 	private double[][] getPriorAlpha() {

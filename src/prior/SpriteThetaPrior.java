@@ -1,5 +1,7 @@
 package prior;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.Serializable;
 
 import utils.Log;
@@ -40,6 +42,12 @@ public class SpriteThetaPrior implements Serializable {
 	private double[] gradientDeltaBias;
 	private double[] adaDeltaBias;
 	private double   sigmaDeltaBias;
+
+	public void writeDeltaBias(BufferedWriter bw) throws IOException {
+		for (int z = 0; z < Z; z++) {
+			bw.write(String.format("%d %f\n", z, deltaBias[z]));
+		}
+	}
 	
 	public SpriteThetaPrior(Factor[] factors0, int Z0, int D0, int currentView0, double initDeltaBias0, double sigmaDeltaBias0) {
 		factors = factors0;
