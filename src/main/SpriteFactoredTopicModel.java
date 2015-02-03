@@ -67,6 +67,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected SpriteThetaPrior[] thetaPriors;
 	protected SpritePhiPrior[]   phiPriors;
 	
+	private double stepSize; // Master step size
+	
 	/**
 	 * Gets the ranges over which we want to split our threads up for each
 	 * view.  The length of \theta and \phi priors are assumed equal.
@@ -83,7 +85,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	}
 	
 	public SpriteFactoredTopicModel(SpriteThetaPrior[] thetaPriors0, SpritePhiPrior[] phiPriors0,
-									Factor[] factors0, int numThreads0) {
+									Factor[] factors0, int numThreads0, double stepSize0) {
 		super.setParallelParams(numThreads0, getDataRanges(thetaPriors0, phiPriors0));
 		
 		thetaPriors = thetaPriors0;
@@ -108,7 +110,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
-		// TODO: Number of theta/phi priors same as number of views
+		// TODO: Number of theta/phi priors same as number of views.  May want to share a prior over multiple views *shrug*
 		numViews = thetaPriors.length;
 		
 		/*
@@ -124,6 +126,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		for (int i = 0; i < thetaPriors.length; i++) {
 			Z[i] = thetaPriors[i].Z;
 		}
+		
+		stepSize = stepSize0;
 	}
 	
 	private Integer getLock(int v, int[] runningSum, int index) {
@@ -398,8 +402,21 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	@Override
 	public void doGradientStep(Tup2<Integer, Integer>[][] parameterRanges) {
-		// TODO Auto-generated method stub
-		
+		for (int v = 0; v < numViews; v++) {
+			int minZ = parameterRanges[v][0]._1();
+			int maxZ = parameterRanges[v][0]._2();
+			int minD = parameterRanges[v][1]._1();
+			int maxD = parameterRanges[v][1]._2();
+			int minW = parameterRanges[v][2]._1();
+			int maxW = parameterRanges[v][2]._2();
+			
+			for (Factor f: factors) {
+				f.doGradientStep(v, minZ, maxZ, minD, maxD, minW, maxW, stepSize);
+			}
+			
+			thetaPriors[v].doGradientStep(minZ, maxZ, stepSize); // Update delta bias
+			phiPriors[v].doGradientStep(minW, maxW, stepSize); // Update omega bias
+		}
 	}
 	
 	@Override

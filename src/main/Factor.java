@@ -278,8 +278,7 @@ public class Factor implements Serializable {
 		for (int c = 0; c < C; c++) {
 			double deltaRightSign = deltaPositive ? Math.exp(delta[v][c][z]) : delta[v][c][z];
 			double alphaRightSign = alphaPositive ? Math.exp(alpha[c][z]) : alpha[c][z];
-			double betaRightSign  = betaPositive  ? Math.exp(beta[v][z][c]) : beta[v][z][c];
-
+	
 			if (tieBetaAndDelta) { // Will assign beta to delta after the gradient step
 				if (isSparse) {
 					gradientBeta[v][z][c] += alphaRightSign * betaB[v][z][c] * gradientTerm;
@@ -312,29 +311,105 @@ public class Factor implements Serializable {
 	}
 	
 	/**
-	 * Returns the prior P(\alpha).  Assumes a sparse Dirichlet prior.
+	 * 
+	 * @param v View
+	 * @param minZ
+	 * @param maxZ
+	 * @param minD
+	 * @param maxD
+	 * @param minW
+	 * @param maxW
+	 * @param stepSize
 	 */
-	private double[][] getPriorAlpha() {
+	public void doGradientStep(int v, int minZ, int maxZ, int minD, int maxD, int minW, int maxW, double stepSize) {
+		for (int z = minZ; z < maxZ; z++) {
+			for (int c = 0; c < C; c++) {
+				gradientBeta[v][z][c] += -(beta[v][z][c]) / sigmaBeta_sqr;
+				adaBeta[v][z][c] += Math.pow(gradientBeta[v][z][c], 2);
+				beta[v][z][c] += (stepSize / (Math.sqrt(adaBeta[v][z][c]) + MathUtils.eps)) * gradientBeta[v][z][c];
+				gradientBeta[v][z][c] = 0.; // Clear gradient for the next iteration
+			}
+		}
 		
-		return null;
-	}
-	
-	/**
-	 * Returns the prior P(\Beta).
-	 */
-	private double[][] getPriorBeta() {
-		// TODO
+		if (isSparse) {
+			double adadeltaRho = 0.95; // AdaDelta weighting
+			//double priorTemp = Math.pow(1.00, 200-199);
+			double priorTemp = 1.0; // TODO: Set to a constant, since I don't pass iteration number right now.
+			System.out.println("priorTemp = "+priorTemp);
+			double[][] prevBetaB = new double[Z[v]][C];
+			for (int z = minZ; z < maxZ; z++) {
+				double norm = 0.0;
+
+				for (int c = 0; c < C; c++) {
+					double prior = (rho - 1.0) / betaB[v][z][c];
+					
+					if (adaBetaB[v][z][c] == 0) adaBetaB[v][z][c] = 1.0;
+					adaBetaB[v][z][c] = (adadeltaRho * adaBetaB[v][z][c]) + ((1.0 - adadeltaRho) * Math.pow(gradientBetaB[v][z][c], 2)); // average
+					gradientBetaB[v][z][c] += priorTemp * prior; // exclude from adaBetaB
+					prevBetaB[z][c] = betaB[v][z][c]; // store in case update goes wrong
+					betaB[v][z][c] *= Math.exp((stepSize / (Math.sqrt(adaBetaB[v][z][c]) + MathUtils.eps)) * gradientBetaB[v][z][c]);
+					
+					norm += betaB[v][z][c];
+					gradientBetaB[v][z][c] = 0.;
+				}
+				for (int c = 0; c < C; c++) {
+					if (norm == 0.0 || norm == Double.POSITIVE_INFINITY) {
+						Log.warn("factor" + factorName, "Bad BetaB");
+						//betaB[z][c] = 1.0 / (Cph - 1);
+						betaB[v][z][c] = prevBetaB[z][c]; // undo update if not well defined
+					}
+					else {
+						betaB[v][z][c] /= norm;
+					}
+				}
+			}
+		}
+		else {
+			for (int z = minZ; z < maxZ; z++) {
+				for (int c = 0; c < C; c++) {
+					betaB[v][z][c] = 1.0;
+				}
+			}
+		}
 		
-		return null;
-	}
-	
-	/**
-	 * Returns the prior P(b).  Sparse Dirichlet prior.
-	 */
-	private double[][] getPriorBetaB() {
-		// TODO
 		
-		return null;
+		for (int c = 0; c < C; c++) {
+			for (int w = minW; w < maxW; w++) {
+				gradientOmega[v][c][w] += -(omega[v][c][w]) / sigmaOmega_sqr;
+				adaOmega[v][c][w] += Math.pow(gradientOmega[v][c][w], 2);
+				omega[v][c][w] += (stepSize / (Math.sqrt(adaOmega[v][c][w]) + MathUtils.eps)) * gradientOmega[v][c][w];
+				gradientOmega[v][c][w] = 0.; // Clear gradient for the next iteration
+			}
+		}
+		
+		if (!observed) {
+			for (int d = minD; d < maxD; d++) {
+				for (int c = 0; c < C; c++) {
+					gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
+					adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
+					alpha[d][c] += (stepSize / (Math.sqrt(adaAlpha[d][c]) + MathUtils.eps)) * gradientAlpha[d][c];
+					gradientAlpha[d][c] = 0.; // Clear gradient for the next iteration
+				}
+			}
+		}
+		
+		if (tieBetaAndDelta) {
+			for (int c = 0; c < C; c++) {
+				for (int z = minZ; z < maxZ; z++) {
+					delta[v][c][z] = beta[v][z][c];
+				}
+			}
+		}
+		else {
+			for (int c = 0; c < C; c++) {
+				for (int z = minZ; z < maxZ; z++) {
+					gradientDelta[v][c][z] += -(delta[v][c][z]) / sigmaDelta_sqr;
+					adaDelta[v][c][z] += Math.pow(gradientDelta[v][c][z], 2);
+					delta[v][c][z] += (stepSize / (Math.sqrt(adaDelta[v][c][z]) + MathUtils.eps)) * gradientDelta[v][c][z];
+					gradientDelta[v][c][z] = 0.; // Clear gradient for next iteration
+				}
+			}
+		}
 	}
 	
 	/**
@@ -352,7 +427,7 @@ public class Factor implements Serializable {
 			weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
 		}
 		
-		return weight; // Sprite(Theta/Phi)Prior will exponentiate this
+		return weight; // SpritePhiPrior will exponentiate this
 	}
 	
 	/**
@@ -372,7 +447,7 @@ public class Factor implements Serializable {
 			weight += alphaRightSign * betaB[v][z][c] * deltaRightSign;
 		}
 		
-		return weight;
+		return weight; // SpriteThetaPrior will exponentiate this
 	}
 	
 	/**
@@ -416,5 +491,24 @@ public class Factor implements Serializable {
 	public boolean isObserved() { return observed; }
 	
 	public void setObserved(boolean observed0) { observed = observed0; }
+	
+	/*
+	private double[][] getPriorAlpha() {
+		
+		return null;
+	}
+	
+	private double[][] getPriorBeta() {
+		// TODO
+		
+		return null;
+	}
+	
+	private double[][] getPriorBetaB() {
+		// TODO
+		
+		return null;
+	}
+	*/
 	
 }

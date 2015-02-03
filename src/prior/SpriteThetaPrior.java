@@ -38,13 +38,16 @@ public class SpriteThetaPrior implements Serializable {
 	private int currentView; // View this prior over theta is responsible for.
 	
 	private double[] gradientDeltaBias;
+	private double[] adaDeltaBias;
+	private double   sigmaDeltaBias;
 	
-	public SpriteThetaPrior(Factor[] factors0, int Z0, int D0, int currentView0, double initDeltaBias0) {
+	public SpriteThetaPrior(Factor[] factors0, int Z0, int D0, int currentView0, double initDeltaBias0, double sigmaDeltaBias0) {
 		factors = factors0;
 		Z = Z0;
 		D = D0;
 		initDeltaBias = initDeltaBias0;
 		currentView = currentView0;
+		sigmaDeltaBias = sigmaDeltaBias0;
 		
 		initialize();
 	}
@@ -88,6 +91,16 @@ public class SpriteThetaPrior implements Serializable {
 			}
 			gradientDeltaBias[z] += gradientTerm;
 		}
+	}
+	
+	public void doGradientStep(int minZ, int maxZ, double stepSize) {
+		for (int z = minZ; z < maxZ; z++) {
+			gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);
+			adaDeltaBias[z] += Math.pow(gradientDeltaBias[z], 2);
+			deltaBias[z] += (stepSize / (Math.sqrt(adaDeltaBias[z]) + MathUtils.eps)) * gradientDeltaBias[z];
+			gradientDeltaBias[z] = 0.;
+		}
+
 	}
 	
 	// Returns the phi_dz prior given all the parameters.  Factors are

@@ -35,20 +35,19 @@ public class SpritePhiPrior implements Serializable {
 	// Topic -> Word -> weight.  \widetilde{phi} in TACL paper
 	public double[][] phiTilde;
 	
+	private double[] gradientOmegaBias;
+	private double[] adaOmegaBias;
+	private double   sigmaOmegaBias;
+	
 	private int currentView; // The view this \widetilde{\phi} is responsible for.
 	
-	private double[] gradientOmegaBias;
-	
-	// For optimization
-	//private double[][] gradientPhi;
-	//private double[][] adaDeltaPhi;
-	
-	public SpritePhiPrior(Factor[] factors0, int Z0, int W0, int currentView0, double omegaInitBias0) {
+	public SpritePhiPrior(Factor[] factors0, int Z0, int W0, int currentView0, double omegaInitBias0, double sigmaOmegaBias0) {
 		factors = factors0;
 		Z = Z0;
 		W = W0;
 		currentView = currentView0;
 		initOmegaBias = omegaInitBias0;
+		sigmaOmegaBias = sigmaOmegaBias0;
 		
 		initialize();
 	}
@@ -101,6 +100,15 @@ public class SpritePhiPrior implements Serializable {
 				f.updatePhiGradient(gradientTerm, z, currentView, w);
 			}
 			gradientOmegaBias[w] += gradientTerm;
+		}
+	}
+	
+	public void doGradientStep(int minW, int maxW, double stepSize) {
+		for (int w = minW; w < maxW; w++) {
+			gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2);
+			adaOmegaBias[w] += Math.pow(gradientOmegaBias[w], 2);
+			omegaBias[w] += (stepSize / (Math.sqrt(adaOmegaBias[w]) + MathUtils.eps)) * gradientOmegaBias[w];
+			gradientOmegaBias[w] = 0.; // Clear gradient for the next iteration
 		}
 	}
 	
