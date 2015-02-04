@@ -3,7 +3,12 @@ package main;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
-import java.util.HashMap;
+import models.original.SpriteICWSM;
+import models.original.SpriteICWSMPred;
+import models.original.SpriteLDA;
+import models.original.SpriteLDAPred;
+import models.original.SpriteUnsupervised;
+import models.original.SpriteUnsupervisedPred;
 
 import utils.Log;
 import utils.MathUtils;
@@ -13,22 +18,22 @@ public class LearnTopicModel {
 	private static class CmdArgs {
 		@Parameter(names = "-model", description = "Type of topic model to run", required=true)
 		private String model;
-
+		
 		@Parameter(names="-input", description="Path to training file", required=true)
 		String filename;
-
+		
 		@Parameter(names="-Z", description="Number of topics", required=true)
 		int z;
-
+		
 		@Parameter(names="-sigmaAlpha", description="Stddev for component to document assignments.  Defaults to 1.0")
 		double sigmaAlpha = 1.0;
-
+		
 		@Parameter(names="-sigmaDelta", description="Stddev for delta.  Defaults to 1.0")
 		double sigmaDelta = 1.0;
-
+		
 		@Parameter(names="-sigmaDeltaB", description="Stddev for delta bias.  Defaults to 1.0")
 		double sigmaDeltaBias = 1.0;
-
+		
 		@Parameter(names="-sigmaOmega", description="Stddev for omega.  Defaults to 1.0")
 		double sigmaOmega = 1.0;
 
@@ -37,10 +42,10 @@ public class LearnTopicModel {
 
 		@Parameter(names="-deltaB", description="Initial value for delta bias (on \\widetilde{\\theta}).  Defaults to -5.0")
 		double deltaBias = -5.0;
-
+		
 		@Parameter(names="-omegaB", description="Initial value for omega bias (on \\widetilde{\\phi}).  Defaults to -5.0")
 		double omegaBias = -5.0;
-
+		
 		@Parameter(names="-step", description="Master step size.  Defaults to 0.01")
 		double step = 0.01;
 
@@ -126,14 +131,12 @@ public class LearnTopicModel {
 		else if (c.model.equals("sprite_lda")) {
 			if (c.predFold >= 0) {
 				  topicModel = new SpriteLDAPred(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
-							c.sigmaOmegaBias, -1,
-							-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+							c.sigmaOmegaBias, c.deltaBias,
 							c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.predFold);
 			}
 			else {
-				  topicModel = new SpriteLDA(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
-							c.sigmaOmegaBias, -1,
-							-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+				topicModel = new SpriteLDA(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+							c.sigmaOmegaBias, c.deltaBias,
 							c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}

@@ -13,9 +13,9 @@ import prior.SpritePhiPrior;
 import prior.SpriteThetaPrior;
 
 import utils.IO;
+import utils.Log;
 import utils.MathUtils;
 import utils.Tup2;
-import utils.Tup4;
 import utils.Tup5;
 
 /**
@@ -48,9 +48,6 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected int[] runningDSums;
 	protected int[] runningWSums;
 	
-	protected BigInteger[] docIds; // Unused except for printing to output
-	protected int[][][] docs; // Loaded documents.  Document -> View -> Words
-	
 	// Current sampled topic assignments
 	protected int[][][] docsZ;    // Burned-in samples of Document -> View -> Word Index 
 	protected int[][][][] docsZZ; // Burned-in samples of Document -> View -> Word Index -> Topic
@@ -73,6 +70,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected SpritePhiPrior[]   phiPriors;
 	
 	private double stepSize; // Master step size
+	
+	public String outputDir = null; // Where model parameters get written
 	
 	/**
 	 * Gets the ranges over which we want to split our threads up for each
@@ -199,6 +198,10 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			runningDSums[v] = D;
 		}
 		
+		wordLocks  = new Integer[runningWSums[numViews - 1]];
+		topicLocks = new Integer[runningZSums[numViews - 1]];
+		docLocks   = new Integer[runningDSums[numViews - 1]];
+		
 		// The min/max number of topics/documents/words for each view.  We partition threads accordingly.
 		varDims = new int[numViews][3];
 		for (int v = 0; v < numViews; v++) {
@@ -216,7 +219,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 			for (int z = 0; z < Z[v]; z++) {
 				int zLock = getLock(v, runningZSums, z);
-				wordLocks[zLock] = (Integer)zLock;
+				topicLocks[zLock] = (Integer)zLock;
 			}
 		}
 		
@@ -320,7 +323,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				}
 				
 				if (d % 10000 == 0) {
-					System.out.println(String.format("Done view %d, document %d", v, d));
+					Log.info("SpriteFactoredTopicModel", String.format("Done view %d, document %d", v, d));
 				}
 			}
 		}
@@ -466,16 +469,27 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
+		for (SpriteThetaPrior p : thetaPriors) {
+			p.initialize(D);
+		}
+		
+		for (int v = 0; v < numViews; v++) {
+			phiPriors[v].initialize(W[v]);
+		}
+		
 	}
 	
 	public void writeOutput(String filename) throws Exception {
-		writeOutput(filename, new File(filename).getParent()); // Write to the same directory as the input file.
+		if (outputDir != null) {
+			writeOutput(filename, outputDir);
+		}
+		else {
+			writeOutput(filename, new File(filename).getParent()); // Write to the same directory as the input file.
+		}
 	}
 	
 	@Override
 	public void writeOutput(String filename, String outputDir) throws Exception {
-		// TODO Auto-generated method stub
-		
 		String baseName = new File(filename).getName();
 		
 		//Write topic assignments file
@@ -539,7 +553,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		for (Factor f : factors) {
 			fw = new FileWriter(new File(outputDir, String.format("%s.%s.beta", baseName, f.factorName)));
 			bw = new BufferedWriter(fw);
-
+			
 			f.writeBeta(bw, false);
 			
 			bw.close();
@@ -554,7 +568,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			fw.close();
 			
 			for (int v : f.revViewIndices.keySet()) {
-				fw = new FileWriter(new File(outputDir, String.format("%s.%s.%d.omega", baseName, f.factorName)));
+				fw = new FileWriter(new File(outputDir, String.format("%s.%s.%d.omega", baseName, f.factorName, v)));
 				bw = new BufferedWriter(fw);
 				
 				f.writeOmega(bw, v, wordMapInvs[f.revViewIndices.get(v)]);
@@ -581,7 +595,6 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		// Serialize the model so we can use it/continue training later if necessary
-		// Serialize this model so we can load it later
 		try {
 			FileOutputStream fileOut = new FileOutputStream(new File(outputDir, baseName + ".ser"));
 			ObjectOutputStream out = new ObjectOutputStream(fileOut);

@@ -1,16 +1,14 @@
 package main;
 
-import java.util.List;
-
+import utils.Log;
 import utils.Tup2;
+import main.SpriteWorker.ThreadCommunication.ThreadCommand;
 
 /**
  * Does work for the topic model based on messages received (sample, update priors,
  * calculate gradient, take a gradient step.)
  */
 public class SpriteWorker extends Thread {
-	
-	public static enum ThreadCommand {UPDATE_PRIOR, KILL, SAMPLE, CALC_GRADIENT, GRADIENT_STEP, DONE};
 	
 	public String threadName;
 	
@@ -32,7 +30,7 @@ public class SpriteWorker extends Thread {
 			Tup2<Integer, Integer>[] zdv = parameterRanges[i];
 			for (Tup2<Integer, Integer> minMax : zdv) {
 				
-				threadName += "_" + i + "-" + minMax._1() + "-" + minMax._2();
+				threadName += "_" + minMax._1() + "-" + minMax._2();
 			}
 		}
 	}
@@ -43,20 +41,26 @@ public class SpriteWorker extends Thread {
 		while (true) {
 			try {
 				ThreadCommunication msg = tm.THREAD_WORKER_QUEUE.take();
-				if (msg.equals(ThreadCommand.KILL)) {
+				@SuppressWarnings("unused")
+				Object NOOP = null;
+				
+				if (msg.cmd.equals(ThreadCommand.KILL)) {
 					break;
 				}
-				else if (msg.equals(ThreadCommand.UPDATE_PRIOR)) {
+				else if (msg.cmd.equals(ThreadCommand.UPDATE_PRIOR)) {
 					tm.updatePriors(parameterRanges);
 				}
-				else if (msg.equals(ThreadCommand.SAMPLE)) {
+				else if (msg.cmd.equals(ThreadCommand.SAMPLE)) {
 					tm.sampleBatch(parameterRanges);
 				}
-				else if (msg.equals(ThreadCommand.CALC_GRADIENT)) {
+				else if (msg.cmd.equals(ThreadCommand.CALC_GRADIENT)) {
 					tm.updateGradient(parameterRanges);
 				}
-				else if (msg.equals(ThreadCommand.GRADIENT_STEP)) {
+				else if (msg.cmd.equals(ThreadCommand.GRADIENT_STEP)) {
 					tm.doGradientStep(parameterRanges);
+				}
+				else {
+					Log.error("worker_" + threadName, "Unrecognized message: " + msg.cmd + " " + msg.msg);
 				}
 				tm.THREAD_MASTER_QUEUE.put(new ThreadCommunication(ThreadCommand.DONE, threadName, "success"));
 			} catch (InterruptedException e) {
@@ -71,7 +75,7 @@ public class SpriteWorker extends Thread {
 	}
 	
 	public void start() {
-	      System.out.println("Starting " +  threadName );
+	      Log.info("worker_thread", "Starting " +  threadName);
 	      Thread t = new Thread (this, threadName);
 	      t.start();
 	}
@@ -80,6 +84,8 @@ public class SpriteWorker extends Thread {
 		/**
 		 * Protocol for master-worker communication.
 		 */
+		
+		public static enum ThreadCommand {UPDATE_PRIOR, KILL, SAMPLE, CALC_GRADIENT, GRADIENT_STEP, DONE};
 		
 		public String source, msg;
 		public ThreadCommand cmd;

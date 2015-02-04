@@ -149,7 +149,7 @@ public class Factor implements Serializable {
 	 * @param W0 Vocabulary size for each view this factor is responsible for.
 	 */
 	public void initialize(double[][] docScores, int[] W0) {
-		Log.info("Factor",
+		Log.info("factor_" + factorName,
 				String.format("Initializing factor %s: C=%d, observed=%d, rho=%e",
 					          factorName, C, observed ? 1 : 0, rho));
 		
@@ -342,11 +342,11 @@ public class Factor implements Serializable {
 			double adadeltaRho = 0.95; // AdaDelta weighting
 			//double priorTemp = Math.pow(1.00, 200-199);
 			double priorTemp = 1.0; // TODO: Set to a constant, since I don't pass iteration number right now.
-			System.out.println("priorTemp = "+priorTemp);
+			Log.info("factor_" + factorName, "priorTemp = " + priorTemp);
 			double[][] prevBetaB = new double[Z[v]][C];
 			for (int z = minZ; z < maxZ; z++) {
 				double norm = 0.0;
-
+				
 				for (int c = 0; c < C; c++) {
 					double prior = (rho - 1.0) / betaB[v][z][c];
 					
@@ -361,7 +361,7 @@ public class Factor implements Serializable {
 				}
 				for (int c = 0; c < C; c++) {
 					if (norm == 0.0 || norm == Double.POSITIVE_INFINITY) {
-						Log.warn("factor" + factorName, "Bad BetaB");
+						Log.warn("factor_" + factorName, "Bad BetaB");
 						//betaB[z][c] = 1.0 / (Cph - 1);
 						betaB[v][z][c] = prevBetaB[z][c]; // undo update if not well defined
 					}
@@ -378,7 +378,6 @@ public class Factor implements Serializable {
 				}
 			}
 		}
-		
 		
 		for (int c = 0; c < C; c++) {
 			for (int w = minW; w < maxW; w++) {
@@ -474,7 +473,7 @@ public class Factor implements Serializable {
 					b.append(String.format(" %.3f", delta[v][c][z]));
 				}
 				
-				Log.info("factor " + factorName + " iteration", b.toString());
+				Log.info("factor_" + factorName + "_iteration", b.toString());
 			}
 			for (int z = 0; z < Z[v]; z++) {
 				StringBuilder b = new StringBuilder();
@@ -484,7 +483,7 @@ public class Factor implements Serializable {
 					b.append(String.format(" %.3f", beta[v][z][c]));
 				}
 				
-				Log.info("factor " + factorName + " iteration", b.toString());
+				Log.info("factor_" + factorName + "_iteration", b.toString());
 			}
 			
 			for (int w = 0; w < W[v]; w += 10000) {
@@ -494,7 +493,7 @@ public class Factor implements Serializable {
 				for (int c = 0; c < C; c++) {
 					b.append(String.format(" %.3f", omega[v][c][w]));
 				}
-				Log.info("factor " + factorName + " iteration", b.toString());
+				Log.info("factor_" + factorName + "_iteration", b.toString());
 			}
 		}
 	}

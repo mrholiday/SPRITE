@@ -51,23 +51,26 @@ public class SpritePhiPrior implements Serializable {
 		}
 	}
 	
-	public SpritePhiPrior(Factor[] factors0, int Z0, int W0, int currentView0, double omegaInitBias0, double sigmaOmegaBias0) {
+	public SpritePhiPrior(Factor[] factors0, int Z0, int currentView0, double omegaInitBias0, double sigmaOmegaBias0) {
 		factors = factors0;
 		Z = Z0;
-		W = W0;
 		currentView = currentView0;
 		initOmegaBias = omegaInitBias0;
 		sigmaOmegaBias = sigmaOmegaBias0;
-		
-		initialize();
 	}
 	
-	private void initialize() {
+	public void initialize(int W0) {
+		W = W0;
+		
 		omegaBias = new double[W];
 		gradientOmegaBias = new double[W];
+		adaOmegaBias = new double[W];
 		for (int i = 0; i < W; i++) {
 			omegaBias[i] = initOmegaBias;
 		}
+		
+		phiNorm = new double[Z];
+		phiTilde = new double[Z][W];
 		
 		updatePhiTilde();
 		updatePhiNorm();
@@ -164,12 +167,21 @@ public class SpritePhiPrior implements Serializable {
 	 */
 	public void logState() {
 		StringBuilder b = new StringBuilder();
-		b.append(String.format("omegaBias_%d", currentView));
-		for (int z = 0; z < Z; z++) {
-			b.append(String.format(" %.3f", omegaBias[z]));
+		b.append(String.format("omegaBias_sample_%d", currentView));
+		int wStepSize = W/20;
+		for (int w = 0; w < W; w += wStepSize) {
+			b.append(String.format(" %d:%.3f", w, omegaBias[w]));
 		}
 		
-		Log.info("phiPrior_" + currentView + " iteration", b.toString());
+		Log.info("phiPrior_" + currentView + "_iteration", b.toString());
+		
+		b = new StringBuilder();
+		b.append(String.format("phiNorm_%d", currentView));
+		for (int z = 0; z < Z; z++) {
+			b.append(String.format(" %.3f", phiNorm[z]));
+		}
+		
+		Log.info("phiPrior" + currentView + "_iteration", b.toString());
 	}
 	
 }

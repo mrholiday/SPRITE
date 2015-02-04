@@ -15,6 +15,9 @@ import java.util.Date;
  */
 public class Log {
 	
+	/** Even when logging to file, prints to stdout, too. **/
+	public static boolean ALWAYS_PRINT_STDOUT = true;
+	
 	/** No logging at all. */
 	static public final int LEVEL_NONE = 6;
 	
@@ -234,7 +237,7 @@ public class Log {
 					e.printStackTrace();
 				}
 			}
-			else {
+			if ((fileWriter == null) || Log.ALWAYS_PRINT_STDOUT) {
 				System.out.println(message);
 			}
 		}

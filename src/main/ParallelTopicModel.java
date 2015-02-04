@@ -5,7 +5,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import utils.Log;
 import utils.Tup2;
 
-import main.SpriteWorker.ThreadCommand;
+import main.SpriteWorker.ThreadCommunication.ThreadCommand;
 import main.SpriteWorker.ThreadCommunication;
 
 public abstract class ParallelTopicModel extends TopicModel implements Trainable {
@@ -18,12 +18,12 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	protected int numThreads    = 1;
 	protected String threadName = "MASTER";
 	
-	public ArrayBlockingQueue<ThreadCommunication> THREAD_WORKER_QUEUE = null; // Signals workers have a job to do
-    public ArrayBlockingQueue<ThreadCommunication> THREAD_MASTER_QUEUE = null; // Signals work is done
+	public transient ArrayBlockingQueue<ThreadCommunication> THREAD_WORKER_QUEUE = null; // Signals workers have a job to do
+    public transient ArrayBlockingQueue<ThreadCommunication> THREAD_MASTER_QUEUE = null; // Signals work is done
     
-	private SpriteWorker[] THREADS = null;
+	private transient SpriteWorker[] THREADS = null;
 	
-	private boolean TIME_ITERATIONS = false;
+	public boolean TIME_ITERATIONS = false;
 	private int likelihoodFreq      = 100;
 	
 	private int iter = -1;
@@ -42,9 +42,8 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		varDims = varDims0;
 	}
 	
-	@Override
 	@SuppressWarnings("unchecked")
-	protected void initialize() {
+	protected void initializeThreads() {
 		/*
 		 * Spins up worker threads.  Implementation will want to add to this
 		 * by initializing parameters.
@@ -79,6 +78,11 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 			THREADS[i] = new SpriteWorker(paramRanges, this);
 			THREADS[i].start();
 		}
+	}
+	
+	@Override
+	protected void initialize() {
+		initializeThreads();
 	}
 	
 	@Override
@@ -167,7 +171,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		
 		if (TIME_ITERATIONS) {
 			long endTime = System.currentTimeMillis();
-			Log.info("topic_model", String.format("Iteration time:\t%d\t%d", iter, endTime - startTime));
+			Log.info("topic_model", String.format("Iteration time:\t%d\t%d ms", iter, endTime - startTime));
 		}
 	}
 	
@@ -222,7 +226,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 			}
 		}
 		
-		System.out.println("Killed worker threads");
+		Log.info("cleanup", "Killed worker threads");
 	}
 	
 }

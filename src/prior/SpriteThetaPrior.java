@@ -49,20 +49,20 @@ public class SpriteThetaPrior implements Serializable {
 		}
 	}
 	
-	public SpriteThetaPrior(Factor[] factors0, int Z0, int D0, int currentView0, double initDeltaBias0, double sigmaDeltaBias0) {
+	public SpriteThetaPrior(Factor[] factors0, int Z0, int currentView0, double initDeltaBias0, double sigmaDeltaBias0) {
 		factors = factors0;
 		Z = Z0;
-		D = D0;
 		initDeltaBias = initDeltaBias0;
 		currentView = currentView0;
 		sigmaDeltaBias = sigmaDeltaBias0;
-		
-		initialize();
 	}
 	
-	private void initialize() {
+	public void initialize(int D0) {
+		D = D0;
+		
 		deltaBias = new double[Z];
 		gradientDeltaBias = new double[Z];
+		adaDeltaBias = new double[Z];
 		for (int i = 0; i < Z; i++) {
 			deltaBias[i] = initDeltaBias;
 		}
@@ -171,7 +171,7 @@ public class SpriteThetaPrior implements Serializable {
 			b.append(String.format(" %.3f", deltaBias[z]));
 		}
 		
-		Log.info("thetaPrior_" + currentView + " iteration", b.toString());
+		Log.info("thetaPrior_" + currentView + "_iteration", b.toString());
 	}
 	
 }

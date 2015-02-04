@@ -2,6 +2,9 @@ package main;
 
 import java.io.File;
 import java.io.Serializable;
+import java.math.BigInteger;
+
+import utils.Log;
 
 public abstract class TopicModel implements Trainable, Serializable {
 	/**
@@ -16,6 +19,7 @@ public abstract class TopicModel implements Trainable, Serializable {
 	protected int writeFreq = 1000;
 	
 	protected int[][][] docs;
+	protected BigInteger[] docIds; // Unused except for printing to output
 	
 	public void train(int iters, int samples, String filename) throws Exception {
 		try {
@@ -23,12 +27,12 @@ public abstract class TopicModel implements Trainable, Serializable {
 			readDocs(filename);
 			initialize();
 			
-			System.out.println("Sampling...");
+			Log.info("train", "Sampling...");
 			
 			for (int iter = 1; iter <= iters; iter++) {
 				if (iter >= (iters - burnInIters)) burnedIn = true; // Keep the last couple hundred samples for final estimates
 				
-				System.out.println("Iteration " + iter);
+				Log.info("train", "Iteration " + iter);
 				doSampling(iter);
 				
 				// save the output periodically
@@ -43,13 +47,13 @@ public abstract class TopicModel implements Trainable, Serializable {
 			writeOutput(filename);
 		}
 		catch (Exception e) {
-			System.out.println("Error in training model.");
+			Log.error("train", "Error in training model.", e);
 			e.printStackTrace();
 		}
 		finally {
 			cleanUp();
 		}
-		System.out.println("...done.");
+		Log.info("train", "...done.");
 	}
 	
 	public double computeLL() { return computeLL(docs); } // Compute log-likelihood on training data

@@ -43,10 +43,15 @@ public class IO {
 		double[][][] observedFactors = null;
 		
 		@SuppressWarnings("unchecked")
-		Map<String, Integer>[] wordMaps    = new HashMap[numViews];
+		Map<String, Integer>[] wordMaps    = new Map[numViews];
 		
 		@SuppressWarnings("unchecked")
-		Map<Integer, String>[] wordMapInvs = new HashMap[numViews];
+		Map<Integer, String>[] wordMapInvs = new Map[numViews];
+		
+		for (int v = 0; v < numViews; v++) {
+			wordMaps[v] = new HashMap<String, Integer>();
+			wordMapInvs[v] = new HashMap<Integer, String>();
+		}
 		
 		try {
 			FileReader fr = new FileReader(inputPath);
@@ -63,17 +68,18 @@ public class IO {
 			docIds = new BigInteger[D];
 			docs = new int[D][numViews][];
 			observedFactors = new double[numFactorsObserved][D][];
-
+			
 			fr = new FileReader(inputPath);
 			br = new BufferedReader(fr); 
-
+			
 			int d = 0;
 			while ((s = br.readLine()) != null) {
-				String[] fields = s.split("\t+");
-
+				String[] fields = s.split("\t", numViews + 1 + numFactorsObserved);
+				docIds[d] = new BigInteger(fields[0]);
+				
 				for (int i = 0; i < numFactorsObserved; i++) {
 					observedFactors[i][d] = new double[observedFactorSizes[i]];
-
+					
 					String[] factorValues = fields[1+i].split(" ");
 					for (int j = 0; j < observedFactorSizes[i]; j++) {
 						observedFactors[i][d][j] = Double.parseDouble(factorValues[j]);
@@ -170,7 +176,8 @@ public class IO {
 			
 			int d = 0;
 			while ((s = br.readLine()) != null) {
-				String[] fields = s.split("\t+");
+				String[] fields = s.split("\t+", numViews + 1 + numFactorsObserved);
+				docIds[d] = new BigInteger(fields[0]);
 				
 				for (int i = 0; i < numFactorsObserved; i++) {
 					observedFactors[i][d] = new double[factorSizes[i]];
