@@ -341,7 +341,7 @@ public class Factor implements Serializable {
 			double adadeltaRho = 0.95; // AdaDelta weighting
 			//double priorTemp = Math.pow(1.00, 200-199);
 			double priorTemp = 1.0; // TODO: Set to a constant, since I don't pass iteration number right now.
-			Log.info("factor_" + factorName, "priorTemp = " + priorTemp);
+			//Log.info("factor_" + factorName, "priorTemp = " + priorTemp);
 			double[][] prevBetaB = new double[Z[v]][C];
 			for (int z = minZ; z < maxZ; z++) {
 				double norm = 0.0;

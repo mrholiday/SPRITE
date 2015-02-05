@@ -44,8 +44,6 @@ public abstract class TopicModel implements Trainable, Serializable {
 //				}
 			}
 			
-			// write variable assignments
-			
 			writeOutput(filename);
 		}
 		catch (Exception e) {
@@ -54,9 +52,10 @@ public abstract class TopicModel implements Trainable, Serializable {
 		}
 		finally {
 			cleanUp();
-			Log.closeLogger();
 		}
+		
 		Log.info("train", "...done.");
+		Log.closeLogger();
 	}
 	
 	public double computeLL() { return computeLL(docs); } // Compute log-likelihood on training data

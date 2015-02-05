@@ -137,7 +137,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	private Integer getLock(int v, int[] runningSum, int index) {
 		if (v > 0) {
-			return runningSum[v] + index;
+			return runningSum[v-1] + index;
 		}
 		else {
 			return index;
@@ -188,15 +188,15 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
-		runningZSums = Z;
 		runningDSums = new int[numViews]; runningDSums[0] = D;
-		runningWSums    = W;
+		runningZSums = new int[numViews]; runningZSums[0] = Z[0];
+		runningWSums = new int[numViews]; runningWSums[0] = W[0];
 		
 		// Compute running sums of topics/words to initialize thread locks
 		for (int v = 1; v < numViews; v++) {
-			runningWSums[v] += runningWSums[v-1];
-			runningZSums[v] += runningZSums[v-1];
 			runningDSums[v] = D;
+			runningZSums[v] = runningZSums[v-1] + Z[v];
+			runningWSums[v] = runningWSums[v-1] + W[v];
 		}
 		
 		wordLocks  = new Integer[runningWSums[numViews - 1]];
@@ -212,7 +212,13 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			
 			for (int w = 0; w < W[v]; w++) {
 				int wLock = getLock(v, runningWSums, w);
-				wordLocks[wLock] = (Integer)wLock;
+				
+				try {
+					wordLocks[wLock] = (Integer)wLock;
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 			for (int d = 0; d < D; d++) {
 				int dLock = getLock(0, runningDSums, d);
@@ -506,9 +512,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				}
 			}
 			
-			bw.write("\t");
-			
 			for (int v = 0; v < numViews; v++) {
+				bw.write("\t");
 				for (int n = 0; n < docs[d][v].length; n++) {
 					String word = this.wordMapInvs[v].get(docs[d][v][n]);
 					

@@ -10,32 +10,36 @@ import utils.ArgParse.Arguments;
 import utils.Tup3;
 
 /**
- * Topic model with one single-component perspective factor for a single view.
+ * Topic model with single latent supertopic factor spanning two views.
+ * Delta/Beta are tied, sparsity is enforced within each view, and
+ * Alpha/Beta/Delta are constrained to be positive.
  * 
  * @author adrianb
  *
  */
-public class SpriteTopicPerspective extends SpriteFactoredTopicModel {
+public class Sprite2ViewSupertopic extends SpriteFactoredTopicModel {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -8356557959212672700L;
 	
-	public SpriteTopicPerspective(SpriteThetaPrior[] thetaPriors0,
+	public Sprite2ViewSupertopic(SpriteThetaPrior[] thetaPriors0,
 			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
 			double stepSize0) {
 		super(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0);
 	}
 	
-	private static Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> buildPriors(int Z,
+	private static Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> buildPriors(int Z, int C,
 				double sigmaDeltaBias, double initDeltaBias, double sigmaOmegaBias, double initOmegaBias,
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
-		Factor[] factors = new Factor[] {new Factor(1, new int[] {0}, new int[] {Z}, 1.0, true,
-										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, false,
-										 false, false, "perspective", true)};
+		Factor[] factors = new Factor[] {new Factor(C, new int[] {0, 1}, new int[] {Z, Z}, 0.01, true,
+										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
+										 true, true, "supertopic", false)};
 		
-		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, 0, initDeltaBias, sigmaDeltaBias)};
-		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, 0, initOmegaBias, sigmaOmegaBias)};
+		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, 0, initDeltaBias, sigmaDeltaBias),
+									  new SpriteThetaPrior(factors, Z, 1, initDeltaBias, sigmaDeltaBias)};
+		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, 0, initOmegaBias, sigmaOmegaBias),
+									  new SpritePhiPrior(factors, Z, 1, initOmegaBias, sigmaOmegaBias)};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
 	}
@@ -46,9 +50,9 @@ public class SpriteTopicPerspective extends SpriteFactoredTopicModel {
 		Arguments p = ArgParse.parseArgs(args);
 		
 		if (p != null) {
-			Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> graph = buildPriors(p.z, p.sigmaDeltaBias, p.deltaBias, p.sigmaOmegaBias,
+			Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> graph = buildPriors(p.z, p.C, p.sigmaDeltaBias, p.deltaBias, p.sigmaOmegaBias,
 																					 p.omegaBias, p.sigmaBeta, p.sigmaOmega, p.sigmaAlpha, p.sigmaDelta);
-			topicModel = new SpriteTopicPerspective(graph._2(), graph._3(), graph._1(), p.numThreads, p.step);
+			topicModel = new Sprite2ViewSupertopic(graph._2(), graph._3(), graph._1(), p.numThreads, p.step);
 			topicModel.outputDir = p.outDir;
 			topicModel.TIME_ITERATIONS = true;
 			

@@ -105,7 +105,7 @@ public class IO {
 						docs[d][v][n] = key;
 					}
 				}
-
+				
 				d++;
 			}
 			
@@ -120,7 +120,7 @@ public class IO {
 				Ws[v] = wordMaps[v].size();
 				Log.info("io", Ws[v] + " word types in view " + v);
 			}
-			
+		
 		} catch (FileNotFoundException e) {
 			Log.error("io", "Could not find input file: " + inputPath, e);
 		} catch (IOException e) {

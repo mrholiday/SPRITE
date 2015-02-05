@@ -108,7 +108,7 @@ def main(basename, numObserved, polarFactors):
   for factorName, view, p in omegaPaths:
     if factorName not in omega:
       omega[factorName] = {}
-    omega[factorName][v] = {}
+    omega[factorName][view] = {}
   
   for factorName, view, omegaPath in omegaPaths:
     f = open(omegaPath, 'r')
@@ -272,6 +272,7 @@ def main(basename, numObserved, polarFactors):
         words = sorted(words, key=itemgetter(1), reverse=False)
         for word, v in words[:NUM_TOPWORDS]:
           print word, -1.0*v
+        print '\n'
       else:
         for c in range(Cph[factorName]):
           print '-'*12, 'Omega', c, '-'*12
