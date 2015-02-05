@@ -39,7 +39,8 @@ public class Factor implements Serializable {
 	public double[][][] delta; // View-to-Component-to-Topic, for theta.  Per view, since views have different number of topics.
 	public double[][][] beta;  // View-to-Topic-to-component, for phi.  Per view, since views have different number of topics.
 	public double[][][] betaB; // View-to-Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1.  Sparsity enforced within a view.
-	public double[][][] omega;   // Component-to-token, for phi.  Per view since we have different vocabularies for each view.
+	public double[][] omega;   // Component-to-token, for phi
+	// public double[][][] omega;   // Component-to-token, for phi.  Per view since we have different vocabularies for each view.
 	
 	// Variance of Gaussian priors.  Default to 1.
 	private double sigmaBeta  = 1.0;
@@ -58,10 +59,12 @@ public class Factor implements Serializable {
 	public double[][][] adaDelta;
 	public double[][][] adaBeta;
 	public double[][][] adaBetaB;
-	public double[][][] adaOmega;
+	public double[][] adaOmega;
+	//public double[][][] adaOmega;
 	
 	// Current estimate of gradient
-	public double[][][] gradientOmega;
+	public double[][] gradientOmega;
+	//public double[][][] gradientOmega;
 	public double[][][] gradientBeta;
 	public double[][][] gradientBetaB;
 	public double[][][] gradientDelta;
@@ -76,7 +79,8 @@ public class Factor implements Serializable {
 	
 	public int C;
 	public int[] Z; // Different number of topics per view
-	public int[] W; // Different vocabulary per view
+	public int W; // Vocabulary size is union across all views
+	//public int[] W; // Different vocabulary per view
 	public int D;
 	
 	public double rho;
@@ -135,7 +139,7 @@ public class Factor implements Serializable {
 		factorName = factorName0;
 	}
 	
-	public void initialize(int[] W0, int D0) {
+	public void initialize(int W0, int D0) {
 		initialize(null, W0, D0);
 	}
 	
@@ -144,9 +148,9 @@ public class Factor implements Serializable {
 	 * TODO: Figure out how to initialize more gracefully.
 	 * 
 	 * @param docScores If this factor is observed, alpha is set to these values.
-	 * @param W0 Vocabulary size for each view this factor is responsible for.
+	 * @param W0 Vocabulary size for all views
 	 */
-	public void initialize(double[][] docScores, int[] W0, int D0) {
+	public void initialize(double[][] docScores, int W0, int D0) {
 		Log.info("factor_" + factorName,
 				String.format("Initializing factor %s: C=%d, observed=%d, rho=%e",
 					          factorName, C, observed ? 1 : 0, rho));
@@ -167,13 +171,15 @@ public class Factor implements Serializable {
 		adaDelta = new double[numViews][C][];
 		adaBeta  = new double[numViews][][];
 		adaBetaB = new double[numViews][][];
-		adaOmega = new double[numViews][C][];
+		adaOmega = new double[C][W];
+		//adaOmega = new double[numViews][C][];
 		
 		gradientAlpha = new double[D][C];
 		gradientDelta = new double[numViews][C][];
 		gradientBeta  = new double[numViews][][];
 		gradientBetaB = new double[numViews][][];
-		gradientOmega = new double[numViews][C][];
+		gradientOmega = new double[C][W];
+		//gradientOmega = new double[numViews][C][];
 		
 		// Init alpha, component weight for each document
 		if (docScores == null) {
@@ -192,10 +198,19 @@ public class Factor implements Serializable {
 		else {
 			alpha = docScores; // Observed
 		}
+		
 		delta = new double[numViews][C][]; // Component-to-topic, for theta
 		beta  = new double[numViews][][]; // Topic-to-component, for phi
 		betaB = new double[numViews][][]; // Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1
-		omega = new double[numViews][C][]; // Component-to-token, for phi
+		omega = new double[C][W]; // Component-to-token, for phi
+		//omega = new double[numViews][C][]; // Component-to-token, for phi
+		
+		// Init omega
+		for (int c = 0; c < C; c++) {
+			for (int w = 0; w < W; w++) {
+				omega[c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+			}
+		}
 		
 		for (int v = 0; v < numViews; v++) {
 			for (int c = 0; c < C; c++) {
@@ -240,14 +255,14 @@ public class Factor implements Serializable {
 			}
 			
 			// Init omega
-			adaOmega[v]      = new double[C][W[v]];
-			gradientOmega[v] = new double[C][W[v]];
-			omega[v]         = new double[C][W[v]];
-			for (int c = 0; c < C; c++) {
-				for (int w = 0; w < W[v]; w++) {
-					omega[v][c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
-				}
-			}
+//			adaOmega[v]      = new double[C][W[v]];
+//			gradientOmega[v] = new double[C][W[v]];
+//			omega[v]         = new double[C][W[v]];
+//			for (int c = 0; c < C; c++) {
+//				for (int w = 0; w < W[v]; w++) {
+//					omega[v][c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+//				}
+//			}
 		}
 	}
 	
@@ -265,15 +280,29 @@ public class Factor implements Serializable {
 			double betaRightSign    = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
 			
 			if (isSparse) {
-				gradientBeta[v][z][c] += omega[v][c][w] * betaB[v][z][c] * gradientTerm;
-				gradientBetaB[v][z][c] += betaRightSign * omega[v][c][w] * gradientTerm;
+				gradientBeta[v][z][c] += omega[c][w] * betaB[v][z][c] * gradientTerm;
+				gradientBetaB[v][z][c] += betaRightSign * omega[c][w] * gradientTerm;
 			}
 			else {
-				gradientBeta[v][z][c] += omega[v][c][w] * gradientTerm;
+				gradientBeta[v][z][c] += omega[c][w] * gradientTerm;
 			}
-
-			gradientOmega[v][c][w] += betaRightSign * betaB[v][z][c] * gradientTerm;
+			
+			gradientOmega[c][w] += betaRightSign * betaB[v][z][c] * gradientTerm;
 		}
+		
+//		for (int c = 0; c < C; c++) {
+//			double betaRightSign    = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
+//			
+//			if (isSparse) {
+//				gradientBeta[v][z][c] += omega[v][c][w] * betaB[v][z][c] * gradientTerm;
+//				gradientBetaB[v][z][c] += betaRightSign * omega[v][c][w] * gradientTerm;
+//			}
+//			else {
+//				gradientBeta[v][z][c] += omega[v][c][w] * gradientTerm;
+//			}
+//
+//			gradientOmega[v][c][w] += betaRightSign * betaB[v][z][c] * gradientTerm;
+//		}
 	}
 	
 	public void updateThetaGradient(double gradientTerm, int z, int v, int d) {
@@ -377,15 +406,24 @@ public class Factor implements Serializable {
 				}
 			}
 		}
-		
+
 		for (int c = 0; c < C; c++) {
 			for (int w = minW; w < maxW; w++) {
-				gradientOmega[v][c][w] += -(omega[v][c][w]) / sigmaOmega_sqr;
-				adaOmega[v][c][w] += Math.pow(gradientOmega[v][c][w], 2);
-				omega[v][c][w] += (stepSize / (Math.sqrt(adaOmega[v][c][w]) + MathUtils.eps)) * gradientOmega[v][c][w];
-				gradientOmega[v][c][w] = 0.; // Clear gradient for the next iteration
+				gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
+				adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
+				omega[c][w] += (stepSize / (Math.sqrt(adaOmega[c][w]) + MathUtils.eps)) * gradientOmega[c][w];
+				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
 			}
 		}
+		
+//		for (int c = 0; c < C; c++) {
+//			for (int w = minW; w < maxW; w++) {
+//				gradientOmega[v][c][w] += -(omega[v][c][w]) / sigmaOmega_sqr;
+//				adaOmega[v][c][w] += Math.pow(gradientOmega[v][c][w], 2);
+//				omega[v][c][w] += (stepSize / (Math.sqrt(adaOmega[v][c][w]) + MathUtils.eps)) * gradientOmega[v][c][w];
+//				gradientOmega[v][c][w] = 0.; // Clear gradient for the next iteration
+//			}
+//		}
 		
 		if (!observed) {
 			for (int d = minD; d < maxD; d++) {
@@ -431,7 +469,8 @@ public class Factor implements Serializable {
 		
 		for (int c = 0; c < C; c++) {
 			double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
-			weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
+			weight += betaB[v][z][c] * betaRightSign * omega[c][w];
+			//weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
 		}
 		
 		return weight; // SpritePhiPrior will exponentiate this
@@ -485,15 +524,18 @@ public class Factor implements Serializable {
 				Log.info("factor_" + factorName + "_iteration", b.toString());
 			}
 			
-			for (int w = 0; w < W[v]; w += 10000) {
-				StringBuilder b = new StringBuilder();
-				
-				b.append(String.format("omega_%d_%d", v, w));
-				for (int c = 0; c < C; c++) {
-					b.append(String.format(" %.3f", omega[v][c][w]));
-				}
-				Log.info("factor_" + factorName + "_iteration", b.toString());
+		}
+		
+		//for (int w = 0; w < W[v]; w += 10000) {
+		for (int w = 0; w < W; w += 10000) {
+			StringBuilder b = new StringBuilder();
+			
+			b.append(String.format("omega_%d", w));
+			for (int c = 0; c < C; c++) {
+				b.append(String.format(" %.3f", omega[c][w]));
+				//b.append(String.format(" %.3f", omega[v][c][w]));
 			}
+			Log.info("factor_" + factorName + "_iteration", b.toString());
 		}
 	}
 	
@@ -536,15 +578,17 @@ public class Factor implements Serializable {
 		}
 	}
 	
-	public void writeOmega(BufferedWriter bw, int v, Map<Integer, String> wordMapInv) throws IOException {
-		v = revViewIndices.get(v);
+//	public void writeOmega(BufferedWriter bw, int v, Map<Integer, String> wordMapInv) throws IOException {
+//		v = revViewIndices.get(v);
+	public void writeOmega(BufferedWriter bw, Map<Integer, String> wordMapInv) throws IOException {
 		
-		for (int w = 0; w < W[v]; w++) {
+		//for (int w = 0; w < W[v]; w++) {
+		for (int w = 0; w < W; w++) {
 			String word = wordMapInv.get(w);
 			bw.write(word);
 			
 			for (int c = 0; c < C; c++) { 
-				bw.write(" " + omega[v][c][w]);
+				bw.write(" " + omega[c][w]);
 			}
 			bw.newLine();
 		}

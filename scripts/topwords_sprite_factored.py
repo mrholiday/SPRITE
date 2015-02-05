@@ -11,7 +11,8 @@ import os, re, sys
 from operator import itemgetter
 from math import exp
 
-OMEGA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.(?P<view>\d+)\.omega$'
+#OMEGA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.(?P<view>\d+)\.omega$'
+OMEGA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.omega$'
 ALPHA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.alpha$'
 DELTA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.delta$'
 BETA_PATH_RE_BASE  = '^%s\.(?P<factor>.+)\.beta$'
@@ -94,6 +95,10 @@ def main(basename, numObserved, polarFactors):
   
   ''' ======== Loading Omega ======== '''
   
+  '''
+  This was when omega was split across multiple views.
+  Now it is collapsed.
+  
   omegaRe    = re.compile(OMEGA_PATH_RE_BASE % (base))
   omegaPaths = os.listdir(out_dir)
   omegaPaths = [(omegaRe.match(p).group('factor'),
@@ -128,6 +133,40 @@ def main(basename, numObserved, polarFactors):
       
       for c in range(Cph[factorName]):
         omega[factorName][view][c][word] = float(tokens[c])
+    f.close()
+  '''
+  
+  omegaRe    = re.compile(OMEGA_PATH_RE_BASE % (base))
+  omegaPaths = os.listdir(out_dir)
+  omegaPaths = [(omegaRe.match(p).group('factor'),
+                 os.path.join(out_dir, p)) for p in omegaPaths
+                if omegaRe.match(p)]
+  
+  FactorNames = sorted(list(set([fName for fName, p in omegaPaths])))
+  
+  # Factor name -> View -> Component -> Word -> Weight
+  omega = {}
+  for factorName, p in omegaPaths:
+    omega[factorName] = {}
+  
+  for factorName, omegaPath in omegaPaths:
+    f = open(omegaPath, 'r')
+    Cph[factorName] = len(f.next().split()) - 1
+    f.close()
+    
+    for c in range(Cph[factorName]):
+      omega[factorName][c] = {}
+    
+    f = open(omegaPath, 'r')
+    for line in f:
+      tokens = line.rstrip().split(' ')
+      word   = tokens.pop(0)
+      
+      if not word:
+        continue
+      
+      for c in range(Cph[factorName]):
+        omega[factorName][c][word] = float(tokens[c])
     f.close()
   
   ''' ======== Loading OmegaBias ======== '''
@@ -245,19 +284,38 @@ def main(basename, numObserved, polarFactors):
   for factorName in FactorNames:
     print '============ Factor "%s" ============\n' % (factorName)
     
+    if factorName in polarFactors:
+      print '-'*12, 'Omega Positive', '-'*12
+      
+      words = sorted(omega[factorName][0].items(),
+                     key=itemgetter(1),
+                     reverse=True)
+      for word, v in words[:NUM_TOPWORDS]:
+        print word, v
+      print '\n'
+      
+      print '-'*12, 'Omega Negative', '-'*12
+      words = sorted(words, key=itemgetter(1), reverse=False)
+      for word, v in words[:NUM_TOPWORDS]:
+        print word, -1.0*v
+      
+      print '\n'
+    else:
+      for c in range(Cph[factorName]):
+        print '-'*12, 'Omega', c, '-'*12
+      
+        words = sorted(omega[factorName][c].items(),
+                       key=itemgetter(1), reverse=True)
+        
+        for word, v in words[:NUM_TOPWORDS]:
+          print word
+        
+        print '\n'
+    
     for view in sorted(delta[factorName].keys()):
       print '+'*12, 'View', view, '+'*12, '\n'
       
-      for c in range(Cth[factorName]):
-        print '-'*12, 'Delta', c, '-'*12
-        
-        for z in range(Z[view]):
-          print '%d: %0.3f*%0.3f = %f' % (z, betaB[factorName][view][z][c],
-                                          delta[factorName][view][c][z],
-                                          betaB[factorName][view][z][c]*
-                                          delta[factorName][view][c][z])
-        print '\n'
-      
+      '''
       if factorName in polarFactors:
         print '-'*12, 'Omega Positive', '-'*12
         
@@ -284,6 +342,18 @@ def main(basename, numObserved, polarFactors):
             print word
           
           print '\n'
+      '''
+      
+      for c in range(Cth[factorName]):
+        print '-'*12, 'Delta', c, '-'*12
+        
+        for z in range(Z[view]):
+          print '%d: %0.3f*%0.3f = %f' % (z, betaB[factorName][view][z][c],
+                                          delta[factorName][view][c][z],
+                                          betaB[factorName][view][z][c]*
+                                          delta[factorName][view][c][z])
+        print '\n'
+      
     print '\n'
   
   '''

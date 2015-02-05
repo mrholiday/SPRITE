@@ -32,8 +32,12 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	 * 
 	 */
 	private static final long serialVersionUID = -7666805827230028611L;
-	public Map<String, Integer>[] wordMaps;
-	public Map<Integer,String>[] wordMapInvs;
+	
+	//public Map<String, Integer>[] wordMaps;
+	//public Map<Integer,String>[] wordMapInvs;
+    
+	public Map<String, Integer> wordMap;
+	public Map<Integer,String> wordMapInv;
     
 	// All of the factors used across views.  Ordering should be the same as
 	// the observed scores in the input files.
@@ -41,7 +45,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	protected int[] Z;   // Possibly different number of topics for each view.
 	protected int D;
-	protected int[] W;   // Each view has its own alphabet.
+	protected int W;   
+	//protected int[] W;   // Each view has its own alphabet.
 	protected int numViews = 0; // Number of different views for the document
 	
 	// To index thread locks
@@ -62,7 +67,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected int numFactorsObserved = 0;
 	protected int[] observedFactorSizes;
 	
-	// TODO: Removed this since I think it complicates things too much.  Just
+	// NOTE: Removed this since I think it complicates things too much.  Just
 	// assume a separate \widetilde{\theta} and \widetilde{\phi} for each view.
 	//protected int[] priorToView; // Maps each theta/phi prior to the view it is responsible for.
 	
@@ -161,7 +166,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				nDZ[d][v] = new int[Z[v]];
 			}
 			
-			nZW[v] = new int[Z[v]][W[v]];
+			nZW[v] = new int[Z[v]][W];
+			//nZW[v] = new int[Z[v]][W[v]];
 			nZ[v]  = new int[Z[v]];
 		}
 		
@@ -190,13 +196,14 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		
 		runningDSums = new int[numViews]; runningDSums[0] = D;
 		runningZSums = new int[numViews]; runningZSums[0] = Z[0];
-		runningWSums = new int[numViews]; runningWSums[0] = W[0];
+		runningWSums = new int[numViews]; runningWSums[0] = W;
 		
 		// Compute running sums of topics/words to initialize thread locks
 		for (int v = 1; v < numViews; v++) {
 			runningDSums[v] = D;
 			runningZSums[v] = runningZSums[v-1] + Z[v];
-			runningWSums[v] = runningWSums[v-1] + W[v];
+			runningWSums[v] = W;
+			//runningWSums[v] = runningWSums[v-1] + W[v];
 		}
 		
 		wordLocks  = new Integer[runningWSums[numViews - 1]];
@@ -208,17 +215,13 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		for (int v = 0; v < numViews; v++) {
 			varDims[v][0] = Z[v];
 			varDims[v][1] = D;
-			varDims[v][2] = W[v];
+			varDims[v][2] = W;
+			//varDims[v][2] = W[v];
 			
-			for (int w = 0; w < W[v]; w++) {
-				int wLock = getLock(v, runningWSums, w);
-				
-				try {
-					wordLocks[wLock] = (Integer)wLock;
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
+			//for (int w = 0; w < W[v]; w++) {
+			for (int w = 0; w < W; w++) {
+				int wLock = getLock(0, runningWSums, w);
+				wordLocks[wLock] = (Integer)wLock;
 			}
 			for (int d = 0; d < D; d++) {
 				int dLock = getLock(0, runningDSums, d);
@@ -396,7 +399,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			int maxZ = parameterRanges[v][0]._2();
 			
 			for (int z = minZ; z < maxZ; z++) {
-				for (int w = 0; w < W[v]; w++) {
+				//for (int w = 0; w < W[v]; w++) {
+				for (int w = 0; w < W; w++) {
 					phiPriors[v].updateGradient(z, w, nZ[v][z], nZW[v][z][w], getLock(v, this.runningWSums, w));
 				}
 			}
@@ -443,36 +447,39 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	@Override
 	public void readDocs(String filename) throws Exception {
-		Tup5<BigInteger[], Map<String, Integer>[], Map<Integer, String>[],
+		Tup5<BigInteger[], Map<String, Integer>, Map<Integer, String>,
 		     double[][][], int[][][]> loadedValues = IO.readTrainInput(filename, observedFactorSizes, numViews);
 		
-		docIds      = loadedValues._1();
-		wordMaps    = loadedValues._2();
-		wordMapInvs = loadedValues._3();
+		docIds     = loadedValues._1();
+		wordMap    = loadedValues._2();
+		wordMapInv = loadedValues._3();
 		double[][][] observedValues = loadedValues._4(); // Factor -> Doc -> Component
 		docs = loadedValues._5();
 		
 		D = docs.length;
-		W = new int[numViews];
-		for (int v = 0; v < numViews; v++) {
-			W[v] = wordMaps[v].size();
-		}
+		W = wordMap.size();
+//		W = new int[numViews];
+//		for (int v = 0; v < numViews; v++) {
+//			W[v] = wordMaps[v].size();
+//		}
 		
 		// Assign component weights to observed factors
 		int factorIdx = 0;
 		for (Factor f : factors) {
-			int[] W_subset = new int[f.viewIndices.length];
-			for (int i = 0; i < f.viewIndices.length; i++) {
-				W_subset[i] = W[f.viewIndices[i]];
-			}
+//			int[] W_subset = new int[f.viewIndices.length];
+//			for (int i = 0; i < f.viewIndices.length; i++) {
+//				W_subset[i] = W[f.viewIndices[i]];
+//			}
 			
 			// Initialize factors -- observed and latent.
 			if (f.isObserved()) {
-				f.initialize(observedValues[factorIdx], W_subset, D);
+				f.initialize(observedValues[factorIdx], W, D);
+				//f.initialize(observedValues[factorIdx], W_subset, D);
 				factorIdx++;
 			}
 			else {
-				f.initialize(W_subset, D);
+				f.initialize(W, D);
+				//f.initialize(W_subset, D);
 			}
 		}
 		
@@ -481,7 +488,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		for (int v = 0; v < numViews; v++) {
-			phiPriors[v].initialize(W[v]);
+			phiPriors[v].initialize(W);
+//			phiPriors[v].initialize(W[v]);
 		}
 		
 	}
@@ -497,6 +505,9 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	@Override
 	public void writeOutput(String filename, String outputDir) throws Exception {
+		File outDirFile = new File(outputDir);
+		outDirFile.mkdir();
+		
 		String baseName = new File(filename).getName();
 		
 		//Write topic assignments file
@@ -515,7 +526,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			for (int v = 0; v < numViews; v++) {
 				bw.write("\t");
 				for (int n = 0; n < docs[d][v].length; n++) {
-					String word = this.wordMapInvs[v].get(docs[d][v][n]);
+					String word = wordMapInv.get(docs[d][v][n]);
+//					String word = this.wordMapInvs[v].get(docs[d][v][n]);
 					
 					bw.write(word);  // for multiple samples
 					for (int zz = 0; zz < Z[v]; zz++) {
@@ -548,7 +560,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			bw = new BufferedWriter(fw);
 			
 			SpritePhiPrior pprior = phiPriors[v];
-			pprior.writeOmegaBias(bw, wordMapInvs[v]);
+			pprior.writeOmegaBias(bw, wordMapInv);
+//			pprior.writeOmegaBias(bw, wordMapInvs[v]);
 			
 			bw.close();
 			fw.close();
@@ -573,15 +586,23 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			bw.close();
 			fw.close();
 			
-			for (int v : f.revViewIndices.keySet()) {
-				fw = new FileWriter(new File(outputDir, String.format("%s.%s.%d.omega", baseName, f.factorName, v)));
-				bw = new BufferedWriter(fw);
-				
-				f.writeOmega(bw, v, wordMapInvs[f.revViewIndices.get(v)]);
-				
-				bw.close();
-				fw.close();
-			}
+			fw = new FileWriter(new File(outputDir, String.format("%s.%s.omega", baseName, f.factorName)));
+			bw = new BufferedWriter(fw);
+			
+			f.writeOmega(bw, wordMapInv);
+			
+			bw.close();
+			fw.close();
+			
+//			for (int v : f.revViewIndices.keySet()) {
+//				fw = new FileWriter(new File(outputDir, String.format("%s.%s.%d.omega", baseName, f.factorName, v)));
+//				bw = new BufferedWriter(fw);
+//				
+//				f.writeOmega(bw, v, wordMapInvs[f.revViewIndices.get(v)]);
+//				
+//				bw.close();
+//				fw.close();
+//			}
 			
 			fw = new FileWriter(new File(outputDir, String.format("%s.%s.alpha", baseName, f.factorName)));
 			bw = new BufferedWriter(fw);

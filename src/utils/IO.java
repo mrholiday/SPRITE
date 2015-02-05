@@ -31,7 +31,7 @@ public class IO {
 	 * 
 	 * @return (Alphabet, InverseAlphabet, ObservedFactorValues, DocumentTextByView)
 	 */
-	public static Tup5<BigInteger[], Map<String, Integer>[], Map<Integer, String>[], double[][][], int[][][]> readTrainInput(String inputPath,
+	public static Tup5<BigInteger[], Map<String, Integer>, Map<Integer, String>, double[][][], int[][][]> readTrainInput(String inputPath,
 			                                                                                                   int[] observedFactorSizes,
 			                                                                                                   int numViews) {
 		Log.info("io", "Reading training input...");
@@ -42,16 +42,18 @@ public class IO {
 		int[][][] docs = null;
 		double[][][] observedFactors = null;
 		
-		@SuppressWarnings("unchecked")
-		Map<String, Integer>[] wordMaps    = new Map[numViews];
+		Map<String, Integer> wordMap = new HashMap<String, Integer>();
+		//@SuppressWarnings("unchecked")
+		//Map<String, Integer>[] wordMaps    = new Map[numViews];
 		
-		@SuppressWarnings("unchecked")
-		Map<Integer, String>[] wordMapInvs = new Map[numViews];
-		
-		for (int v = 0; v < numViews; v++) {
-			wordMaps[v] = new HashMap<String, Integer>();
-			wordMapInvs[v] = new HashMap<Integer, String>();
-		}
+		Map<Integer, String> wordMapInv = new HashMap<Integer, String>();
+//		@SuppressWarnings("unchecked")
+//		Map<Integer, String>[] wordMapInvs = new Map[numViews];
+//		
+//		for (int v = 0; v < numViews; v++) {
+//			wordMaps[v] = new HashMap<String, Integer>();
+//			wordMapInvs[v] = new HashMap<Integer, String>();
+//		}
 		
 		try {
 			FileReader fr = new FileReader(inputPath);
@@ -93,15 +95,24 @@ public class IO {
 					for (int n = 0; n < tokens.length; n++) {
 						String t = tokens[n];
 						
-						int key = wordMaps[v].size();
-						if (!wordMaps[v].containsKey(t)) {
-							wordMaps[v].put(t, key);
-							wordMapInvs[v].put(key, t);
+						//int key = wordMaps[v].size();
+//						if (!wordMaps[v].containsKey(t)) {
+//							wordMaps[v].put(t, key);
+//							wordMapInvs[v].put(key, t);
+//						}
+//						else {
+//							key = wordMaps[v].get(t).intValue();
+//						}
+						
+						int key = wordMap.size();
+						if (!wordMap.containsKey(t)) {
+							wordMap.put(t, key);
+							wordMapInv.put(key, t);
 						}
 						else {
-							key = wordMaps[v].get(t).intValue();
+							key = wordMap.get(t).intValue();
 						}
-
+						
 						docs[d][v][n] = key;
 					}
 				}
@@ -114,12 +125,14 @@ public class IO {
 			
 			Log.info("io", D + " documents loaded for training");
 			
-			int[] Ws = new int[numViews];
+//			int[] Ws = new int[numViews];
+//			
+//			for (int v = 0; v < numViews; v++) {
+//				Ws[v] = wordMaps[v].size();
+//				Log.info("io", Ws[v] + " word types in view " + v);
+//			}
 			
-			for (int v = 0; v < numViews; v++) {
-				Ws[v] = wordMaps[v].size();
-				Log.info("io", Ws[v] + " word types in view " + v);
-			}
+			Log.info("io", wordMap.size() + " word types across all views");
 		
 		} catch (FileNotFoundException e) {
 			Log.error("io", "Could not find input file: " + inputPath, e);
@@ -127,10 +140,14 @@ public class IO {
 			Log.error("io", "Problem reading/closing file: " + inputPath, e);
 		}
 		
-		return new Tup5<BigInteger[], Map<String, Integer>[],
-				        Map<Integer, String>[],
-				        double[][][],
-				        int[][][]>( docIds, wordMaps, wordMapInvs, observedFactors, docs );
+		return new Tup5<BigInteger[], Map<String, Integer>,
+		        Map<Integer, String>,
+		        double[][][],
+		        int[][][]>( docIds, wordMap, wordMapInv, observedFactors, docs );
+//		return new Tup5<BigInteger[], Map<String, Integer>[],
+//				        Map<Integer, String>[],
+//				        double[][][],
+//				        int[][][]>( docIds, wordMaps, wordMapInvs, observedFactors, docs );
 	}
 	
 	/**
