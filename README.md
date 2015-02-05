@@ -1,6 +1,6 @@
 # SPRITE #
 
-Reimplementation of Michael Paul's SPRITE code.  Supports multiple views,
+Major refactoring of Michael Paul's SPRITE code.  Supports multiple views,
 multi-threaded training, and easier implementation of new models.
 
 ## Dependencies ##
@@ -12,14 +12,15 @@ the moment)
 
 ## Building ##
 
-    find . -iname src/*.java > source_files.txt
-    javac -cp .lib/jcommander-1.48-SNAPSHOT.jar @source_files.txt
+    find . -iname *.java > source_files.txt
+    javac -cp ./lib/jcommander-1.48-SNAPSHOT.jar:. @source_files.txt
 
 ## Training ##
 
-### Usage ###
-
-    java -cp ./lib/jcommander-1.48-SNAPSHOT.jar 
+### Sample Usage ###
+    
+    cd /PATH/TO/SPRITE/src/
+    java -cp ./lib/jcommander-1.48-SNAPSHOT.jar:. main/models/factored/impl/SpriteLDA -Z 20 -nthreads 4 -step 0.01 -iters 5000 -samples 100 -input/PATH/TO/input.data.noscore.txt  -seed -1 -outDir /PATH/TO/TRAIN/OUTPUT/FILES/ -logPath /PATH/TO/TRAIN/OUTPUT/FILES/trainLda.log
 
 ### Input Format ###
 
@@ -40,15 +41,16 @@ are not tied to a specific view.
 + The order in which *Factor[] factors* lists observed factors is the same
 order as how they are read from the input file.  Ordering of latent factors
 shouldn't matter.
++ Setting *-logPath* will continue to write the stdout as well as the file.
 + Legal command line arguments are listed in *utils.ArgParse.Arguments*.
-Feel free to extend these as you
+Feel free to extend these as you see like.  Calling a model implementation
+with *--help* prints the legal arguments.
 
 ## Topwords ##
 
-
 ### Usage ###
 
-    python scripts/topwords_sprite_factored.py /PATH/TO/BASENAME NUM_OBSERVED_FACTORS<int> CSV_POLAR_FACTORS<String> > /PATH/TO/topwords.txt
+    python scripts/topwords_sprite_factored.py /PATH/TO/BASENAME NUM_OBSERVED_FACTORS CSV_POLAR_FACTORS > /PATH/TO/topwords.txt
 
 + *NUM_OBSERVED_FACTORS* is an integer, number of observed factors
 + *CSV_POLAR_FACTORS* is a comma-separated list of factors that have a
@@ -59,8 +61,8 @@ single component and you want the most positive and negative words listed
 
 + Make omega collapse views, *W* the union of vocabulary of all views
 + Switch to Maven for build tool
-+ Set up arbitrary graph with configuration file and manipulate components
-by command line.  Not major priority at the moment.
 + Calculate held-out perplexity and do prediction
 + Write shell scripts to qsub on the grid
++ Set up arbitrary graph with configuration file and manipulate components
+by command line.  Not major priority at the moment.
 + Low priority: support for more arbitrary functions in the graph, like
