@@ -17,7 +17,7 @@ DELTA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.delta$'
 BETA_PATH_RE_BASE  = '^%s\.(?P<factor>.+)\.beta$'
 BETAB_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.betaB$'
 
-NUM_TOPWORDS = 10 # How many words to print out.  May need to edit this
+NUM_TOPWORDS = 20 # How many words to print out.  May want to edit this
 
 def main(basename, numObserved, polarFactors):
   '''

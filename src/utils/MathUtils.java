@@ -17,7 +17,7 @@ public class MathUtils {
 	
 	// Approximation to the digamma function, from Radford Neal.
 	// can also use Gamma.digamma() from commons
-	public static double digamma0(double x) {
+	public static double digamma(double x) {
 		//return Gamma.digamma(x);
 		
 		double r = 0.0;

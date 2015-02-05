@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.Serializable;
 import java.math.BigInteger;
 
+import models.factored.Trainable;
+
 import utils.Log;
 
 public abstract class TopicModel implements Trainable, Serializable {
@@ -52,6 +54,7 @@ public abstract class TopicModel implements Trainable, Serializable {
 		}
 		finally {
 			cleanUp();
+			Log.closeLogger();
 		}
 		Log.info("train", "...done.");
 	}

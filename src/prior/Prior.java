@@ -3,7 +3,7 @@ package prior;
 import java.lang.Math;
 import java.util.Random;
 
-import main.Optimizable;
+import models.factored.Optimizable;
 
 /**
  * Hyperprior over our parameters.  Prior may need to know how to update

@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 import utils.Log;
 import utils.MathUtils;
-import main.Factor;
+import models.factored.Factor;
 
 /**
  * Keeps track of \widetilde{\theta}.  Its factors are responsible for
@@ -86,10 +86,10 @@ public class SpriteThetaPrior implements Serializable {
 		double priorDZ    = thetaTilde[d][z];
 		double thetaNormZ = thetaNorm[z];
 		
-		double dg1  = MathUtils.digamma0(thetaNormZ + MathUtils.eps);
-		double dg2  = MathUtils.digamma0(thetaNormZ + docCount + MathUtils.eps);
-		double dgW1 = MathUtils.digamma0(priorDZ + docTopicCount + MathUtils.eps);
-		double dgW2 = MathUtils.digamma0(priorDZ + MathUtils.eps);
+		double dg1  = MathUtils.digamma(thetaNormZ + MathUtils.eps);
+		double dg2  = MathUtils.digamma(thetaNormZ + docCount + MathUtils.eps);
+		double dgW1 = MathUtils.digamma(priorDZ + docTopicCount + MathUtils.eps);
+		double dgW2 = MathUtils.digamma(priorDZ + MathUtils.eps);
 		
 		double gradientTerm = priorDZ * (dg1-dg2+dgW1-dgW2);
 		

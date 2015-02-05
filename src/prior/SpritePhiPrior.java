@@ -7,7 +7,7 @@ import java.util.Map;
 
 import utils.Log;
 import utils.MathUtils;
-import main.Factor;
+import models.factored.Factor;
 
 /**
  * Defines a Dirichlet prior over the vocabulary.  This prior is defined as a
@@ -101,10 +101,10 @@ public class SpritePhiPrior implements Serializable {
 		double priorZW  = phiTilde[z][w];
 		double phiNormZ = phiNorm[z];
 		
-		double dg1  = MathUtils.digamma0(phiNormZ + MathUtils.eps);
-		double dg2  = MathUtils.digamma0(phiNormZ + topicCount + MathUtils.eps);
-		double dgW1 = MathUtils.digamma0(priorZW  + topicWordCount + MathUtils.eps);
-		double dgW2 = MathUtils.digamma0(priorZW  + MathUtils.eps);
+		double dg1  = MathUtils.digamma(phiNormZ + MathUtils.eps);
+		double dg2  = MathUtils.digamma(phiNormZ + topicCount + MathUtils.eps);
+		double dgW1 = MathUtils.digamma(priorZW  + topicWordCount + MathUtils.eps);
+		double dgW2 = MathUtils.digamma(priorZW  + MathUtils.eps);
 		
 		double gradientTerm = priorZW * (dg1-dg2+dgW1-dgW2);
 		
@@ -181,7 +181,7 @@ public class SpritePhiPrior implements Serializable {
 			b.append(String.format(" %.3f", phiNorm[z]));
 		}
 		
-		Log.info("phiPrior" + currentView + "_iteration", b.toString());
+		Log.info("phiPrior_" + currentView + "_iteration", b.toString());
 	}
 	
 }

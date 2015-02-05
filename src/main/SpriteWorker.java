@@ -3,6 +3,7 @@ package main;
 import utils.Log;
 import utils.Tup2;
 import main.SpriteWorker.ThreadCommunication.ThreadCommand;
+import models.factored.ParallelTopicModel;
 
 /**
  * Does work for the topic model based on messages received (sample, update priors,
