@@ -37,7 +37,6 @@ public class Factor implements Serializable {
 	// SpriteThetaPrior.
 	public double[][] alpha; // Document-to-Component, for theta.  Shared across all views with this factor
 	public double[][][] delta; // View-to-Component-to-Topic, for theta.  Per view, since views have different number of topics.
-	
 	public double[][][] beta;  // View-to-Topic-to-component, for phi.  Per view, since views have different number of topics.
 	public double[][][] betaB; // View-to-Topic-to-component, sparse indicator portion of beta.  Ignored if rho >= 1.  Sparsity enforced within a view.
 	public double[][][] omega;   // Component-to-token, for phi.  Per view since we have different vocabularies for each view.
@@ -65,7 +64,6 @@ public class Factor implements Serializable {
 	public double[][][] gradientOmega;
 	public double[][][] gradientBeta;
 	public double[][][] gradientBetaB;
-	
 	public double[][][] gradientDelta;
 	public double[][] gradientAlpha;
 	
@@ -137,8 +135,8 @@ public class Factor implements Serializable {
 		factorName = factorName0;
 	}
 	
-	public void initialize(int[] W0) {
-		initialize(null, W0);
+	public void initialize(int[] W0, int D0) {
+		initialize(null, W0, D0);
 	}
 	
 	/**
@@ -148,12 +146,13 @@ public class Factor implements Serializable {
 	 * @param docScores If this factor is observed, alpha is set to these values.
 	 * @param W0 Vocabulary size for each view this factor is responsible for.
 	 */
-	public void initialize(double[][] docScores, int[] W0) {
+	public void initialize(double[][] docScores, int[] W0, int D0) {
 		Log.info("factor_" + factorName,
 				String.format("Initializing factor %s: C=%d, observed=%d, rho=%e",
 					          factorName, C, observed ? 1 : 0, rho));
 		
 		W = W0;
+		D = D0;
 		
 		revViewIndices = new HashMap<Integer, Integer>();
 		for (int i = 0; i < viewIndices.length; i++)
@@ -282,8 +281,8 @@ public class Factor implements Serializable {
 		
 		for (int c = 0; c < C; c++) {
 			double deltaRightSign = deltaPositive ? Math.exp(delta[v][c][z]) : delta[v][c][z];
-			double alphaRightSign = alphaPositive ? Math.exp(alpha[c][z]) : alpha[c][z];
-	
+			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
+			
 			if (tieBetaAndDelta) { // Will assign beta to delta after the gradient step
 				if (isSparse) {
 					gradientBeta[v][z][c] += alphaRightSign * betaB[v][z][c] * gradientTerm;

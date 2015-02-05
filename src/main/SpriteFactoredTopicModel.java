@@ -461,11 +461,11 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			
 			// Initialize factors -- observed and latent.
 			if (f.isObserved()) {
-				f.initialize(observedValues[factorIdx], W_subset);
+				f.initialize(observedValues[factorIdx], W_subset, D);
 				factorIdx++;
 			}
 			else {
-				f.initialize(W_subset);
+				f.initialize(W_subset, D);
 			}
 		}
 		
@@ -549,7 +549,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		// Write factor parameters
-
+		
 		for (Factor f : factors) {
 			fw = new FileWriter(new File(outputDir, String.format("%s.%s.beta", baseName, f.factorName)));
 			bw = new BufferedWriter(fw);

@@ -66,8 +66,11 @@ public class ArgParse {
 		@Parameter(names="-sigmaDelta", description="Stddev for delta")
 		public double sigmaDelta = 1.0;
 		
+		@Parameter(names="-sigmaBeta", description="Stddev for beta")
+		public double sigmaBeta = 10.0;
+		
 		@Parameter(names="-sigmaOmega", description="Stddev for omega")
-		public double sigmaOmega = 1.0;
+		public double sigmaOmega = 10.0;
 	}
 	
 	private static void initRandAndLog(int seed, String logPath) {

@@ -1,9 +1,4 @@
-
 #!/usr/bin/python
-
-import os, re, sys
-from operator import itemgetter
-from math import exp
 
 '''
 Get the top words given the output from training a SpriteFactoredModel.
@@ -12,13 +7,17 @@ Adrian Benton
 2/4/2015
 '''
 
+import os, re, sys
+from operator import itemgetter
+from math import exp
+
 OMEGA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.(?P<view>\d+)\.omega$'
 ALPHA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.alpha$'
 DELTA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.delta$'
 BETA_PATH_RE_BASE  = '^%s\.(?P<factor>.+)\.beta$'
 BETAB_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.betaB$'
 
-NUM_TOPWORDS = 10
+NUM_TOPWORDS = 10 # How many words to print out.  May need to edit this
 
 def main(basename, numObserved, polarFactors):
   '''
@@ -121,8 +120,12 @@ def main(basename, numObserved, polarFactors):
     
     f = open(omegaPath, 'r')
     for line in f:
-      tokens = line.strip().split()
+      tokens = line.rstrip().split(' ')
       word   = tokens.pop(0)
+      
+      if not word:
+        continue
+      
       for c in range(Cph[factorName]):
         omega[factorName][view][c][word] = float(tokens[c])
     f.close()
@@ -187,7 +190,7 @@ def main(basename, numObserved, polarFactors):
   for factorName, betaBPath in betaBPaths:
     betaB[factorName] = {}
     
-    f = open(basename+'.beta', 'r')
+    f = open(betaBPath, 'r')
     for line in f:
       tokens = line.strip().split()
       viewComp = tokens.pop(0)
@@ -222,10 +225,8 @@ def main(basename, numObserved, polarFactors):
       tokens = line.strip().split()
       viewAndComp = tokens.pop(0)
       
-      import pdb; pdb.set_trace()
-      
       view = int(viewAndComp.split('_')[0])
-      component = float(viewAndComp.split('_')[1])
+      component = int(viewAndComp.split('_')[1])
       
       if view not in delta[factorName]:
         delta[factorName][view] = {}
@@ -242,10 +243,10 @@ def main(basename, numObserved, polarFactors):
     f.close()
   
   for factorName in FactorNames:
-    print '============ Factor "%s" ============' % (factorName)
+    print '============ Factor "%s" ============\n' % (factorName)
     
     for view in sorted(delta[factorName].keys()):
-      print '+'*12, 'View', view, '+'*12
+      print '+'*12, 'View', view, '+'*12, '\n'
       
       for c in range(Cth[factorName]):
         print '-'*12, 'Delta', c, '-'*12
@@ -256,33 +257,33 @@ def main(basename, numObserved, polarFactors):
                                           betaB[factorName][view][z][c]*
                                           delta[factorName][view][c][z])
         print '\n'
+      
+      if factorName in polarFactors:
+        print '-'*12, 'Omega Positive', '-'*12
         
-        if factorName in polarFactors:
-          print '-'*12, 'Omega Positive', '-'*12
+        words = sorted(omega[factorName][view][0].items(),
+                       key=itemgetter(1),
+                       reverse=True)
+        for word, v in words[:NUM_TOPWORDS]:
+          print word, v
+        print '\n'
+        
+        print '-'*12, 'Omega Negative', '-'*12
+        words = sorted(words, key=itemgetter(1), reverse=False)
+        for word, v in words[:NUM_TOPWORDS]:
+          print word, -1.0*v
+      else:
+        for c in range(Cph[factorName]):
+          print '-'*12, 'Omega', c, '-'*12
           
-          words = sorted(omega[factorName][view][0],
-                         key=itemgetter(1),
-                         reverse=True)
+          words = sorted(omega[factorName][view][c].items(),
+                         key=itemgetter(1), reverse=True)
+          
           for word, v in words[:NUM_TOPWORDS]:
-            print word, v
+            print word
+          
           print '\n'
-          
-          print '-'*12, 'Omega Negative', '-'*12
-          words = sorted(words, key=itemgetter(1), reverse=False)
-          for word, v in words[:NUM_TOPWORDS]:
-            print word, -1.0*v
-        else:
-          for c in range(Cph[factorName]):
-            print '-'*12, 'Omega', c, '-'*12
-            
-            words = sorted(omega[factorName][view][c],
-                           key=itemgetter(1), reverse=True)
-            
-            for word, v in words[:NUM_TOPWORDS]:
-              print word
-            
-            print '\n'
-      print '\n'
+    print '\n'
   
   '''
   # Adjust counts based on prior -- just using the samples for now
@@ -310,11 +311,13 @@ def main(basename, numObserved, polarFactors):
       if FactorNames: print 'Beta:'
       for factorName in FactorNames:
         for c in range(Cph[factorName]):
-          print '%s %d: %0.3f*%0.3f = %f\n' % (factorName, c,
+          print '%s %d: %0.3f*%0.3f = %f' % (factorName, c,
                                           betaB[factorName][view][z][c],
                                           beta[factorName][view][z][c],
                                           betaB[factorName][view][z][c]*
                                           beta[factorName][view][z][c])
+      
+      print '\n'
       
       w = 0
       words = sorted(count[view][z].items(),
