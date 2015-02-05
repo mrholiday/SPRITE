@@ -59,10 +59,10 @@ single component and you want the most positive and negative words listed
 
 ## TODO ##
 
-+ Make omega collapse views, *W* the union of vocabulary of all views
 + Switch to Maven for build tool
 + Calculate held-out perplexity and do prediction
 + Write shell scripts to qsub on the grid
 + Set up arbitrary graph with configuration file and manipulate components
 by command line.  Not major priority at the moment.
-+ Low priority: support for more arbitrary functions in the graph, like
++ Low priority: support for more arbitrary functions in the graph, like the
+ICWSM submission.
