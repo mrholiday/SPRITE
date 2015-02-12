@@ -72,7 +72,7 @@ public class Factor implements Serializable {
 	
 	// Is the value for this factor observed?  If so, then alpha is given.
 	// Changing this mid-training should cause document labels to be adjusted.
-	private boolean observed;
+	protected boolean observed;
 	
 	public int numViews;
 	public int[] viewIndices; // The index of each view this factor affects

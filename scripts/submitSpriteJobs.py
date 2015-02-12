@@ -7,7 +7,12 @@ Adrian Benton
 
 import os
 
-models = ['SpriteLDA', 'SpriteFancierThanLDA']
+variants = ['Directly, Linked Topics across Views',
+            'One supertopic, many children',
+            'Many supertopics, many children',
+            'LDA single view, one supertopic with many child',
+            'LDA single view, many supertopics with many children']
+models = ['Sprite2ViewLinkedTopics', 'Sprite', '']
 inPaths = ['input.test1.txt', 'input.test2.txt']
 outDirs = ['/path/to/test1/output/dir', '/path/to/test2/output/dir']
 
