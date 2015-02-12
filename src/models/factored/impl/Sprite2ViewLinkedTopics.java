@@ -35,7 +35,7 @@ public class Sprite2ViewLinkedTopics extends SpriteFactoredTopicModel {
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
 		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0, 1}, new int[] {Z, Z}, 0.01, true,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
-										 true, true, "supertopic", false)};
+										 false, false, "supertopic", false)};
 		
 		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, 0, initDeltaBias, sigmaDeltaBias),
 									  new SpriteThetaPrior(factors, Z, 1, initDeltaBias, sigmaDeltaBias)};
