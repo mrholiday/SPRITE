@@ -49,6 +49,7 @@ public class SpriteLDA extends SpriteFactoredTopicModel {
 				topicModel.train(p.iters, p.samples, p.filename);
 			} catch (Exception e) {
 				Log.error("train", "Error in training...", e);
+				e.printStackTrace();
 			}
 		}
 	}

@@ -406,7 +406,7 @@ public class Factor implements Serializable {
 				}
 			}
 		}
-
+		
 		for (int c = 0; c < C; c++) {
 			for (int w = minW; w < maxW; w++) {
 				gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;

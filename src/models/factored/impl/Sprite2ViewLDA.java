@@ -50,6 +50,7 @@ public class Sprite2ViewLDA extends SpriteFactoredTopicModel {
 			try {
 				topicModel.train(p.iters, p.samples, p.filename);
 			} catch (Exception e) {
+				e.printStackTrace();
 				Log.error("train", "Error in training...", e);
 			}
 		}
