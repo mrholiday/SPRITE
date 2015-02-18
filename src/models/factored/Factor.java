@@ -49,10 +49,10 @@ public class Factor implements Serializable {
 	private double sigmaDelta = 1.0;
 	
 	// Sigma squared
-	private double sigmaBeta_sqr  = sigmaBeta * sigmaBeta;
-	private double sigmaOmega_sqr = sigmaOmega * sigmaOmega;
-	private double sigmaAlpha_sqr = sigmaAlpha * sigmaAlpha;
-	private double sigmaDelta_sqr = sigmaDelta * sigmaDelta;
+	protected double sigmaBeta_sqr  = sigmaBeta * sigmaBeta;
+	protected double sigmaOmega_sqr = sigmaOmega * sigmaOmega;
+	protected double sigmaAlpha_sqr = sigmaAlpha * sigmaAlpha;
+	protected double sigmaDelta_sqr = sigmaDelta * sigmaDelta;
 	
 	// For learning these parameters.  Keeps track of gradient history.
 	public double[][] adaAlpha; // Unused if this factor is observed

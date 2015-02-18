@@ -1,5 +1,7 @@
 package models.factored;
 
+import utils.MathUtils;
+
 /**
  * Factor where the beta/delta for each topic is 1 for all views -> component.
  * This assumes that this factor has the same number of components as all topics
@@ -86,5 +88,34 @@ public class LinkedFactor extends Factor {
 			}
 		}
 	}
+
+	@Override
+	public void doGradientStep(int v, int minZ, int maxZ, int minD, int maxD,
+			int minW, int maxW, double stepSize) {
+		v = revViewIndices.get(v);
+		
+		for (int c = 0; c < C; c++) {
+			for (int w = minW; w < maxW; w++) {
+				gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
+				adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
+				omega[c][w] += (stepSize / (Math.sqrt(adaOmega[c][w]) + MathUtils.eps)) * gradientOmega[c][w];
+				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
+			}
+		}
+		
+		if (!observed) {
+			for (int d = minD; d < maxD; d++) {
+				for (int c = 0; c < C; c++) {
+					gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
+					adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
+					alpha[d][c] += (stepSize / (Math.sqrt(adaAlpha[d][c]) + MathUtils.eps)) * gradientAlpha[d][c];
+					gradientAlpha[d][c] = 0.; // Clear gradient for the next iteration
+				}
+			}
+		}
+		
+	}
+	
+	
 	
 }
