@@ -178,6 +178,100 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	}
 	
 	/**
+	 * Takes a set of unlabeled documents, samples topics for words and documents, and tried to infer alpha values for them.
+	 * 
+	 * @param iter0 Current iteration
+	 */
+	public void doInference(int iter0) {
+		iter = iter0;
+		
+		long startTime = System.currentTimeMillis();
+		
+		// sample topic values for all the tokens
+		try {
+			for (int i = 0; i < numThreads; i++) {
+				THREAD_WORKER_QUEUE.put(new ThreadCommunication(ThreadCommand.SAMPLE, threadName));
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+		for (int i = 0; i < numThreads; i++) {
+			try {
+				THREAD_MASTER_QUEUE.take();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		// Begin hyperparameter updates after a couple hundred iterations
+		if (iter >= burnInIters) {
+			// Calculate gradient for hyperparameters (if any)
+			try {
+				for (int i = 0; i < numThreads; i++) {
+					THREAD_WORKER_QUEUE.put(new ThreadCommunication(ThreadCommand.CALC_GRADIENT, threadName));
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			for (int i = 0; i < numThreads; i++) {
+				try {
+					THREAD_MASTER_QUEUE.take();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			// Take a step along the gradient
+			try {
+				for (int i = 0; i < numThreads; i++) {
+					THREAD_WORKER_QUEUE.put(new ThreadCommunication(ThreadCommand.GRADIENT_STEP, threadName));
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			for (int i = 0; i < numThreads; i++) {
+				try {
+					THREAD_MASTER_QUEUE.take();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		// Compute the priors with the new params and update the cached prior variables 
+		for (int i = 0; i < numThreads; i++) {
+			try {
+				THREAD_WORKER_QUEUE.put(new ThreadCommunication(ThreadCommand.UPDATE_PRIOR, threadName));
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		for (int i = 0; i < numThreads; i++) {
+			try {
+				THREAD_MASTER_QUEUE.take();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		// Log parameter values
+		logIteration();
+		
+		if (((iter % likelihoodFreq) == 0) || (likelihoodFreq == 0)) {
+			Log.info("topic_model", "Log-likelihood: " + computeLL());
+		}
+		
+		collectSamples();
+		
+		if (TIME_ITERATIONS) {
+			long endTime = System.currentTimeMillis();
+			Log.info("topic_model", String.format("Iteration time:\t%d\t%d ms", iter, endTime - startTime));
+		}
+	}
+	
+	/**
 	 * Updates the priors for this topic model for a subset of parameters.
 	 * 
 	 * @param parameterRanges Range this thread works over.

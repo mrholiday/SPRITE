@@ -1,5 +1,6 @@
 package models.factored;
 
+import utils.Log;
 import utils.MathUtils;
 
 /**
@@ -94,6 +95,24 @@ public class LinkedFactor extends Factor {
 			int minW, int maxW, double stepSize) {
 		v = revViewIndices.get(v);
 		
+		for (int z = minZ; z < maxZ; z++) {
+			for (int c = 0; c < C; c++) {
+				if (c == z) {
+					beta[v][z][c] = 1.0;
+					delta[v][c][z] = 1.0;
+				}
+				else {
+					beta[v][z][c] = 0.0;
+					delta[v][c][z] = 0.0;
+				}
+			}
+		}
+		for (int z = minZ; z < maxZ; z++) {
+			for (int c = 0; c < C; c++) {
+				betaB[v][z][c] = 1.0;
+			}
+		}
+		
 		for (int c = 0; c < C; c++) {
 			for (int w = minW; w < maxW; w++) {
 				gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
@@ -115,7 +134,5 @@ public class LinkedFactor extends Factor {
 		}
 		
 	}
-	
-	
 	
 }
