@@ -5,6 +5,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import utils.Log;
 import utils.Tup2;
 
+import main.SpriteTestWorker;
+import main.SpriteTrainWorker;
 import main.SpriteWorker;
 import main.TopicModel;
 import main.SpriteWorker.ThreadCommunication.ThreadCommand;
@@ -45,7 +47,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	}
 	
 	@SuppressWarnings("unchecked")
-	protected void initializeThreads() {
+	protected void initializeTrainThreads() {
 		/*
 		 * Spins up worker threads.  Implementation will want to add to this
 		 * by initializing parameters.
@@ -54,7 +56,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		// Spin up worker threads.  Will only work when ThreadComm message is received.
 		THREAD_WORKER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
 		THREAD_MASTER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
-		THREADS     = new SpriteWorker[numThreads];
+		THREADS     = new SpriteTrainWorker[numThreads];
 		
 		int[][] stepSizes = new int[varDims.length][];
 		for (int i = 0; i < varDims.length; i++) {
@@ -77,18 +79,61 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 					paramRanges[j][k] = new Tup2<Integer, Integer>(minRange, maxRange);
 				}
 			}
-			THREADS[i] = new SpriteWorker(paramRanges, this);
+			THREADS[i] = new SpriteTrainWorker(paramRanges, this);
+			THREADS[i].start();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	protected void initializeTestThreads() {
+		/*
+		 * Spins up worker threads.  Implementation will want to add to this
+		 * by initializing parameters.
+		 */
+		
+		// Spin up worker threads.  Will only work when ThreadComm message is received.
+		THREAD_WORKER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
+		THREAD_MASTER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
+		THREADS     = new SpriteTestWorker[numThreads];
+		
+		int[][] stepSizes = new int[varDims.length][];
+		for (int i = 0; i < varDims.length; i++) {
+			stepSizes[i] = new int[varDims[i].length];
+			for (int j = 0; j < varDims[i].length; j++) {
+				stepSizes[i][j] = varDims[i][j]/numThreads;
+			}
+		}
+		
+		for (int i = 0; i < numThreads; i++) {
+			Tup2<Integer, Integer>[][] paramRanges = new Tup2[varDims.length][];
+			
+			for (int j = 0; j < varDims.length; j++) {
+				paramRanges[j] = new Tup2[varDims[j].length];
+				
+				for (int k = 0; k < varDims[j].length; k++) {
+					int minRange = stepSizes[j][k]*i;
+					int maxRange = i < (numThreads - 1) ? stepSizes[j][k] * (i+1) : varDims[j][k];
+					
+					paramRanges[j][k] = new Tup2<Integer, Integer>(minRange, maxRange);
+				}
+			}
+			THREADS[i] = new SpriteTestWorker(paramRanges, this);
 			THREADS[i].start();
 		}
 	}
 	
 	@Override
-	protected void initialize() {
-		initializeThreads();
+	protected void initTrain() {
+		initializeTrainThreads();
 	}
 	
 	@Override
-	public void doSampling(int iter0) {
+	protected void initTest() {
+		initializeTestThreads();
+	}
+	
+	@Override
+	public void doTrainSampling(int iter0) {
 		iter = iter0;
 		
 		long startTime = System.currentTimeMillis();
@@ -177,11 +222,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		}
 	}
 	
-	/**
-	 * Takes a set of unlabeled documents, samples topics for words and documents, and tried to infer alpha values for them.
-	 * 
-	 * @param iter0 Current iteration
-	 */
+	@Override
 	public void doInference(int iter0) {
 		iter = iter0;
 		
@@ -291,7 +332,14 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	 * @param parameterRanges Range this thread works over.
 	 */
 	public abstract void updateGradient(Tup2<Integer, Integer>[][] parameterRanges); 
-
+	
+	/**
+	 * Only updates parameters we want to infer for a new corpus.  E.g., alpha
+	 * 
+	 * @param parameterRanges Range this thread works over.
+	 */
+	public abstract void updateGradientTest(Tup2<Integer, Integer>[][] parameterRanges);
+	
 	/**
 	 * Take a step along the just-computed gradient.
 	 * 

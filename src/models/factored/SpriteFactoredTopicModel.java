@@ -150,7 +150,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	}
 	
 	@Override
-	public void initialize() {
+	public void initTrain() {
 		docsZ = new int[D][numViews][];
 		docsZZ = new int[D][numViews][][];
 		
@@ -233,7 +233,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
-		super.initialize(); // Spin up threads
+		super.initTrain(); // Spin up threads
 	}
 	
 	@Override
@@ -631,6 +631,12 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		} catch(IOException e) {
 		   	e.printStackTrace();
 		}
+	}
+
+	@Override
+	public void updateGradientTest(Tup2<Integer, Integer>[][] parameterRanges) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

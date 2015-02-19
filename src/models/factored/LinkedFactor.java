@@ -1,6 +1,5 @@
 package models.factored;
 
-import utils.Log;
 import utils.MathUtils;
 
 /**
@@ -16,18 +15,21 @@ public class LinkedFactor extends Factor {
 	 * 
 	 */
 	private static final long serialVersionUID = -2509749995832748702L;
-
+	
+	private double betaDeltaWeight = 1.0;
+	
 	public LinkedFactor(int numComponents0, int[] viewIndices0, int[] Z0,
 			double rho0, boolean tieBetaAndDelta0, double sigmaBeta0,
 			double sigmaOmega0, double sigmaAlpha0, double sigmaDelta0,
 			boolean alphaPositive0, boolean betaPositive0,
-			boolean deltaPositive0, String factorName0, boolean observed0) {
+			boolean deltaPositive0, String factorName0, boolean observed0, double betaDeltaWeight0) {
 		super(numComponents0, viewIndices0, Z0, rho0, tieBetaAndDelta0,
 				sigmaBeta0, sigmaOmega0, sigmaAlpha0, sigmaDelta0,
 				alphaPositive0, betaPositive0, deltaPositive0, factorName0,
 				observed0);
+		betaDeltaWeight = betaDeltaWeight0;
 	}
-
+	
 	@Override
 	public void initialize(double[][] docScores, int W0, int D0) {
 		super.initialize(docScores, W0, D0);
@@ -41,7 +43,7 @@ public class LinkedFactor extends Factor {
 				delta[v][c] = new double[Z[v]];
 				for (int z = 0; z < Z[v]; z++) {
 					if (c == z) {
-						delta[v][c][z] = 1.0;
+						delta[v][c][z] = betaDeltaWeight;
 					}
 					else {
 						delta[v][c][z] = 0.0;
@@ -56,7 +58,7 @@ public class LinkedFactor extends Factor {
 					betaB[v][z][c] = 1.0;
 					
 					if (c == z) {
-						beta[v][z][c] = 1.0;
+						beta[v][z][c] = betaDeltaWeight;
 					}
 					else {
 						beta[v][z][c] = 0.0;
@@ -89,7 +91,7 @@ public class LinkedFactor extends Factor {
 			}
 		}
 	}
-
+	
 	@Override
 	public void doGradientStep(int v, int minZ, int maxZ, int minD, int maxD,
 			int minW, int maxW, double stepSize) {
@@ -98,8 +100,8 @@ public class LinkedFactor extends Factor {
 		for (int z = minZ; z < maxZ; z++) {
 			for (int c = 0; c < C; c++) {
 				if (c == z) {
-					beta[v][z][c] = 1.0;
-					delta[v][c][z] = 1.0;
+					beta[v][z][c] = betaDeltaWeight;
+					delta[v][c][z] = betaDeltaWeight;
 				}
 				else {
 					beta[v][z][c] = 0.0;

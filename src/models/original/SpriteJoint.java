@@ -129,7 +129,7 @@ public class SpriteJoint extends TopicModel {
 		numThreads = numThreads0;
 	}
 	
-	public void initialize() {
+	public void initTrain() {
 		System.out.println("Initializing...");
 		
 		System.out.println("seed = "+seed);
@@ -887,7 +887,7 @@ public class SpriteJoint extends TopicModel {
 	}
 	
 	// the E and M steps, for one iteration
-	public void doSampling(int iter) {
+	public void doTrainSampling(int iter) {
 		long startTime = System.currentTimeMillis();
 		
 		// sample z values for all the tokens
@@ -1349,7 +1349,10 @@ public class SpriteJoint extends TopicModel {
 			System.out.println("Killed prior update threads");
 		}
 	}
-
+	
+	@Override
+	public void doInference(int iter0) { }
+	
 	@Override
 	public void logIteration() { }
 
@@ -1360,6 +1363,12 @@ public class SpriteJoint extends TopicModel {
 	public double computeLL(int[][][] corpus) {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+
+	@Override
+	protected void initTest() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

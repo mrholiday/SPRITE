@@ -172,7 +172,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 		computePerplexity = computePerplexity0;
 	}
 	
-	public void initialize() {
+	public void initTrain() {
 		System.out.println("Initializing...");
 		
 		System.out.println("seed = "+seed);
@@ -691,7 +691,7 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 	}
 	
 	// the E and M steps, for one iteration
-	public void doSampling(int iter) {
+	public void doTrainSampling(int iter) {
 		long startTime = System.currentTimeMillis();
 		
 		// sample z values for all the tokens
@@ -1287,7 +1287,10 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 		
 		System.out.println("Killed prior update threads");
 	}
-
+	
+	@Override
+	public void doInference(int iter0) { }
+	
 	@Override
 	public void logIteration() { }
 
@@ -1297,6 +1300,12 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 	@Override
 	public double computeLL(int[][][] corpus) {
 		return computeLL(corpus[0]);
+	}
+
+	@Override
+	protected void initTest() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

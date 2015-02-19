@@ -2,20 +2,19 @@ package main;
 
 import utils.Log;
 import utils.Tup2;
-import main.SpriteWorker.ThreadCommunication.ThreadCommand;
 import models.factored.ParallelTopicModel;
 
 /**
  * Does work for the topic model based on messages received (sample, update priors,
  * calculate gradient, take a gradient step.)
  */
-public class SpriteWorker extends Thread {
+public abstract class SpriteWorker extends Thread {
 	
 	public String threadName;
 	
 	// ViewIndex -> {(minZ, maxZ), (minD, maxD), (minV, maxV)}
-	private Tup2<Integer, Integer>[][] parameterRanges;
-	private ParallelTopicModel tm;
+	protected Tup2<Integer, Integer>[][] parameterRanges;
+	protected ParallelTopicModel tm;
 	
 	/**
 	 * Pass list of data ranges this worker has in its domain.  It is the
@@ -32,45 +31,6 @@ public class SpriteWorker extends Thread {
 			for (Tup2<Integer, Integer> minMax : zdv) {
 				
 				threadName += "_" + minMax._1() + "-" + minMax._2();
-			}
-		}
-	}
-	
-	@Override
-	public void run() {
-		
-		while (true) {
-			try {
-				ThreadCommunication msg = tm.THREAD_WORKER_QUEUE.take();
-				@SuppressWarnings("unused")
-				Object NOOP = null;
-				
-				if (msg.cmd.equals(ThreadCommand.KILL)) {
-					break;
-				}
-				else if (msg.cmd.equals(ThreadCommand.UPDATE_PRIOR)) {
-					tm.updatePriors(parameterRanges);
-				}
-				else if (msg.cmd.equals(ThreadCommand.SAMPLE)) {
-					tm.sampleBatch(parameterRanges);
-				}
-				else if (msg.cmd.equals(ThreadCommand.CALC_GRADIENT)) {
-					tm.updateGradient(parameterRanges);
-				}
-				else if (msg.cmd.equals(ThreadCommand.GRADIENT_STEP)) {
-					tm.doGradientStep(parameterRanges);
-				}
-				else {
-					Log.error("worker_" + threadName, "Unrecognized message: " + msg.cmd + " " + msg.msg);
-				}
-				tm.THREAD_MASTER_QUEUE.put(new ThreadCommunication(ThreadCommand.DONE, threadName, "success"));
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-				try {
-					tm.THREAD_MASTER_QUEUE.put(new ThreadCommunication(ThreadCommand.DONE, threadName, "failure"));
-				} catch (InterruptedException e1) {
-					e1.printStackTrace();
-				}
 			}
 		}
 	}

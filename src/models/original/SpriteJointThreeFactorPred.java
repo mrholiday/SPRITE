@@ -152,7 +152,7 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 		predFold = predFold0;
 	}
 	
-	public void initialize() {
+	public void initTrain() {
 		System.out.println("Initializing...");
 		
 		System.out.println("seed = "+seed);
@@ -937,7 +937,7 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 	}
 	
 	// the E and M steps, for one iteration
-	public void doSampling(int iter) {
+	public void doTrainSampling(int iter) {
 		long startTime = System.currentTimeMillis();
 		
 		// sample z values for all the tokens
@@ -1409,7 +1409,10 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 			System.out.println("Killed prior update threads");
 		}
 	}
-
+	
+	@Override
+	public void doInference(int iter0) { }
+	
 	@Override
 	public void logIteration() { }
 
@@ -1419,6 +1422,12 @@ public class SpriteJointThreeFactorPred extends TopicModel implements Serializab
 	@Override
 	public double computeLL(int[][][] corpus) {
 		return computeLL(corpus[0]);
+	}
+
+	@Override
+	protected void initTest() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }
