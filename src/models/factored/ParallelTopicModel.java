@@ -30,7 +30,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	public boolean TIME_ITERATIONS = false;
 	private int likelihoodFreq      = 100;
 	
-	private int iter = -1;
+	protected int iter = -1;
 	
 	// The dimension of parameters we want to parallelize over.  Subclasses
 	// need to set to something reasonable.
@@ -90,6 +90,8 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		 * Spins up worker threads.  Implementation will want to add to this
 		 * by initializing parameters.
 		 */
+		
+		// TODO: Implement this...
 		
 		// Spin up worker threads.  Will only work when ThreadComm message is received.
 		THREAD_WORKER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
@@ -225,6 +227,8 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	
 	@Override
 	public void doInference(int iter0) {
+		// TODO: Fill this in...
+		
 		iter = iter0;
 		
 		long startTime = System.currentTimeMillis();

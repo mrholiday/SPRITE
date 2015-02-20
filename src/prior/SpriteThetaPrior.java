@@ -108,7 +108,6 @@ public class SpriteThetaPrior implements Serializable {
 			deltaBias[z] += (stepSize / (Math.sqrt(adaDeltaBias[z]) + MathUtils.eps)) * gradientDeltaBias[z];
 			gradientDeltaBias[z] = 0.;
 		}
-
 	}
 	
 	// Returns the phi_dz prior given all the parameters.  Factors are
@@ -160,7 +159,6 @@ public class SpriteThetaPrior implements Serializable {
 		updateThetaNorm(0, Z);
 	}
 	
-
 	/**
 	 * Logs bias term for this iteration.
 	 */

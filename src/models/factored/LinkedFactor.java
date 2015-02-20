@@ -55,12 +55,13 @@ public class LinkedFactor extends Factor {
 			beta[v] = new double[Z[v]][C];
 			for (int z = 0; z < Z[v]; z++) {
 				for (int c = 0; c < C; c++) {
-					betaB[v][z][c] = 1.0;
 					
 					if (c == z) {
+						betaB[v][z][c] = 1.0;
 						beta[v][z][c] = betaDeltaWeight;
 					}
 					else {
+						betaB[v][z][c] = 0.0;
 						beta[v][z][c] = 0.0;
 					}
 				}
@@ -100,18 +101,15 @@ public class LinkedFactor extends Factor {
 		for (int z = minZ; z < maxZ; z++) {
 			for (int c = 0; c < C; c++) {
 				if (c == z) {
+					betaB[v][z][c] = 1.0;
 					beta[v][z][c] = betaDeltaWeight;
 					delta[v][c][z] = betaDeltaWeight;
 				}
 				else {
+					betaB[v][z][c] = 0.0;
 					beta[v][z][c] = 0.0;
 					delta[v][c][z] = 0.0;
 				}
-			}
-		}
-		for (int z = minZ; z < maxZ; z++) {
-			for (int c = 0; c < C; c++) {
-				betaB[v][z][c] = 1.0;
 			}
 		}
 		

@@ -33,9 +33,9 @@ public class Sprite2ViewLinkedTopics extends SpriteFactoredTopicModel {
 	private static Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> buildPriors(int Z, int C,
 				double sigmaDeltaBias, double initDeltaBias, double sigmaOmegaBias, double initOmegaBias,
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
-		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0, 1}, new int[] {Z, Z}, 0.01, true,
+		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0, 1}, new int[] {Z, Z}, 1.0, true,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
-										 false, false, "supertopic", false, 10.0)};
+										 false, false, "supertopic", false, 1.0)};
 		
 		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, 0, initDeltaBias, sigmaDeltaBias),
 									  new SpriteThetaPrior(factors, Z, 1, initDeltaBias, sigmaDeltaBias)};

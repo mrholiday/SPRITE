@@ -483,13 +483,9 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
-		for (SpriteThetaPrior p : thetaPriors) {
-			p.initialize(D);
-		}
-		
 		for (int v = 0; v < numViews; v++) {
+			thetaPriors[v].initialize(D);
 			phiPriors[v].initialize(W);
-//			phiPriors[v].initialize(W[v]);
 		}
 		
 	}

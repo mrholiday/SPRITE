@@ -21,7 +21,7 @@ public class SpritePhiPrior implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = -7782802097754446722L;
-
+	
 	// The factors that feed into this prior.
 	private Factor[] factors;
 	

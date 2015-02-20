@@ -536,7 +536,7 @@ public class Factor implements Serializable {
 		for (int w = 0; w < W; w += 10000) {
 			StringBuilder b = new StringBuilder();
 			
-			b.append(String.format("omega_%d", w));
+			b.append("omega");
 			for (int c = 0; c < C; c++) {
 				b.append(String.format(" %.3f", omega[c][w]));
 				//b.append(String.format(" %.3f", omega[v][c][w]));
