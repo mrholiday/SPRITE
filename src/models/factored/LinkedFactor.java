@@ -137,4 +137,53 @@ public class LinkedFactor extends Factor {
 		
 	}
 	
+	/**
+	 * Only updates the component with the same index as z.
+	 * 
+	 * @param v View index
+	 * @param z Topic index
+	 * @param w Word index
+	 * @return Partial sum for \widetilde{phi} for components in this factor.
+	 */
+	@Override
+	public double getPriorPhi(int v, int z, int w) {
+		v = revViewIndices.get(v);
+		
+		double weight = 0.0;
+		
+		int c = z;
+		
+		if (betaB[v][z][c] > MathUtils.eps) {
+			double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
+			weight += betaB[v][z][c] * betaRightSign * omega[c][w];
+			//weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
+		}
+		
+		return weight; // SpritePhiPrior will exponentiate this
+	}
+	
+	/**
+	 * 
+	 * @param v View index
+	 * @param d Document index
+	 * @param z Topic index
+	 * 
+	 * @return The partial sum for \widetilde{theta} for components in this factor.
+	 */
+	public double getPriorTheta(int v, int d, int z) {
+		v = revViewIndices.get(v);
+		
+		double weight = 0.0;
+		
+		int c = z;
+		
+		if (betaB[v][z][c] > MathUtils.eps) {
+			double deltaRightSign = deltaPositive  ? Math.exp(delta[v][c][z]) : delta[v][c][z];
+			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
+			weight += alphaRightSign * betaB[v][z][c] * deltaRightSign;
+		}
+		
+		return weight; // SpriteThetaPrior will exponentiate this
+	}
+	
 }

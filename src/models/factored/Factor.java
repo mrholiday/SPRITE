@@ -280,7 +280,9 @@ public class Factor implements Serializable {
 			double betaRightSign    = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
 			
 			if (isSparse) {
-				gradientBeta[v][z][c] += omega[c][w] * betaB[v][z][c] * gradientTerm;
+				if (betaB[v][z][c] > MathUtils.eps) {
+					gradientBeta[v][z][c] += omega[c][w] * betaB[v][z][c] * gradientTerm;
+				}
 				gradientBetaB[v][z][c] += betaRightSign * omega[c][w] * gradientTerm;
 			}
 			else {
@@ -313,7 +315,7 @@ public class Factor implements Serializable {
 			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
 			
 			if (tieBetaAndDelta) { // Will assign beta to delta after the gradient step
-				if (isSparse) {
+				if (isSparse && (betaB[v][z][c] > MathUtils.eps)) {
 					gradientBeta[v][z][c] += alphaRightSign * betaB[v][z][c] * gradientTerm;
 				}
 				else {
@@ -321,7 +323,7 @@ public class Factor implements Serializable {
 				}
 			}
 			else {
-				if (isSparse) {
+				if (isSparse && (betaB[v][z][c] > MathUtils.eps)) {
 					gradientDelta[v][c][z] += alphaRightSign * betaB[v][z][c] * gradientTerm;
 				}
 				else {
@@ -333,7 +335,7 @@ public class Factor implements Serializable {
 				gradientBetaB[v][z][c] += alphaRightSign * deltaRightSign * gradientTerm;
 			
 			if (!observed) {
-				if (isSparse) {
+				if (isSparse && (betaB[v][z][c] > MathUtils.eps)) {
 					gradientAlpha[d][c] += betaB[v][z][c] * deltaRightSign * gradientTerm;
 				}
 				else {
@@ -468,9 +470,11 @@ public class Factor implements Serializable {
 		double weight = 0.0;
 		
 		for (int c = 0; c < C; c++) {
-			double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
-			weight += betaB[v][z][c] * betaRightSign * omega[c][w];
-			//weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
+			if (betaB[v][z][c] > MathUtils.eps) {
+				double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
+				weight += betaB[v][z][c] * betaRightSign * omega[c][w];
+				//weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
+			}
 		}
 		
 		return weight; // SpritePhiPrior will exponentiate this
@@ -490,9 +494,11 @@ public class Factor implements Serializable {
 		double weight = 0.0;
 		
 		for (int c = 0; c < C; c++) {
-			double deltaRightSign = deltaPositive  ? Math.exp(delta[v][c][z]) : delta[v][c][z];
-			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
-			weight += alphaRightSign * betaB[v][z][c] * deltaRightSign;
+			if (betaB[v][z][c] > MathUtils.eps) {
+				double deltaRightSign = deltaPositive  ? Math.exp(delta[v][c][z]) : delta[v][c][z];
+				double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
+				weight += alphaRightSign * betaB[v][z][c] * deltaRightSign;
+			}
 		}
 		
 		return weight; // SpriteThetaPrior will exponentiate this
