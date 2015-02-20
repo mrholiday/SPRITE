@@ -19,6 +19,7 @@ public abstract class TopicModel implements Trainable, Serializable {
 	protected int burnInIters = 200;
 	protected boolean burnedIn = false;
 	protected int writeFreq = 1000;
+	protected int logFreq   = 10;
 	
 	protected int[][][] docs;
 	protected BigInteger[] docIds; // Unused except for printing to output

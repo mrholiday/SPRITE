@@ -208,7 +208,8 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		}
 		
 		// Log parameter values
-		logIteration();
+		if ((iter % logFreq) == 0)
+			logIteration();
 		
 		if (((iter % likelihoodFreq) == 0) || (likelihoodFreq == 0)) {
 			Log.info("topic_model", "Log-likelihood: " + computeLL());
