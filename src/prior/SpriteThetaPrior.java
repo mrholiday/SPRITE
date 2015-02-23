@@ -142,6 +142,20 @@ public class SpriteThetaPrior implements Serializable {
 		}
 	}
 	
+	/**
+	 * To debug LinkedFactor -- hold ThetaTilde fixed to make sure omega distributions are being learned properly
+	 * 
+	 */
+	/*
+	private void updateThetaTilde(int minD, int maxD) {
+		for (int d = minD; d < maxD; d++) {
+			for (int z = 0; z < Z; z++) {
+				thetaTilde[d][z] = 0.1;
+			}
+		}
+	}
+	*/
+	
 	private void updateThetaNorm(int minD, int maxD) {
 		for (int d = minD; d < maxD; d++) {
 			thetaNorm[d] = 0.;

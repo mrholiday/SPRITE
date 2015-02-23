@@ -81,9 +81,17 @@ public class SpritePhiPrior implements Serializable {
 	private double priorZW(int v, int z, int w) {
 		double weight = omegaBias[w];
 		
+		double factorWeight = 0.0;
 		for (Factor f : factors) {
-			weight += f.getPriorPhi(v, z, w);
+			factorWeight += f.getPriorPhi(v, z, w);
 		}
+		
+		if (w == 1000) {
+			Log.info(String.format("phiPrior_v%d_z%d_w%d_weight", v, z, 1000),
+					 String.format("Bias: %.3f, Factor Weight: %.3f", weight, factorWeight));
+		}
+		
+		weight += factorWeight;
 		
 		return Math.exp(weight);
 	}

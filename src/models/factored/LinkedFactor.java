@@ -71,26 +71,12 @@ public class LinkedFactor extends Factor {
 	
 	@Override // Do not take gradient steps for beta
 	public void updatePhiGradient(double gradientTerm, int z, int v, int w) {
-		v = revViewIndices.get(v);
-		
-		for (int c = 0; c < C; c++) {
-			double betaRightSign = beta[v][z][c];
-			
-			gradientOmega[c][w] += betaRightSign * gradientTerm;
-		}
+		gradientOmega[z][w] += gradientTerm;
 	}
 	
 	@Override // Don't take gradient steps for delta
 	public void updateThetaGradient(double gradientTerm, int z, int v, int d) {
-		v = revViewIndices.get(v);
-		
-		for (int c = 0; c < C; c++) {
-			double deltaRightSign = delta[v][c][z];
-			
-			if (!observed) {
-				gradientAlpha[d][c] += deltaRightSign * gradientTerm;
-			}
-		}
+		gradientAlpha[d][z] += gradientTerm;
 	}
 	
 	@Override
@@ -98,6 +84,7 @@ public class LinkedFactor extends Factor {
 			int minW, int maxW, double stepSize) {
 		v = revViewIndices.get(v);
 		
+		// Make sure these don't change...
 		for (int z = minZ; z < maxZ; z++) {
 			for (int c = 0; c < C; c++) {
 				if (c == z) {
@@ -145,17 +132,7 @@ public class LinkedFactor extends Factor {
 	 */
 	@Override
 	public double getPriorPhi(int v, int z, int w) {
-		v = revViewIndices.get(v);
-		
-		double weight = 0.0;
-		
-		int c = z;
-		
-		if (betaB[v][z][c] > MathUtils.eps) {
-			double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
-			weight += betaB[v][z][c] * betaRightSign * omega[c][w];
-			//weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
-		}
+		double weight = omega[z][w];
 		
 		return weight; // SpritePhiPrior will exponentiate this
 	}
@@ -169,17 +146,7 @@ public class LinkedFactor extends Factor {
 	 * @return The partial sum for \widetilde{theta} for components in this factor.
 	 */
 	public double getPriorTheta(int v, int d, int z) {
-		v = revViewIndices.get(v);
-		
-		double weight = 0.0;
-		
-		int c = z;
-		
-		if (betaB[v][z][c] > MathUtils.eps) {
-			double deltaRightSign = deltaPositive  ? Math.exp(delta[v][c][z]) : delta[v][c][z];
-			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
-			weight += alphaRightSign * betaB[v][z][c] * deltaRightSign;
-		}
+		double weight = alphaPositive ? Math.exp(alpha[d][z]) : alpha[d][z];
 		
 		return weight; // SpriteThetaPrior will exponentiate this
 	}
