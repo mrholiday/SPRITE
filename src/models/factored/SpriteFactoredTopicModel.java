@@ -401,10 +401,10 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			for (int z = minZ; z < maxZ; z++) {
 				//for (int w = 0; w < W[v]; w++) {
 				for (int w = 0; w < W; w++) {
-					if (z == 0 && w == 1000) {
-						Log.info(String.format("Update phi gradient v%d z%d w%d", v, z, w),
-								 String.format("nZ=%d, nZW=%d", nZ[v][z], nZW[v][z][w]));
-					}
+					//if (z == 0 && w == 1000) {
+					//	Log.info(String.format("Update phi gradient v%d z%d w%d", v, z, w),
+					//			 String.format("nZ=%d, nZW=%d", nZ[v][z], nZW[v][z][w]));
+					//}
 					phiPriors[v].updateGradient(z, w, nZ[v][z], nZW[v][z][w], getLock(v, this.runningWSums, w));
 				}
 			}
