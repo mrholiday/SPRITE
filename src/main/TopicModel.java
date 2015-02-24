@@ -7,6 +7,7 @@ import java.math.BigInteger;
 import models.factored.Trainable;
 
 import utils.Log;
+import utils.Tup4;
 
 public abstract class TopicModel implements Trainable, Serializable {
 	/**
@@ -24,6 +25,11 @@ public abstract class TopicModel implements Trainable, Serializable {
 	protected int[][][] docs;
 	protected BigInteger[] docIds; // Unused except for printing to output
 	
+	protected int[][][] nDZ; // Document -> View -> Topic samples
+	protected int[][]    nD; // Document -> View samples (number of tokens in each, set at initialization)
+	protected int[][][] nZW; // View -> Topic -> Word samples
+	protected int[][]    nZ; // View -> Topic samples
+	
 	public void train(int iters, int samples, String filename) throws Exception {
 		try {
 			inputFilename = filename;
@@ -36,7 +42,44 @@ public abstract class TopicModel implements Trainable, Serializable {
 				if (iter >= (iters - burnInIters)) burnedIn = true; // Keep the last couple hundred samples for final estimates
 				
 				Log.info("train", "Iteration " + iter);
-				doTrainSampling(iter);
+				doSamplingIteration(iter);
+				
+				// save the output periodically
+//				if (iter % writeFreq == 0) {
+//					System.out.println("Saving output...");
+//					writeOutput(filename + iter);
+//				}
+			}
+			
+			writeOutput(filename);
+		}
+		catch (Exception e) {
+			Log.error("train", "Error in training model.", e);
+			e.printStackTrace();
+		}
+		finally {
+			cleanUp();
+		}
+		
+		Log.info("train", "...done.");
+		Log.closeLogger();
+	}
+	
+	public void trainWithInitialSamples(int iters, int samples, String filename,
+			int[][][] nDZ0, int[][] nD0, int[][][] nZW0, int[][] nZ0) throws Exception {
+		try {
+			inputFilename = filename;
+			readDocs(filename);
+			initTrain();
+			setSamples(nDZ0, nD0, nZW0, nZ0);
+			
+			Log.info("train", "Sampling...");
+			
+			for (int iter = 1; iter <= iters; iter++) {
+				if (iter >= (iters - burnInIters)) burnedIn = true; // Keep the last couple hundred samples for final estimates
+				
+				Log.info("train", "Iteration " + iter);
+				doSamplingIteration(iter);
 				
 				// save the output periodically
 //				if (iter % writeFreq == 0) {
@@ -65,12 +108,13 @@ public abstract class TopicModel implements Trainable, Serializable {
 	 * @param iters Number of iterations to run for
 	 * @param samples Number of samples to keep
 	 * @param filename Path to the unlabeled examples
+	 * 
 	 * @throws Exception When it messes up
 	 */
 	public void test(int iters, String filename) throws Exception {
 		try {
 			inputFilename = filename;
-			readDocs(filename);
+			readTestDocs(filename);
 			initTrain();
 			
 			Log.info("test", "Sampling...");
@@ -79,7 +123,7 @@ public abstract class TopicModel implements Trainable, Serializable {
 				if (iter >= (iters - burnInIters)) burnedIn = true; // Keep the last couple hundred samples for final estimates
 				
 				Log.info("test", "Iteration " + iter);
-				doInference(iter);
+				doSamplingIteration(iter);
 				
 				// save the output periodically
 //				if (iter % writeFreq == 0) {
@@ -102,6 +146,17 @@ public abstract class TopicModel implements Trainable, Serializable {
 		Log.closeLogger();
 	}
 	
+	public void setSamples(int[][][] nDZ0, int[][] nD0, int[][][] nZW0, int[][] nZ0) {
+		nDZ = nDZ0;
+		nD  = nD0;
+		nZW = nZW0;
+		nZ  = nZ0;
+	}
+	
+	public Tup4<int[][][], int[][], int[][][], int[][]> getSamples() {
+		return new Tup4<int[][][], int[][], int[][][], int[][]>(nDZ, nD, nZW, nZ);
+	}
+	
 	public double computeLL() { return computeLL(docs); } // Compute log-likelihood on training data
 	
 	protected abstract void initTrain();
@@ -113,16 +168,13 @@ public abstract class TopicModel implements Trainable, Serializable {
 	 * 
 	 * @param iter The iteration number
 	 */
-	public abstract void doTrainSampling(int iter);
-	
-	/**
-	 * Takes a set of unlabeled documents, samples topics for words and documents, and tried to infer alpha values for them.
-	 * 
-	 * @param iter0 Current iteration
-	 */
-	public abstract void doInference(int iter0);
+	public abstract void doSamplingIteration(int iter);
 	
 	public abstract void readDocs(String filename) throws Exception;
+	
+	public void readTestDocs(String filename) throws Exception {
+		throw new UnsupportedOperationException("Not implemented!");
+	}
 	
 	public abstract void writeOutput(String filename, String outputDir) throws Exception;
 	

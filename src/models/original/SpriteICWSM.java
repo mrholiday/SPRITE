@@ -684,7 +684,7 @@ public class SpriteICWSM extends TopicModel implements Serializable {
 	}
 	
 	// the E and M steps, for one iteration
-	public void doTrainSampling(int iter) {
+	public void doSamplingIteration(int iter) {
 		long startTime = System.currentTimeMillis();
 		
 		// sample z values for all the tokens
@@ -1283,9 +1283,6 @@ public class SpriteICWSM extends TopicModel implements Serializable {
 		
 		System.out.println("Killed prior update threads");
 	}
-	
-	@Override
-	public void doInference(int iter0) { }
 	
 	@Override
 	public void logIteration() { }

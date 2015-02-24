@@ -74,6 +74,16 @@ public class SpriteThetaPrior implements Serializable {
 		updateThetaNorm();
 	}
 	
+	public void initializeNewCorpus(int D0) {
+		D = D0;
+		
+		thetaNorm = new double[D];
+		thetaTilde = new double[D][Z];
+		
+		updateThetaTilde();
+		updateThetaNorm();
+	}
+	
 	/**
 	 * 
 	 * @param z Topic
@@ -98,12 +108,41 @@ public class SpriteThetaPrior implements Serializable {
 				f.updateThetaGradient(gradientTerm, z, currentView, d);
 			}
 			gradientDeltaBias[z] += gradientTerm;
+			gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2); // Regularize \delta^{BIAS}
+		}
+	}
+	
+	/**
+	 * For applying to a new corpus
+	 * 
+	 * @param z Topic
+	 * @param v View
+	 * @param d Document
+	 * @param docCount Number of samples for document d
+	 * @param docTopicCount Number of samples of topic z for document d
+	 */
+	public void updateAlphaGradient(int z, int d, int docCount, int docTopicCount, Integer docLock) {
+		double priorDZ    = thetaTilde[d][z];
+		double thetaNormZ = thetaNorm[z];
+		
+		double dg1  = MathUtils.digamma(thetaNormZ + MathUtils.eps);
+		double dg2  = MathUtils.digamma(thetaNormZ + docCount + MathUtils.eps);
+		double dgW1 = MathUtils.digamma(priorDZ + docTopicCount + MathUtils.eps);
+		double dgW2 = MathUtils.digamma(priorDZ + MathUtils.eps);
+		
+		double gradientTerm = priorDZ * (dg1-dg2+dgW1-dgW2);
+		
+		synchronized(docLock) {
+			for (Factor f : factors) {
+				f.updateAlphaGradient(gradientTerm, z, currentView, d);
+			}
 		}
 	}
 	
 	public void doGradientStep(int minZ, int maxZ, double stepSize) {
 		for (int z = minZ; z < maxZ; z++) {
-			gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);
+			// gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);  // This is rightly done in updateGradient now.
+			
 			adaDeltaBias[z] += Math.pow(gradientDeltaBias[z], 2);
 			deltaBias[z] += (stepSize / (Math.sqrt(adaDeltaBias[z]) + MathUtils.eps)) * gradientDeltaBias[z];
 			gradientDeltaBias[z] = 0.;

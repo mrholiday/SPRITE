@@ -91,8 +91,6 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		 * by initializing parameters.
 		 */
 		
-		// TODO: Implement this...
-		
 		// Spin up worker threads.  Will only work when ThreadComm message is received.
 		THREAD_WORKER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
 		THREAD_MASTER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
@@ -135,7 +133,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	}
 	
 	@Override
-	public void doTrainSampling(int iter0) {
+	public void doSamplingIteration(int iter0) {
 		iter = iter0;
 		
 		long startTime = System.currentTimeMillis();
@@ -225,10 +223,9 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		}
 	}
 	
+	/*
 	@Override
 	public void doInference(int iter0) {
-		// TODO: Fill this in...
-		
 		iter = iter0;
 		
 		long startTime = System.currentTimeMillis();
@@ -316,6 +313,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 			Log.info("topic_model", String.format("Iteration time:\t%d\t%d ms", iter, endTime - startTime));
 		}
 	}
+	*/
 	
 	/**
 	 * Updates the priors for this topic model for a subset of parameters.
@@ -332,6 +330,11 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	public abstract void sampleBatch(Tup2<Integer, Integer>[][] parameterRanges); 
 	
 	/**
+	 * Samples topics for a new corpus
+	 */
+	public abstract void sampleBatchTest(Tup2<Integer, Integer>[][] parameterRanges);
+	
+	/**
 	 * Updates the gradient of the hyperparameters given current estimate.
 	 * 
 	 * @param parameterRanges Range this thread works over.
@@ -339,7 +342,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	public abstract void updateGradient(Tup2<Integer, Integer>[][] parameterRanges); 
 	
 	/**
-	 * Only updates parameters we want to infer for a new corpus.  E.g., alpha
+	 * Only updates parameters we want to infer for a new corpus.  E.g., \alpha
 	 * 
 	 * @param parameterRanges Range this thread works over.
 	 */

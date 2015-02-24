@@ -1,6 +1,7 @@
 package utils;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -29,7 +30,7 @@ public class IO {
 	 * @param observedFactorSizes Array containing the number of components in each factor.
 	 * @param numViews    Number of document views to read in.
 	 * 
-	 * @return (Alphabet, InverseAlphabet, ObservedFactorValues, DocumentTextByView)
+	 * @return (DocIds, Alphabet, InverseAlphabet, ObservedFactorValues, DocumentTextByView)
 	 */
 	public static Tup5<BigInteger[], Map<String, Integer>, Map<Integer, String>, double[][][], int[][][]> readTrainInput(String inputPath,
 			                                                                                                   int[] observedFactorSizes,
@@ -158,12 +159,12 @@ public class IO {
 	 * @param numViews    Number of document views to read in.
 	 * @param wordMap     Mapping form word to index.
 	 * 
-	 * @return (ObservedFactorValues, DocumentTextByView)
+	 * @return (DocumentIds, ObservedFactorValues, DocumentTextByView)
 	 */
 	public static Tup3<BigInteger[], double[][][], int[][][]> readPredictionInput(String inputPath,
 			                                                        int[] factorSizes,
 			                                                        int numViews,
-			                                                        Map<String, Integer>[] wordMaps) {
+			                                                        Map<String, Integer> wordMap) {
 		Log.debug("io", "Reading prediction input...");
 		
 		int numFactorsObserved = factorSizes.length;
@@ -209,7 +210,7 @@ public class IO {
 					String[] tokens = fields[ v + 1 + numFactorsObserved ].split(" ");
 					int tokenIndex = 0;
 					for (String t : tokens) {
-						if (wordMaps[v].containsKey(t)) {
+						if (wordMap.containsKey(t)) {
 							tokenIndex++;
 						}
 					}
@@ -220,8 +221,8 @@ public class IO {
 					for (int n = 0; n < tokens.length; n++) {
 						String t = tokens[n];
 						
-						if (wordMaps[v].containsKey(t)) {
-							docs[d][v][n] = wordMaps[v].get(t);
+						if (wordMap.containsKey(t)) {
+							docs[d][v][n] = wordMap.get(t);
 							tokenIndex++;
 						}
 					}
@@ -241,6 +242,106 @@ public class IO {
 		}
 		
 		return new Tup3<BigInteger[], double[][][], int[][][]>(docIds, observedFactors, docs);
+	}
+	
+	/**
+	 * 
+	 * 
+	 * @param assignPath Path to the .assign file
+	 */
+	public Tup4<int[][][], int[][], int[][][], int[][]> loadMajoritySample(String assignPath) {
+		int Z = 0;
+		int D = 0;
+		int V = 0;
+		int W = 0;
+		
+		Map<String, Integer> wordMap = new HashMap<String, Integer>();
+		
+		try {
+			BufferedReader br = new BufferedReader(new FileReader(assignPath)); 
+			String   line = br.readLine();
+			String[] flds = null;
+			int[]  counts = null;
+			
+			flds = line.trim().split("\t");
+			V = flds.length - 1;
+			
+			String[] sampleStrings = flds[1].split(":");
+			Z = sampleStrings.length - 1;
+			D += 1;
+			
+			while ((line = br.readLine()) != null) {
+				D++;
+				flds = line.replace("\n", "").split("\t");
+				for (int v = 0; v < V; v++) {
+					sampleStrings = flds[v+1].split(" ");
+					for (String ss : sampleStrings) {
+						String w = ss.split(" ")[0];
+						
+						if (!wordMap.containsKey(w)) {
+							wordMap.put(w, W);
+							W++;
+						}
+					}
+				}
+			}
+			
+			br.close();
+			
+			int[][][] nDZ = new int[D][V][Z];
+			int[][]   nD  = new int[D][V];
+			int[][][] nZW = new int[V][Z][W];
+			int[][]   nZ  = new int[V][Z];
+			
+			br   = new BufferedReader(new FileReader(assignPath)); 
+			line = null;
+			
+			int docIdx = 0;
+			while ((line = br.readLine()) != null) {
+				flds = line.replace("\n", "").split("\t");
+				for (int v = 0; v < V; v++) {
+					nD[docIdx][v] += 1;
+					
+					sampleStrings = flds[v+1].split(" ");
+					
+					for (String ss : sampleStrings) {
+						String[] countStrings = ss.split(":");
+						counts = new int[Z];
+						String word = countStrings[0];
+						
+						int z = 0;
+						int maxZIdx = -1; int maxCount = -1;
+						for (int idx = countStrings.length - Z; idx < countStrings.length; idx++) {
+							int count = Integer.parseInt(countStrings[idx]);
+							if (count > maxCount) {
+								maxZIdx = z;
+								maxCount = count;
+							}
+							
+							counts[z] = count;
+							z++;
+						}
+						
+						nDZ[docIdx][v][maxZIdx] += 1;
+						nZ[v][maxZIdx] += 1;
+						nZW[v][maxZIdx][wordMap.get(word)] += 1;
+					}
+				}
+				docIdx += 1;
+			}
+			
+			br.close();
+			
+			return new Tup4<int[][][], int[][], int[][][], int[][]>(nDZ, nD, nZW, nZ);
+		}
+		catch (FileNotFoundException e) {
+			Log.error("io", "Could not find assign file: " + assignPath, e);
+		}
+		catch (IOException e) {
+			Log.error("io", "Problem reading/closing file: " + assignPath, e);
+		}
+		
+		return null;
 	}
 	
 }

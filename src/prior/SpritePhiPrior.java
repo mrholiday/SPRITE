@@ -76,6 +76,11 @@ public class SpritePhiPrior implements Serializable {
 		updatePhiNorm();
 	}
 	
+	public void initializeNewCorpus() {
+		updatePhiTilde();
+		updatePhiNorm();
+	}
+	
 	// Returns the phi_zw prior given all the parameters.  Factors are
 	// responsible for computing their portion of the sums.
 	private double priorZW(int v, int z, int w) {
@@ -121,12 +126,13 @@ public class SpritePhiPrior implements Serializable {
 				f.updatePhiGradient(gradientTerm, z, currentView, w);
 			}
 			gradientOmegaBias[w] += gradientTerm;
+			gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2);
 		}
 	}
 	
 	public void doGradientStep(int minW, int maxW, double stepSize) {
 		for (int w = minW; w < maxW; w++) {
-			gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2);
+			// gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2); // Now done in updateGradient
 			adaOmegaBias[w] += Math.pow(gradientOmegaBias[w], 2);
 			omegaBias[w] += (stepSize / (Math.sqrt(adaOmegaBias[w]) + MathUtils.eps)) * gradientOmegaBias[w];
 			gradientOmegaBias[w] = 0.; // Clear gradient for the next iteration
@@ -176,7 +182,8 @@ public class SpritePhiPrior implements Serializable {
 	public void logState() {
 		StringBuilder b = new StringBuilder();
 		b.append(String.format("omegaBias_sample_%d", currentView));
-		int wStepSize = W/20;
+		int wStepSize = W > 20 ? W/20 : 1;
+		
 		for (int w = 0; w < W; w += wStepSize) {
 			b.append(String.format(" %d:%.3f", w, omegaBias[w]));
 		}
