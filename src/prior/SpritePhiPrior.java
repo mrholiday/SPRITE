@@ -126,16 +126,29 @@ public class SpritePhiPrior implements Serializable {
 				f.updatePhiGradient(gradientTerm, z, currentView, w);
 			}
 			gradientOmegaBias[w] += gradientTerm;
-			gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2);
+			gradientOmegaBias[w] += -(omegaBias[w]) / (Math.pow(sigmaOmegaBias, 2) * Z);
 		}
 	}
 	
 	public void doGradientStep(int minW, int maxW, double stepSize) {
+//		StringBuilder b = new StringBuilder();
+//		for (int w = minW; w < maxW; w++) {
+//			b.append(String.format("%d:%.3e,", w, omegaBias[w]));
+//		}
+//		Log.info(String.format("phiPrior_%d", currentView), "Gradient \\omega^{BIAS}: " + b.toString());
+		
 		for (int w = minW; w < maxW; w++) {
 			// gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2); // Now done in updateGradient
 			adaOmegaBias[w] += Math.pow(gradientOmegaBias[w], 2);
 			omegaBias[w] += (stepSize / (Math.sqrt(adaOmegaBias[w]) + MathUtils.eps)) * gradientOmegaBias[w];
+			
 			gradientOmegaBias[w] = 0.; // Clear gradient for the next iteration
+		}
+	}
+	
+	public void clearGradient(int minW, int maxW) {
+		for (int w = minW; w < maxW; w++) {
+			gradientOmegaBias[w] = 0.;
 		}
 	}
 	

@@ -39,16 +39,16 @@ public abstract class TopicModel implements Trainable, Serializable {
 			Log.info("train", "Sampling...");
 			
 			for (int iter = 1; iter <= iters; iter++) {
-				if (iter >= (iters - burnInIters)) burnedIn = true; // Keep the last couple hundred samples for final estimates
+				if (iter > (iters - burnInIters)) burnedIn = true; // Keep the last couple hundred samples for final estimates
 				
 				Log.info("train", "Iteration " + iter);
 				doSamplingIteration(iter);
 				
 				// save the output periodically
-//				if (iter % writeFreq == 0) {
-//					System.out.println("Saving output...");
-//					writeOutput(filename + iter);
-//				}
+				if (iter % writeFreq == 0) {
+					System.out.println("Saving output...");
+					writeOutput(filename + iter);
+				}
 			}
 			
 			writeOutput(filename);

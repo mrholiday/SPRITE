@@ -188,6 +188,21 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 					e.printStackTrace();
 				}
 			}
+
+			try {
+				for (int i = 0; i < numThreads; i++) {
+					THREAD_WORKER_QUEUE.put(new ThreadCommunication(ThreadCommand.CLEAR_GRADIENT, threadName));
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			for (int i = 0; i < numThreads; i++) {
+				try {
+					THREAD_MASTER_QUEUE.take();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		
 		// Compute the priors with the new params and update the cached prior variables 
@@ -354,6 +369,13 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	 * @param parameterRanges Range this thread works over.
 	 */
 	public abstract void doGradientStep(Tup2<Integer, Integer>[][] parameterRanges); 
+	
+	/**
+	 * Clears gradient for next iteration
+	 * 
+	 * @param parameterRanges
+	 */
+	public abstract void clearGradient(Tup2<Integer, Integer>[][] parameterRanges);
 	
 	@Override
 	public void cleanUp() {

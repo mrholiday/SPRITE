@@ -1,5 +1,6 @@
 package models.factored;
 
+import utils.Log;
 import utils.MathUtils;
 
 /**
@@ -100,22 +101,43 @@ public class LinkedFactor extends Factor {
 			}
 		}
 		
+//		StringBuilder b = new StringBuilder();
+//		for (int c = 0; c < C; c++) {
+//			for (int w = minW; w < maxW; w++) {
+//				b.append(String.format("%d:%.3e,", w, gradientOmega[c][w]));
+//			}
+//			Log.info(String.format("%s_c%d_v%d", factorName, c, v), "Gradient \\omega: " + b.toString());
+//			b.delete(0, b.length());
+//		}
+		
+		if (v == 0) { // Hack to make sure we only take a gradient step once for all views
 		for (int c = 0; c < C; c++) {
 			for (int w = minW; w < maxW; w++) {
 				gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
 				adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
 				omega[c][w] += (stepSize / (Math.sqrt(adaOmega[c][w]) + MathUtils.eps)) * gradientOmega[c][w];
-				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
+//				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
 			}
 		}
+		}
+		
+//		for (int c = 0; c < C; c++) {
+//			for (int d = minD; d < maxD; d += D/20) {
+//				b.append(String.format("%d:%.3e,", d, gradientAlpha[d][c]));
+//			}
+//			Log.info(String.format("%s_c%d_v%d", factorName, c, v), "Gradient \\alpha sample: " + b.toString());
+//			b.delete(0, b.length());
+//		}
 		
 		if (!observed) {
-			for (int d = minD; d < maxD; d++) {
-				for (int c = 0; c < C; c++) {
-					gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
-					adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
-					alpha[d][c] += (stepSize / (Math.sqrt(adaAlpha[d][c]) + MathUtils.eps)) * gradientAlpha[d][c];
-					gradientAlpha[d][c] = 0.; // Clear gradient for the next iteration
+			if (v == 0) { // Hack to make sure we only take a gradient step once for all views
+				for (int d = minD; d < maxD; d++) {
+					for (int c = 0; c < C; c++) {
+						gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
+						adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
+						alpha[d][c] += (stepSize / (Math.sqrt(adaAlpha[d][c]) + MathUtils.eps)) * gradientAlpha[d][c];
+						//					gradientAlpha[d][c] = 0.; // Clear gradient for the next iteration
+					}
 				}
 			}
 		}

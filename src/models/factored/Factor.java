@@ -326,7 +326,7 @@ public class Factor implements Serializable {
 			}
 			
 			gradientOmega[c][w] += betaRightSign * betaB[v][z][c] * gradientTerm;
-			gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr; // Regularize
+			gradientOmega[c][w] += -(omega[c][w]) / (sigmaOmega_sqr * Z[v] * numViews); // Regularize
 		}
 		
 //		for (int c = 0; c < C; c++) {
@@ -358,7 +358,7 @@ public class Factor implements Serializable {
 				else {
 					gradientBeta[v][z][c] += alphaRightSign * gradientTerm;
 				}
-				gradientBeta[v][z][c] += -(beta[v][z][c]) / sigmaBeta_sqr; // Regularized
+				gradientBeta[v][z][c] += -(beta[v][z][c]) / (sigmaBeta_sqr * D); // Regularized
 			}
 			else {
 				if (isSparse && (betaB[v][z][c] > MathUtils.eps)) {
@@ -367,7 +367,7 @@ public class Factor implements Serializable {
 				else {
 					gradientDelta[v][c][z] += alphaRightSign * gradientTerm;
 				}
-				gradientDelta[v][c][z] += -(delta[v][c][z]) / sigmaDelta_sqr;
+				gradientDelta[v][c][z] += -(delta[v][c][z]) / (sigmaDelta_sqr * D);
 			}
 			
 			if (isSparse)
@@ -381,7 +381,7 @@ public class Factor implements Serializable {
 				else {
 					gradientAlpha[d][c] += deltaRightSign * gradientTerm;
 				}
-				gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
+				gradientAlpha[d][c] += -(alpha[d][c]) / (sigmaAlpha_sqr * Z[v]);
 			}
 		}
 	}
@@ -400,7 +400,7 @@ public class Factor implements Serializable {
 				else {
 					gradientAlpha[d][c] += deltaRightSign * gradientTerm;
 				}
-				gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
+				gradientAlpha[d][c] += -(alpha[d][c]) / (sigmaAlpha_sqr * Z[v]);
 			}
 		}
 	}
@@ -425,7 +425,7 @@ public class Factor implements Serializable {
 				// gradientBeta[v][z][c] += -(beta[v][z][c]) / sigmaBeta_sqr; // Done in updateGradient
 				adaBeta[v][z][c] += Math.pow(gradientBeta[v][z][c], 2);
 				beta[v][z][c] += (stepSize / (Math.sqrt(adaBeta[v][z][c]) + MathUtils.eps)) * gradientBeta[v][z][c];
-				gradientBeta[v][z][c] = 0.; // Clear gradient for the next iteration
+//				gradientBeta[v][z][c] = 0.; // Clear gradient for the next iteration
 			}
 		}
 		
@@ -448,7 +448,7 @@ public class Factor implements Serializable {
 					betaB[v][z][c] *= Math.exp((stepSize / (Math.sqrt(adaBetaB[v][z][c]) + MathUtils.eps)) * gradientBetaB[v][z][c]);
 					
 					norm += betaB[v][z][c];
-					gradientBetaB[v][z][c] = 0.;
+//					gradientBetaB[v][z][c] = 0.;
 				}
 				for (int c = 0; c < C; c++) {
 					if (norm == 0.0 || norm == Double.POSITIVE_INFINITY) {
@@ -470,12 +470,14 @@ public class Factor implements Serializable {
 			}
 		}
 		
-		for (int c = 0; c < C; c++) {
-			for (int w = minW; w < maxW; w++) {
-				// gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
-				adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
-				omega[c][w] += (stepSize / (Math.sqrt(adaOmega[c][w]) + MathUtils.eps)) * gradientOmega[c][w];
-				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
+		if (v == 0) {
+			for (int c = 0; c < C; c++) {
+				for (int w = minW; w < maxW; w++) {
+					// gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
+					adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
+					omega[c][w] += (stepSize / (Math.sqrt(adaOmega[c][w]) + MathUtils.eps)) * gradientOmega[c][w];
+					//				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
+				}
 			}
 		}
 		
@@ -489,12 +491,14 @@ public class Factor implements Serializable {
 //		}
 		
 		if (!observed) {
-			for (int d = minD; d < maxD; d++) {
-				for (int c = 0; c < C; c++) {
-					// gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
-					adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
-					alpha[d][c] += (stepSize / (Math.sqrt(adaAlpha[d][c]) + MathUtils.eps)) * gradientAlpha[d][c];
-					gradientAlpha[d][c] = 0.; // Clear gradient for the next iteration
+			if (v == 0) { // Hack to make sure we only take a gradient step once for all views this factor is associated with
+				for (int d = minD; d < maxD; d++) {
+					for (int c = 0; c < C; c++) {
+						// gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
+						adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
+						alpha[d][c] += (stepSize / (Math.sqrt(adaAlpha[d][c]) + MathUtils.eps)) * gradientAlpha[d][c];
+						//					gradientAlpha[d][c] = 0.; // Clear gradient for the next iteration
+					}
 				}
 			}
 		}
@@ -512,8 +516,32 @@ public class Factor implements Serializable {
 					// gradientDelta[v][c][z] += -(delta[v][c][z]) / sigmaDelta_sqr;
 					adaDelta[v][c][z] += Math.pow(gradientDelta[v][c][z], 2);
 					delta[v][c][z] += (stepSize / (Math.sqrt(adaDelta[v][c][z]) + MathUtils.eps)) * gradientDelta[v][c][z];
-					gradientDelta[v][c][z] = 0.; // Clear gradient for next iteration
+					// gradientDelta[v][c][z] = 0.; // Clear gradient for next iteration
 				}
+			}
+		}
+	}
+	
+	/**
+	 * Zeroes out the gradient for the next iteration.
+	 */
+	public void clearGradient(int minZ, int maxZ, int minD, int maxD, int minW, int maxW) {
+		for (int v = 0; v < numViews; v++) {
+			for (int c = 0; c < C; c++) {
+				for (int z = minZ; z < maxZ; z++) {
+					gradientBeta[v][z][c] = 0.;
+					gradientBetaB[v][z][c] = 0.;
+					gradientDelta[v][c][z] = 0.;
+				}
+			}
+		}
+		
+		for (int c = 0; c < C; c++) {
+			for (int w = minW; w < maxW; w++) {
+				gradientOmega[c][w] = 0.;
+			}
+			for (int d = minW; d < maxD; d++) {
+				gradientAlpha[d][c] = 0.;
 			}
 		}
 	}

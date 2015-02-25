@@ -46,7 +46,7 @@ public abstract class SpriteWorker extends Thread {
 		 * Protocol for master-worker communication.
 		 */
 		
-		public static enum ThreadCommand {UPDATE_PRIOR, KILL, SAMPLE, CALC_GRADIENT, GRADIENT_STEP, DONE};
+		public static enum ThreadCommand {UPDATE_PRIOR, KILL, SAMPLE, CALC_GRADIENT, GRADIENT_STEP, CLEAR_GRADIENT, DONE};
 		
 		public String source, msg;
 		public ThreadCommand cmd;

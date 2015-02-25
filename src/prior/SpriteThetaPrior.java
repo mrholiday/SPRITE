@@ -108,7 +108,13 @@ public class SpriteThetaPrior implements Serializable {
 				f.updateThetaGradient(gradientTerm, z, currentView, d);
 			}
 			gradientDeltaBias[z] += gradientTerm;
-			gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2); // Regularize \delta^{BIAS}
+			gradientDeltaBias[z] += -(deltaBias[z]) / (Math.pow(sigmaDeltaBias, 2) * D); // Regularize \delta^{BIAS}
+		}
+	}
+	
+	public void clearGradient(int minZ, int maxZ) {
+		for (int z = minZ; z < maxZ; z++) {
+			gradientDeltaBias[z] = 0.;
 		}
 	}
 	
@@ -140,6 +146,12 @@ public class SpriteThetaPrior implements Serializable {
 	}
 	
 	public void doGradientStep(int minZ, int maxZ, double stepSize) {
+//		StringBuilder b = new StringBuilder();
+//		for (int z = minZ; z < maxZ; z++) {
+//			b.append(String.format("%d:%.3e,", z, deltaBias[z]));
+//		}
+//		Log.info(String.format("thetaPrior_%d", currentView), "Gradient \\delta^{BIAS}: " + b.toString());
+		
 		for (int z = minZ; z < maxZ; z++) {
 			// gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);  // This is rightly done in updateGradient now.
 			

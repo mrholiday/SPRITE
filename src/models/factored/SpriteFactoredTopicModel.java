@@ -451,26 +451,26 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	private void sample(int d, int v, int n) {
 		int w = docs[d][v][n];
 		int topic = docsZ[d][v][n];
-
+		
 		// decrement counts
-
+		
 		synchronized (topicLocks[getLock(v, runningZSums, topic)]) {
 			nZW[v][topic][w] -= 1;
 			nZ[v][topic] -= 1;
 			nDZ[d][v][topic] -= 1;
 		}
-
+		
 		// sample new topic value
 		topic = sampleTopic(d, v, n, w);
-
+		
 		// increment counts
-
+		
 		synchronized (topicLocks[getLock(v, runningZSums, topic)]) {
 			nZW[v][topic][w] += 1;
 			nZ[v][topic] += 1;
 			nDZ[d][v][topic] += 1;
 		}
-
+		
 		// set new assignments
 		docsZ[d][v][n] = topic;
 	}
@@ -595,6 +595,31 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 	}
 
+	@Override
+	public void clearGradient(Tup2<Integer, Integer>[][] parameterRanges) {
+		for (Factor f : factors) {
+			for (int v : f.revViewIndices.keySet()) {
+				int minZ = parameterRanges[v][0]._1();
+				int maxZ = parameterRanges[v][0]._2();
+				int minD = parameterRanges[v][1]._1();
+				int maxD = parameterRanges[v][1]._2();
+				int minW = parameterRanges[v][2]._1();
+				int maxW = parameterRanges[v][2]._2();
+				
+				f.clearGradient(minZ, maxZ, minD, maxD, minW, maxW);
+			}
+		}
+
+		for (int v = 0; v < numViews; v++) {
+			int minZ = parameterRanges[v][0]._1();
+			int maxZ = parameterRanges[v][0]._2();
+			int minW = parameterRanges[v][2]._1();
+			int maxW = parameterRanges[v][2]._2();
+
+			thetaPriors[v].clearGradient(minZ, maxZ); // Clear delta bias
+			phiPriors[v].clearGradient(minW, maxW); // Clear omega bias
+		}
+	}
 	@Override
 	public void readTestDocs(String filename) throws Exception {
 		Tup3<BigInteger[], double[][][], int[][][]> loadedValues = IO
@@ -843,5 +868,5 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 
 	}
-
+	
 }

@@ -40,6 +40,9 @@ public class SpriteTestWorker extends SpriteWorker {
 				else if (msg.cmd.equals(ThreadCommand.GRADIENT_STEP)) {
 					tm.doGradientStep(parameterRanges);
 				}
+				else if (msg.cmd.equals(ThreadCommand.CLEAR_GRADIENT)) {
+					tm.clearGradient(parameterRanges);
+				}
 				else {
 					Log.error("worker_" + threadName, "Unrecognized message: " + msg.cmd + " " + msg.msg);
 				}

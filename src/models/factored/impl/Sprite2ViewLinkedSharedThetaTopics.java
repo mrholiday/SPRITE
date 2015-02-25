@@ -25,6 +25,12 @@ public class Sprite2ViewLinkedSharedThetaTopics extends SpriteFactoredTopicModel
 	 */
 	private static final long serialVersionUID = -8356557959212672700L;
 	
+	
+	/**
+	 * WARINING: THIS IS BROKEN.  A theta/phi prior can only be associated with a single view.  TODO
+	 */
+	
+	
 	public Sprite2ViewLinkedSharedThetaTopics(SpriteThetaPrior[] thetaPriors0,
 			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
 			double stepSize0) {
@@ -37,12 +43,18 @@ public class Sprite2ViewLinkedSharedThetaTopics extends SpriteFactoredTopicModel
 		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0, 1}, new int[] {Z, Z}, 1.0, true,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
 										 false, false, "supertopic", false, 1.0)};
+//		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0}, new int[] {Z}, 1.0, true,
+//				 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
+//				 false, false, "supertopic", false, 1.0)};
 		
-		SpriteThetaPrior thetaPrior = new SpriteThetaPrior(factors, Z, 0, initDeltaBias, sigmaDeltaBias);
+		SpriteThetaPrior thetaPrior1 = new SpriteThetaPrior(factors, Z, 0, initDeltaBias, sigmaDeltaBias);
+		//SpriteThetaPrior thetaPrior2 = new SpriteThetaPrior(factors, Z, 1, initDeltaBias, sigmaDeltaBias);
 		
-		SpriteThetaPrior[] tpriors = {thetaPrior, thetaPrior};
+		SpriteThetaPrior[] tpriors = {thetaPrior1, thetaPrior1};
 		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, 0, initOmegaBias, sigmaOmegaBias),
 									  new SpritePhiPrior(factors, Z, 1, initOmegaBias, sigmaOmegaBias)};
+//		SpriteThetaPrior[] tpriors = {thetaPrior};
+//		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, 0, initOmegaBias, sigmaOmegaBias)};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
 	}
