@@ -45,10 +45,10 @@ public abstract class TopicModel implements Trainable, Serializable {
 				doSamplingIteration(iter);
 				
 				// save the output periodically
-				if (iter % writeFreq == 0) {
-					System.out.println("Saving output...");
-					writeOutput(filename + iter);
-				}
+//				if (iter % writeFreq == 0) {
+//					System.out.println("Saving output...");
+//					writeOutput(filename + iter);
+//				}
 			}
 			
 			writeOutput(filename);
