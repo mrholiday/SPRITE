@@ -28,11 +28,11 @@ public class SpriteLDA extends SpriteFactoredTopicModel {
 	}
 	
 	private static SpriteThetaPrior[] buildThetaPrior(int Z, double sigmaDeltaBias, double initDeltaBias) {
-		return new SpriteThetaPrior[] {new SpriteThetaPrior(new Factor[] {}, Z, 0, initDeltaBias, sigmaDeltaBias)};
+		return new SpriteThetaPrior[] {new SpriteThetaPrior(new Factor[] {}, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias)};
 	}
 	
 	private static SpritePhiPrior[] buildPhiPrior(int Z, double sigmaOmegaBias, double initOmegaBias) {
-		return new SpritePhiPrior[] {new SpritePhiPrior(new Factor[] {}, Z, 0, initOmegaBias, sigmaOmegaBias)};
+		return new SpritePhiPrior[] {new SpritePhiPrior(new Factor[] {}, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias)};
 	}
 	
 	public static void main(String[] args) {

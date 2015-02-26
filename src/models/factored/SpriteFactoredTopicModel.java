@@ -403,10 +403,10 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			int minD = parameterRanges[v][1]._1();
 			int maxD = parameterRanges[v][1]._2();
 
-			thetaPriors[v].updatePrior(minD, maxD); // We split computation of
-													// theta across documents
-			phiPriors[v].updatePrior(minZ, maxZ); // Split computation of phi
-													// across topics
+			thetaPriors[v].updatePrior(v, minD, maxD); // We split computation of
+													   // theta across documents
+			phiPriors[v].updatePrior(v, minZ, maxZ); // Split computation of phi
+			                                         // across topics
 		}
 	}
 
@@ -546,12 +546,12 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 					// v, z, w),
 					// String.format("nZ=%d, nZW=%d", nZ[v][z], nZW[v][z][w]));
 					// }
-					phiPriors[v].updateGradient(z, w, nZ[v][z], nZW[v][z][w],
+					phiPriors[v].updateGradient(z, v, w, nZ[v][z], nZW[v][z][w],
 							getLock(v, this.runningWSums, w));
 				}
 			}
 		}
-
+		
 		for (int v = 0; v < numViews; v++) {
 			int minZ = parameterRanges[v][0]._1();
 			int maxZ = parameterRanges[v][0]._2();
@@ -559,7 +559,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				for (int d = 0; d < D; d++) {
 					int docCount = nD[d][v];
 					int docTopicCount = nDZ[d][v][z];
-					thetaPriors[v].updateGradient(z, d, docCount,
+					thetaPriors[v].updateGradient(z, v, d, docCount,
 							docTopicCount, getLock(v, runningDSums, d));
 				}
 			}
@@ -588,9 +588,9 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			int minW = parameterRanges[v][2]._1();
 			int maxW = parameterRanges[v][2]._2();
 
-			thetaPriors[v].doGradientStep(minZ, maxZ, stepSize); // Update delta
+			thetaPriors[v].doGradientStep(v, minZ, maxZ, stepSize); // Update delta
 																	// bias
-			phiPriors[v].doGradientStep(minW, maxW, stepSize); // Update omega
+			phiPriors[v].doGradientStep(v, minW, maxW, stepSize); // Update omega
 																// bias
 		}
 	}
@@ -616,8 +616,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			int minW = parameterRanges[v][2]._1();
 			int maxW = parameterRanges[v][2]._2();
 
-			thetaPriors[v].clearGradient(minZ, maxZ); // Clear delta bias
-			phiPriors[v].clearGradient(minW, maxW); // Clear omega bias
+			thetaPriors[v].clearGradient(v, minZ, maxZ); // Clear delta bias
+			phiPriors[v].clearGradient(v, minW, maxW); // Clear omega bias
 		}
 	}
 	@Override
@@ -861,7 +861,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				for (int d = 0; d < D; d++) {
 					int docCount = nD[d][v];
 					int docTopicCount = nDZ[d][v][z];
-					thetaPriors[v].updateAlphaGradient(z, d, docCount,
+					thetaPriors[v].updateAlphaGradient(z, v, d, docCount,
 							docTopicCount, getLock(v, runningDSums, d));
 				}
 			}

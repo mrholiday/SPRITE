@@ -37,23 +37,24 @@ public class SpriteThetaPrior implements Serializable {
 	// Document -> Topic -> weight.  \widetilde{theta} in TACL paper
 	public double[][] thetaTilde;
 	
-	private int currentView; // View this prior over theta is responsible for.
+	private int[] views; // Views this prior is responsible for
+//	private int currentView; // View this prior over theta is responsible for.
 	
 	private double[] gradientDeltaBias;
 	private double[] adaDeltaBias;
 	private double   sigmaDeltaBias;
-
+	
 	public void writeDeltaBias(BufferedWriter bw) throws IOException {
 		for (int z = 0; z < Z; z++) {
 			bw.write(String.format("%d %f\n", z, deltaBias[z]));
 		}
 	}
 	
-	public SpriteThetaPrior(Factor[] factors0, int Z0, int currentView0, double initDeltaBias0, double sigmaDeltaBias0) {
+	public SpriteThetaPrior(Factor[] factors0, int Z0, int[] views0, double initDeltaBias0, double sigmaDeltaBias0) {
 		factors = factors0;
 		Z = Z0;
 		initDeltaBias = initDeltaBias0;
-		currentView = currentView0;
+		views = views0;
 		sigmaDeltaBias = sigmaDeltaBias0;
 	}
 	
@@ -92,7 +93,7 @@ public class SpriteThetaPrior implements Serializable {
 	 * @param docCount Number of samples for document d
 	 * @param docTopicCount Number of samples of topic z for document d
 	 */
-	public void updateGradient(int z, int d, int docCount, int docTopicCount, Integer docLock) {
+	public void updateGradient(int z, int v, int d, int docCount, int docTopicCount, Integer docLock) {
 		double priorDZ    = thetaTilde[d][z];
 		double thetaNormZ = thetaNorm[z];
 		
@@ -105,16 +106,21 @@ public class SpriteThetaPrior implements Serializable {
 		
 		synchronized(docLock) {
 			for (Factor f : factors) {
-				f.updateThetaGradient(gradientTerm, z, currentView, d);
+				f.updateThetaGradient(gradientTerm, z, v, d);
 			}
-			gradientDeltaBias[z] += gradientTerm;
-			gradientDeltaBias[z] += -(deltaBias[z]) / (Math.pow(sigmaDeltaBias, 2) * D); // Regularize \delta^{BIAS}
+			
+			if (v == views[0]) { // Only update this once for all views it is associated with
+				gradientDeltaBias[z] += gradientTerm;
+				gradientDeltaBias[z] += -(deltaBias[z]) / (Math.pow(sigmaDeltaBias, 2) * D); // Regularize \delta^{BIAS}
+			}
 		}
 	}
 	
-	public void clearGradient(int minZ, int maxZ) {
-		for (int z = minZ; z < maxZ; z++) {
-			gradientDeltaBias[z] = 0.;
+	public void clearGradient(int v, int minZ, int maxZ) {
+		if (v == views[0]) {
+			for (int z = minZ; z < maxZ; z++) {
+				gradientDeltaBias[z] = 0.;
+			}
 		}
 	}
 	
@@ -127,7 +133,7 @@ public class SpriteThetaPrior implements Serializable {
 	 * @param docCount Number of samples for document d
 	 * @param docTopicCount Number of samples of topic z for document d
 	 */
-	public void updateAlphaGradient(int z, int d, int docCount, int docTopicCount, Integer docLock) {
+	public void updateAlphaGradient(int z, int v, int d, int docCount, int docTopicCount, Integer docLock) {
 		double priorDZ    = thetaTilde[d][z];
 		double thetaNormZ = thetaNorm[z];
 		
@@ -140,24 +146,24 @@ public class SpriteThetaPrior implements Serializable {
 		
 		synchronized(docLock) {
 			for (Factor f : factors) {
-				f.updateAlphaGradient(gradientTerm, z, currentView, d);
+				f.updateAlphaGradient(gradientTerm, z, v, d);
 			}
 		}
 	}
 	
-	public void doGradientStep(int minZ, int maxZ, double stepSize) {
+	public void doGradientStep(int v, int minZ, int maxZ, double stepSize) {
 //		StringBuilder b = new StringBuilder();
 //		for (int z = minZ; z < maxZ; z++) {
 //			b.append(String.format("%d:%.3e,", z, deltaBias[z]));
 //		}
 //		Log.info(String.format("thetaPrior_%d", currentView), "Gradient \\delta^{BIAS}: " + b.toString());
 		
-		for (int z = minZ; z < maxZ; z++) {
-			// gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);  // This is rightly done in updateGradient now.
-			
-			adaDeltaBias[z] += Math.pow(gradientDeltaBias[z], 2);
-			deltaBias[z] += (stepSize / (Math.sqrt(adaDeltaBias[z]) + MathUtils.eps)) * gradientDeltaBias[z];
-			gradientDeltaBias[z] = 0.;
+		if (v == views[0]) {
+			for (int z = minZ; z < maxZ; z++) {
+				// gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);  // This is rightly done in updateGradient now.
+				adaDeltaBias[z] += Math.pow(gradientDeltaBias[z], 2);
+				deltaBias[z] += (stepSize / (Math.sqrt(adaDeltaBias[z]) + MathUtils.eps)) * gradientDeltaBias[z];
+			}
 		}
 	}
 	
@@ -167,7 +173,9 @@ public class SpriteThetaPrior implements Serializable {
 		double weight = deltaBias[z];
 		
 		for (Factor f : factors) {
-			weight += f.getPriorTheta(currentView, d, z);
+			for (int i = 0; i < views.length; i++) {
+				weight += f.getPriorTheta(views[i], d, z);
+			}
 		}
 		
 		return Math.exp(weight);
@@ -180,15 +188,17 @@ public class SpriteThetaPrior implements Serializable {
 	 * @param minD Minimum document index
 	 * @param maxD Maximum document index
 	 */
-	public void updatePrior(int minD, int maxD) {
-		updateThetaTilde(minD, maxD);
-		updateThetaNorm(minD, maxD);
+	public void updatePrior(int v, int minD, int maxD) {
+		updateThetaTilde(v, minD, maxD);
+		updateThetaNorm(v, minD, maxD);
 	}
 	
-	private void updateThetaTilde(int minD, int maxD) {
-		for (int d = minD; d < maxD; d++) {
-			for (int z = 0; z < Z; z++) {
-				thetaTilde[d][z] = priorDZ(d, z);
+	private void updateThetaTilde(int v, int minD, int maxD) {
+		if (v == views[0]) {
+			for (int d = minD; d < maxD; d++) {
+				for (int z = 0; z < Z; z++) {
+					thetaTilde[d][z] = priorDZ(d, z);
+				}
 			}
 		}
 	}
@@ -207,21 +217,23 @@ public class SpriteThetaPrior implements Serializable {
 	}
 	*/
 	
-	private void updateThetaNorm(int minD, int maxD) {
-		for (int d = minD; d < maxD; d++) {
-			thetaNorm[d] = 0.;
-			for (int z = 0; z < Z; z++) {
-				thetaNorm[d] += thetaTilde[d][z];
+	private void updateThetaNorm(int v, int minD, int maxD) {
+		if (v == views[0]) {
+			for (int d = minD; d < maxD; d++) {
+				thetaNorm[d] = 0.;
+				for (int z = 0; z < Z; z++) {
+					thetaNorm[d] += thetaTilde[d][z];
+				}
 			}
 		}
 	}
 	
 	private void updateThetaTilde() {
-		updateThetaTilde(0, Z);
+		updateThetaTilde(views[0], 0, Z);
 	}
 	
 	private void updateThetaNorm() {
-		updateThetaNorm(0, Z);
+		updateThetaNorm(views[0], 0, Z);
 	}
 	
 	/**
@@ -229,12 +241,16 @@ public class SpriteThetaPrior implements Serializable {
 	 */
 	public void logState() {
 		StringBuilder b = new StringBuilder();
-		b.append(String.format("deltaBias_%d", currentView));
-		for (int z = 0; z < Z; z++) {
-			b.append(String.format(" %.3f", deltaBias[z]));
-		}
 		
-		Log.info("thetaPrior_" + currentView + "_iteration", b.toString());
+		for (int i = 0; i < views.length; i++) {
+			b.append(String.format("deltaBias_%d", views[i]));
+			for (int z = 0; z < Z; z++) {
+				b.append(String.format(" %.3f", deltaBias[z]));
+			}
+			
+			Log.info("thetaPrior_" + views[i] + "_iteration", b.toString());
+			b.delete(0, b.length());
+		}
 	}
 	
 }

@@ -47,12 +47,12 @@ public class Sprite2ViewLinkedSharedThetaTopics extends SpriteFactoredTopicModel
 //				 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
 //				 false, false, "supertopic", false, 1.0)};
 		
-		SpriteThetaPrior thetaPrior1 = new SpriteThetaPrior(factors, Z, 0, initDeltaBias, sigmaDeltaBias);
+		SpriteThetaPrior thetaPrior1 = new SpriteThetaPrior(factors, Z, new int[] {0, 1}, initDeltaBias, sigmaDeltaBias);
 		//SpriteThetaPrior thetaPrior2 = new SpriteThetaPrior(factors, Z, 1, initDeltaBias, sigmaDeltaBias);
 		
 		SpriteThetaPrior[] tpriors = {thetaPrior1, thetaPrior1};
-		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, 0, initOmegaBias, sigmaOmegaBias),
-									  new SpritePhiPrior(factors, Z, 1, initOmegaBias, sigmaOmegaBias)};
+		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias),
+									  new SpritePhiPrior(factors, Z, new int[] {1}, initOmegaBias, sigmaOmegaBias)};
 //		SpriteThetaPrior[] tpriors = {thetaPrior};
 //		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, 0, initOmegaBias, sigmaOmegaBias)};
 		

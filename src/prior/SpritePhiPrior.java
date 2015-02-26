@@ -42,7 +42,8 @@ public class SpritePhiPrior implements Serializable {
 	private double[] adaOmegaBias;
 	private double   sigmaOmegaBias;
 	
-	private int currentView; // The view this \widetilde{\phi} is responsible for.
+	private int[] views; // The views that \widetilde{\phi} is responsible for.
+//	private int currentView; // The view this \widetilde{\phi} is responsible for.
 	
 	public void writeOmegaBias(BufferedWriter bw, Map<Integer, String> wordMapInv) throws IOException {
 		for (int w = 0; w < W; w++) {
@@ -51,10 +52,11 @@ public class SpritePhiPrior implements Serializable {
 		}
 	}
 	
-	public SpritePhiPrior(Factor[] factors0, int Z0, int currentView0, double omegaInitBias0, double sigmaOmegaBias0) {
+	public SpritePhiPrior(Factor[] factors0, int Z0, int[] views0, double omegaInitBias0, double sigmaOmegaBias0) {
 		factors = factors0;
 		Z = Z0;
-		currentView = currentView0;
+		views = views0;
+//		currentView = currentView0;
 		initOmegaBias = omegaInitBias0;
 		sigmaOmegaBias = sigmaOmegaBias0;
 	}
@@ -83,12 +85,14 @@ public class SpritePhiPrior implements Serializable {
 	
 	// Returns the phi_zw prior given all the parameters.  Factors are
 	// responsible for computing their portion of the sums.
-	private double priorZW(int v, int z, int w) {
+	private double priorZW(int z, int w) {
 		double weight = omegaBias[w];
 		
 		double factorWeight = 0.0;
-		for (Factor f : factors) {
-			factorWeight += f.getPriorPhi(v, z, w);
+		for (int i = 0; i < views.length; i++) {
+			for (Factor f : factors) {
+				factorWeight += f.getPriorPhi(views[i], z, w);
+			}
 		}
 		
 		//if (w == 1000) {
@@ -105,12 +109,13 @@ public class SpritePhiPrior implements Serializable {
 	 * Updates the gradient for factor parameters feeding into \widetilde{\phi}
 	 * 
 	 * @param z Topic
+	 * @param v View, updates only for the first view
 	 * @param w Word
 	 * @param topicCount Number of times topic z was sampled for this view
 	 * @param topicWordCount Number of times word w was sampled for topic z of this view
 	 * @param wordLock Lock for this thread
 	 */
-	public void updateGradient(int z, int w, int topicCount, int topicWordCount, Integer wordLock) {
+	public void updateGradient(int z, int v, int w, int topicCount, int topicWordCount, Integer wordLock) {
 		double priorZW  = phiTilde[z][w];
 		double phiNormZ = phiNorm[z];
 		
@@ -123,32 +128,37 @@ public class SpritePhiPrior implements Serializable {
 		
 		synchronized(wordLock) {
 			for (Factor f : factors) {
-				f.updatePhiGradient(gradientTerm, z, currentView, w);
+				f.updatePhiGradient(gradientTerm, z, v, w);
 			}
-			gradientOmegaBias[w] += gradientTerm;
-			gradientOmegaBias[w] += -(omegaBias[w]) / (Math.pow(sigmaOmegaBias, 2) * Z);
+			
+			if (v == views[0]) {
+				gradientOmegaBias[w] += gradientTerm;
+				gradientOmegaBias[w] += -(omegaBias[w]) / (Math.pow(sigmaOmegaBias, 2) * Z);
+			}
 		}
 	}
 	
-	public void doGradientStep(int minW, int maxW, double stepSize) {
+	public void doGradientStep(int v, int minW, int maxW, double stepSize) {
 //		StringBuilder b = new StringBuilder();
 //		for (int w = minW; w < maxW; w++) {
 //			b.append(String.format("%d:%.3e,", w, omegaBias[w]));
 //		}
 //		Log.info(String.format("phiPrior_%d", currentView), "Gradient \\omega^{BIAS}: " + b.toString());
 		
-		for (int w = minW; w < maxW; w++) {
-			// gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2); // Now done in updateGradient
-			adaOmegaBias[w] += Math.pow(gradientOmegaBias[w], 2);
-			omegaBias[w] += (stepSize / (Math.sqrt(adaOmegaBias[w]) + MathUtils.eps)) * gradientOmegaBias[w];
-			
-			gradientOmegaBias[w] = 0.; // Clear gradient for the next iteration
+		if (v == views[0]) {
+			for (int w = minW; w < maxW; w++) {
+				// gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2); // Now done in updateGradient
+				adaOmegaBias[w] += Math.pow(gradientOmegaBias[w], 2);
+				omegaBias[w] += (stepSize / (Math.sqrt(adaOmegaBias[w]) + MathUtils.eps)) * gradientOmegaBias[w];
+			}
 		}
 	}
 	
-	public void clearGradient(int minW, int maxW) {
-		for (int w = minW; w < maxW; w++) {
-			gradientOmegaBias[w] = 0.;
+	public void clearGradient(int v, int minW, int maxW) {
+		if (v == views[0]) {
+			for (int w = minW; w < maxW; w++) {
+				gradientOmegaBias[w] = 0.;
+			}
 		}
 	}
 	
@@ -159,34 +169,38 @@ public class SpritePhiPrior implements Serializable {
 	 * @param minZ Minimum topic index
 	 * @param maxZ Maximum topic index
 	 */
-	public void updatePrior(int minZ, int maxZ) {
-		updatePhiTilde(minZ, maxZ);
-		updatePhiNorm(minZ, maxZ);
+	public void updatePrior(int v, int minZ, int maxZ) {
+		updatePhiTilde(v, minZ, maxZ);
+		updatePhiNorm(v, minZ, maxZ);
 	}
 	
-	private void updatePhiTilde(int minZ, int maxZ) {
-		for (int z = minZ; z < maxZ; z++) {
-			for (int w = 0; w < W; w++) {
-				phiTilde[z][w] = priorZW(currentView, z, w);
+	private void updatePhiTilde(int v, int minZ, int maxZ) {
+		if (v == views[0]) {
+			for (int z = minZ; z < maxZ; z++) {
+				for (int w = 0; w < W; w++) {
+					phiTilde[z][w] = priorZW(z, w);
+				}
 			}
 		}
 	}
 	
-	private void updatePhiNorm(int minZ, int maxZ) {
-		for (int j = minZ; j < maxZ; j++) {
-			phiNorm[j] = 0.;
-			for (int i = 0; i < W; i++) {
-				phiNorm[j] += phiTilde[j][i];
+	private void updatePhiNorm(int v, int minZ, int maxZ) {
+		if (v == views[0]) {
+			for (int j = minZ; j < maxZ; j++) {
+				phiNorm[j] = 0.;
+				for (int i = 0; i < W; i++) {
+					phiNorm[j] += phiTilde[j][i];
+				}
 			}
 		}
 	}
 	
 	private void updatePhiTilde() {
-		updatePhiTilde(0, Z);
+		updatePhiTilde(views[0], 0, Z);
 	}
 	
 	private void updatePhiNorm() {
-		updatePhiNorm(0, Z);
+		updatePhiNorm(views[0], 0, Z);
 	}
 	
 	/**
@@ -194,22 +208,25 @@ public class SpritePhiPrior implements Serializable {
 	 */
 	public void logState() {
 		StringBuilder b = new StringBuilder();
-		b.append(String.format("omegaBias_sample_%d", currentView));
-		int wStepSize = W > 20 ? W/20 : 1;
 		
-		for (int w = 0; w < W; w += wStepSize) {
-			b.append(String.format(" %d:%.3f", w, omegaBias[w]));
+		for (int i = 0; i < views.length; i++) {
+			b.append(String.format("omegaBias_sample_%d", views[i]));
+			int wStepSize = W > 20 ? W/20 : 1;
+
+			for (int w = 0; w < W; w += wStepSize) {
+				b.append(String.format(" %d:%.3f", w, omegaBias[w]));
+			}
+			
+			Log.info("phiPrior_" + views[i] + "_iteration", b.toString());
+			
+			b = new StringBuilder();
+			b.append(String.format("phiNorm_%d", views[i]));
+			for (int z = 0; z < Z; z++) {
+				b.append(String.format(" %.3f", phiNorm[z]));
+			}
+			
+			Log.info("phiPrior_" + views[i] + "_iteration", b.toString());
 		}
-		
-		Log.info("phiPrior_" + currentView + "_iteration", b.toString());
-		
-		b = new StringBuilder();
-		b.append(String.format("phiNorm_%d", currentView));
-		for (int z = 0; z < Z; z++) {
-			b.append(String.format(" %.3f", phiNorm[z]));
-		}
-		
-		Log.info("phiPrior_" + currentView + "_iteration", b.toString());
 	}
 	
 }
