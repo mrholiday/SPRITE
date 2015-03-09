@@ -33,6 +33,10 @@ public class Factor implements Serializable {
 	// after each gradient step.
 	public boolean tieBetaAndDelta = false;
 	
+	// If false, then topic model will not update with gradient descent.
+	public boolean optimizeMePhi   = true;
+	public boolean optimizeMeTheta = true;
+	
 	// Parameters.  Note, no bias since those are in SpritePhiPrior and
 	// SpriteThetaPrior.
 	public double[][] alpha; // Document-to-Component, for theta.  Shared across all views with this factor
@@ -89,6 +93,9 @@ public class Factor implements Serializable {
 	
 	public Map<Integer, Integer> revViewIndices;
 	
+	private Map<String, Integer> wordToIntCpy;
+	private Map<Integer, String> intToWordCpy;
+	
 	/**
 	 * Latent/observed factor.  If it is observed, you should intiialize
 	 * alpha with the initialize method.
@@ -114,7 +121,8 @@ public class Factor implements Serializable {
 	 */
 	public Factor(int numComponents0, int[] viewIndices0, int[] Z0, double rho0, boolean tieBetaAndDelta0,
 				  double sigmaBeta0, double sigmaOmega0, double sigmaAlpha0, double sigmaDelta0, boolean alphaPositive0,
-				  boolean betaPositive0, boolean deltaPositive0, String factorName0, boolean observed0) {
+				  boolean betaPositive0, boolean deltaPositive0, String factorName0, boolean observed0,
+				  boolean optimizeMeTheta0, boolean optimizeMePhi0) {
 		observed = observed0;
 		
 		viewIndices = viewIndices0;
@@ -137,10 +145,14 @@ public class Factor implements Serializable {
 		
 		tieBetaAndDelta = tieBetaAndDelta0;
 		factorName = factorName0;
+		
+		optimizeMeTheta = optimizeMeTheta0;
+		optimizeMePhi   = optimizeMePhi0;
 	}
 	
-	public void initialize(int W0, int D0) {
-		initialize(null, W0, D0);
+	public void initialize(int W0, int D0, Map<String, Integer> wordToIntMap,
+			Map<Integer, String> intToWordMap) {
+		initialize(null, W0, D0, wordToIntMap, intToWordMap);
 	}
 	
 	/**
@@ -151,10 +163,14 @@ public class Factor implements Serializable {
 	 * @param W0 Vocabulary size for all views
 	 * @param D0 Number of documents
 	 */
-	public void initialize(double[][] docScores, int W0, int D0) {
+	public void initialize(double[][] docScores, int W0, int D0,
+			Map<String, Integer> wordToIntMap, Map<Integer, String> intToWordMap) {
 		Log.info("factor_" + factorName,
 				String.format("Initializing factor %s: C=%d, observed=%d, rho=%e",
 					          factorName, C, observed ? 1 : 0, rho));
+		
+		wordToIntCpy = wordToIntMap;
+		intToWordCpy = intToWordMap;
 		
 		W = W0;
 		D = D0;

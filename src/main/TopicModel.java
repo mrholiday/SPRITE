@@ -25,10 +25,10 @@ public abstract class TopicModel implements Trainable, Serializable {
 	protected int[][][] docs;
 	protected BigInteger[] docIds; // Unused except for printing to output
 	
-	protected int[][][] nDZ; // Document -> View -> Topic samples
-	protected int[][]    nD; // Document -> View samples (number of tokens in each, set at initialization)
-	protected int[][][] nZW; // View -> Topic -> Word samples
-	protected int[][]    nZ; // View -> Topic samples
+	public int[][][] nDZ; // Document -> View -> Topic samples
+	public int[][]    nD; // Document -> View samples (number of tokens in each, set at initialization)
+	public int[][][] nZW; // View -> Topic -> Word samples
+	public int[][]    nZ; // View -> Topic samples
 	
 	public void train(int iters, int samples, String filename) throws Exception {
 		try {

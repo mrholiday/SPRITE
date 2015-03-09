@@ -28,13 +28,13 @@ public class Sprite2ViewLDA extends SpriteFactoredTopicModel {
 	}
 	
 	private static SpriteThetaPrior[] buildThetaPrior(int Z, double sigmaDeltaBias, double initDeltaBias) {
-		return new SpriteThetaPrior[] {new SpriteThetaPrior(new Factor[] {}, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias),
-									   new SpriteThetaPrior(new Factor[] {}, Z, new int[] {1}, initDeltaBias, sigmaDeltaBias)};
+		return new SpriteThetaPrior[] {new SpriteThetaPrior(new Factor[] {}, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias, true),
+									   new SpriteThetaPrior(new Factor[] {}, Z, new int[] {1}, initDeltaBias, sigmaDeltaBias, true)};
 	}
 	
 	private static SpritePhiPrior[] buildPhiPrior(int Z, double sigmaOmegaBias, double initOmegaBias) {
-		return new SpritePhiPrior[] {new SpritePhiPrior(new Factor[] {}, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias),
-									 new SpritePhiPrior(new Factor[] {}, Z, new int[] {1}, initOmegaBias, sigmaOmegaBias)};
+		return new SpritePhiPrior[] {new SpritePhiPrior(new Factor[] {}, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias, true),
+									 new SpritePhiPrior(new Factor[] {}, Z, new int[] {1}, initOmegaBias, sigmaOmegaBias, true)};
 	}
 	
 	public static void main(String[] args) {

@@ -32,10 +32,10 @@ public class SpriteTopicPerspective extends SpriteFactoredTopicModel {
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
 		Factor[] factors = new Factor[] {new Factor(1, new int[] {0}, new int[] {Z}, 1.0, true,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, false,
-										 false, false, "perspective", true)};
+										 false, false, "perspective", true, true, true)};
 		
-		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias)};
-		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias)};
+		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias, true)};
+		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias, true)};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
 	}

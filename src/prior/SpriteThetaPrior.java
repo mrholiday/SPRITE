@@ -44,18 +44,22 @@ public class SpriteThetaPrior implements Serializable {
 	private double[] adaDeltaBias;
 	private double   sigmaDeltaBias;
 	
+	public boolean optimizeMe = true;
+	
 	public void writeDeltaBias(BufferedWriter bw) throws IOException {
 		for (int z = 0; z < Z; z++) {
 			bw.write(String.format("%d %f\n", z, deltaBias[z]));
 		}
 	}
 	
-	public SpriteThetaPrior(Factor[] factors0, int Z0, int[] views0, double initDeltaBias0, double sigmaDeltaBias0) {
+	public SpriteThetaPrior(Factor[] factors0, int Z0, int[] views0, double initDeltaBias0,
+			double sigmaDeltaBias0, boolean optimizeMe0) {
 		factors = factors0;
 		Z = Z0;
 		initDeltaBias = initDeltaBias0;
 		views = views0;
 		sigmaDeltaBias = sigmaDeltaBias0;
+		optimizeMe = optimizeMe0;
 	}
 	
 	public void initialize(int D0) {
@@ -106,13 +110,15 @@ public class SpriteThetaPrior implements Serializable {
 		
 		synchronized(docLock) {
 			for (Factor f : factors) {
-				f.updateThetaGradient(gradientTerm, z, v, d);
+				if (f.optimizeMeTheta) {
+					f.updateThetaGradient(gradientTerm, z, v, d);
+				}
 			}
 			
-			if (v == views[0]) { // Only update this once for all views it is associated with
-				gradientDeltaBias[z] += gradientTerm;
-				gradientDeltaBias[z] += -(deltaBias[z]) / (Math.pow(sigmaDeltaBias, 2) * D); // Regularize \delta^{BIAS}
-			}
+//			if (v == views[0]) { // Only update this once for all views it is associated with
+			gradientDeltaBias[z] += gradientTerm;
+			gradientDeltaBias[z] += -(deltaBias[z]) / (Math.pow(sigmaDeltaBias, 2) * D * views.length); // Regularize \delta^{BIAS}
+//			}
 		}
 	}
 	
@@ -146,7 +152,9 @@ public class SpriteThetaPrior implements Serializable {
 		
 		synchronized(docLock) {
 			for (Factor f : factors) {
-				f.updateAlphaGradient(gradientTerm, z, v, d);
+				if (f.optimizeMeTheta) {
+					f.updateAlphaGradient(gradientTerm, z, v, d);
+				}
 			}
 		}
 	}

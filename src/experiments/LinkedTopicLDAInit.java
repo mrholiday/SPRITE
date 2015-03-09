@@ -25,13 +25,13 @@ public class LinkedTopicLDAInit {
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
 		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0, 1}, new int[] {Z, Z}, 1.0, true,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
-										 false, false, "supertopic", false, 1.0)};
+										 false, false, "supertopic", false, true, true, 1.0)};
 		
-		SpriteThetaPrior thetaPrior = new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias);
+		SpriteThetaPrior thetaPrior = new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias, true);
 		
 		SpriteThetaPrior[] tpriors = {thetaPrior, thetaPrior};
-		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias),
-									  new SpritePhiPrior(factors, Z, new int[] {1}, initOmegaBias, sigmaOmegaBias)};
+		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias, true),
+									  new SpritePhiPrior(factors, Z, new int[] {1}, initOmegaBias, sigmaOmegaBias, true)};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
 	}

@@ -45,6 +45,8 @@ public class SpritePhiPrior implements Serializable {
 	private int[] views; // The views that \widetilde{\phi} is responsible for.
 //	private int currentView; // The view this \widetilde{\phi} is responsible for.
 	
+	public boolean optimizeMe;
+	
 	public void writeOmegaBias(BufferedWriter bw, Map<Integer, String> wordMapInv) throws IOException {
 		for (int w = 0; w < W; w++) {
 			String word = wordMapInv.get(w);
@@ -52,13 +54,15 @@ public class SpritePhiPrior implements Serializable {
 		}
 	}
 	
-	public SpritePhiPrior(Factor[] factors0, int Z0, int[] views0, double omegaInitBias0, double sigmaOmegaBias0) {
+	public SpritePhiPrior(Factor[] factors0, int Z0, int[] views0, double omegaInitBias0,
+			double sigmaOmegaBias0, boolean optimizeMe0) {
 		factors = factors0;
 		Z = Z0;
 		views = views0;
 //		currentView = currentView0;
 		initOmegaBias = omegaInitBias0;
 		sigmaOmegaBias = sigmaOmegaBias0;
+		optimizeMe = optimizeMe0;
 	}
 	
 	public void initialize(int W0) {
@@ -128,13 +132,15 @@ public class SpritePhiPrior implements Serializable {
 		
 		synchronized(wordLock) {
 			for (Factor f : factors) {
-				f.updatePhiGradient(gradientTerm, z, v, w);
+				if (f.optimizeMePhi) {
+					f.updatePhiGradient(gradientTerm, z, v, w);
+				}
 			}
 			
-			if (v == views[0]) {
-				gradientOmegaBias[w] += gradientTerm;
-				gradientOmegaBias[w] += -(omegaBias[w]) / (Math.pow(sigmaOmegaBias, 2) * Z);
-			}
+//			if (v == views[0]) {
+			gradientOmegaBias[w] += gradientTerm;
+			gradientOmegaBias[w] += -(omegaBias[w]) / (Math.pow(sigmaOmegaBias, 2) * Z * views.length);
+//			}
 		}
 	}
 	

@@ -71,6 +71,9 @@ public class ArgParse {
 		
 		@Parameter(names="-sigmaOmega", description="Stddev for omega")
 		public double sigmaOmega = 10.0;
+		
+		@Parameter(names="-initOmegaPath", description="Path to initialize omega from")
+		public String initOmegaPath = null;
 	}
 	
 	private static void initRandAndLog(int seed, String logPath) {

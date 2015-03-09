@@ -34,10 +34,10 @@ public class SpriteSupertopic extends SpriteFactoredTopicModel {
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
 		Factor[] factors = new Factor[] {new Factor(C, new int[] {0}, new int[] {Z}, 0.01, true,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
-										 true, true, "supertopic", false)};
+										 true, true, "supertopic", false, true, true)};
 		
-		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias)};
-		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias)};
+		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias, true)};
+		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias, true)};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
 	}

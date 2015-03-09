@@ -32,10 +32,10 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	 * 
 	 */
 	private static final long serialVersionUID = -7666805827230028611L;
-
+	
 	// public Map<String, Integer>[] wordMaps;
 	// public Map<Integer,String>[] wordMapInvs;
-
+	
 	public Map<String, Integer> wordMap;
 	public Map<Integer, String> wordMapInv;
 
@@ -80,7 +80,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	protected SpritePhiPrior[] phiPriors;
 
 	private double stepSize; // Master step size
-
+	
 	public String outputDir = null; // Where model parameters get written
 
 	/**
@@ -107,16 +107,16 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 
 		thetaPriors = thetaPriors0;
 		phiPriors = phiPriors0;
-
+		
 		factors = factors0;
-
+		
 		numFactorsObserved = 0;
 		for (Factor f : factors) {
 			if (f.isObserved()) {
 				numFactorsObserved++;
 			}
 		}
-
+		
 		// Initialize observed factor sizes (number of observed components) for
 		// loading documents
 		observedFactorSizes = new int[numFactorsObserved];
@@ -127,26 +127,26 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				factorIdx++;
 			}
 		}
-
+		
 		// TODO: Number of theta/phi priors same as number of views. May want to
 		// share a prior over multiple views *shrug*
 		numViews = thetaPriors.length;
-
+		
 		/*
 		 * for (int i = 0; i < priorToView.length; i++) { if ((priorToView[i]+1)
 		 * > numViews+1) { numViews = priorToView[i] + 1; } }
 		 */
-
+		
 		// Each view has its own set of topics. May be joined by supertopics
 		// represented by factors.
 		Z = new int[numViews];
 		for (int i = 0; i < thetaPriors.length; i++) {
 			Z[i] = thetaPriors[i].Z;
 		}
-
+		
 		stepSize = stepSize0;
 	}
-
+	
 	private Integer getLock(int v, int[] runningSum, int index) {
 		if (v > 0) {
 			return runningSum[v - 1] + index;
@@ -154,12 +154,12 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			return index;
 		}
 	}
-
+	
 	@Override
 	public void initTrain() {
 		docsZ = new int[D][numViews][];
 		docsZZ = new int[D][numViews][][];
-
+		
 		// Initialize samples. Since each view has its own set of topics, we
 		// need to sample for
 		// each one separately.
@@ -167,17 +167,17 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		nD = new int[D][numViews];
 		nZW = new int[numViews][][];
 		nZ = new int[numViews][];
-
+		
 		for (int v = 0; v < numViews; v++) {
 			for (int d = 0; d < D; d++) {
 				nDZ[d][v] = new int[Z[v]];
 			}
-
+			
 			nZW[v] = new int[Z[v]][W];
 			// nZW[v] = new int[Z[v]][W[v]];
 			nZ[v] = new int[Z[v]];
 		}
-
+		
 		for (int d = 0; d < D; d++) {
 			for (int v = 0; v < numViews; v++) {
 				int numDocTokens = docs[d][v].length;
@@ -338,7 +338,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	@Override
 	public void collectSamples() {
 		// Only collect samples for the last couple hundred iterations
-
+		
 		if (burnedIn) {
 			for (int v = 0; v < numViews; v++) {
 				for (int d = 0; d < D; d++) {
@@ -351,7 +351,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 	}
-
+	
 	@Override
 	public double computeLL(int[][][] corpus) {
 		// TODO: For now assumes that we've already aggregated samples for
@@ -391,25 +391,25 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 
 		return LL;
 	}
-
+	
 	@Override
 	public void updatePriors(Tup2<Integer, Integer>[][] parameterRanges) {
 		// Only update the priors for topics minZ to maxZ for each view
-
+		
 		for (int v = 0; v < numViews; v++) {
 			int minZ = parameterRanges[v][0]._1();
 			int maxZ = parameterRanges[v][0]._2();
-
+			
 			int minD = parameterRanges[v][1]._1();
 			int maxD = parameterRanges[v][1]._2();
-
+			
 			thetaPriors[v].updatePrior(v, minD, maxD); // We split computation of
 													   // theta across documents
 			phiPriors[v].updatePrior(v, minZ, maxZ); // Split computation of phi
 			                                         // across topics
 		}
 	}
-
+	
 	@Override
 	public void sampleBatch(Tup2<Integer, Integer>[][] parameterRanges) {
 		for (int v = 0; v < numViews; v++) {
@@ -477,26 +477,50 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 
 	private int sampleTopic(int d, int v, int n, int w) {
 		// sample new topic value for a word
-
+		
 		int topic = -1;
-
+		
 		double[] p = new double[Z[v]];
 		double pTotal = 0;
-
+		
 		for (int z = 0; z < Z[v]; z++) {
 			p[z] = (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
 					* (nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
 					/ (nZ[v][z] + phiPriors[v].phiNorm[z]);
-
+			
+//			int ndzCollapsed = 0;
+//			int nzwCollapsed = 0;
+//			int nzCollapsed  = 0;
+//			for (int v2 = 0; v2 < numViews; v2++) {
+//				ndzCollapsed += nDZ[d][v2][z] + thetaPriors[v2].thetaTilde[d][z];
+//				nzwCollapsed += nZW[v2][z][w] + phiPriors[v2].phiTilde[z][w];
+//				nzCollapsed  += nZ[v2][z] + phiPriors[v2].phiNorm[z];
+//			}
+//			
+//			p[z] = (ndzCollapsed + nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
+//					* (nzwCollapsed + nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
+//					/ (nzCollapsed + nZ[v][z] + phiPriors[v].phiNorm[z]);
 			pTotal += p[z];
 		}
-
+		
+		/*
+		// For debugging sampling step
+		if (d <= 10) {
+			for (int z = 0; z < Z[v]; z++) {
+				Log.info(String.format(
+						"Iter=%d Doc=%d View=%d Index=%d Word=%d Topic=%d nDZ=%d nZW=%d nZ=%d thetaTilde=%.5f phiTilde=%.5f p[z]=%.5f",
+						iter, d, v, n, w, z, nDZ[d][v][z], nZW[v][z][w], nZ[v][z], thetaPriors[v].thetaTilde[d][z],
+						phiPriors[v].phiTilde[z][w], p[z]/pTotal));
+			}
+		}
+		*/
+		
 		double u = MathUtils.r.nextDouble() * pTotal;
-
+		
 		double probVal = 0.0;
 		for (int z = 0; z < Z[v]; z++) {
 			probVal += p[z];
-
+			
 			if (probVal > u) {
 				topic = z;
 				break;
@@ -505,23 +529,23 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 
 		return topic;
 	}
-
+	
 	/**
 	 * Sampling step when applying a trained model to new data.
 	 */
 	private void sampleNDZ(int d, int v, int n) {
 		int w = docs[d][v][n];
 		int topic = docsZ[d][v][n];
-
+		
 		// decrement counts
-
+		
 		synchronized (topicLocks[getLock(v, runningZSums, topic)]) {
 			nDZ[d][v][topic] -= 1;
 		}
-
+		
 		topic = sampleTopic(d, v, n, w);
 		// increment counts
-
+		
 		synchronized (topicLocks[getLock(v, runningZSums, topic)]) {
 			nDZ[d][v][topic] += 1;
 		}
@@ -533,21 +557,60 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	@Override
 	public void updateGradient(Tup2<Integer, Integer>[][] parameterRanges) {
 		// Compute gradients
-
+		
 		for (int v = 0; v < numViews; v++) {
-			int minZ = parameterRanges[v][0]._1();
-			int maxZ = parameterRanges[v][0]._2();
+			if (phiPriors[v].optimizeMe) {
+				
+				int minZ = parameterRanges[v][0]._1();
+				int maxZ = parameterRanges[v][0]._2();
+				
+				for (int z = minZ; z < maxZ; z++) {
+					// for (int w = 0; w < W[v]; w++) {
+					for (int w = 0; w < W; w++) {
+						// if (z == 0 && w == 1000) {
+						// Log.info(String.format("Update phi gradient v%d z%d w%d",
+						// v, z, w),
+						// String.format("nZ=%d, nZW=%d", nZ[v][z], nZW[v][z][w]));
+						// }
+						phiPriors[v].updateGradient(z, v, w, nZ[v][z], nZW[v][z][w],
+								getLock(v, this.runningWSums, w));
+					}
+				}
+				
+			}
+		}
+		
+		for (int v = 0; v < numViews; v++) {
+			if (thetaPriors[v].optimizeMe) {
+				int minZ = parameterRanges[v][0]._1();
+				int maxZ = parameterRanges[v][0]._2();
+				for (int z = minZ; z < maxZ; z++) {
+					for (int d = 0; d < D; d++) {
+						int docCount = nD[d][v];
+						int docTopicCount = nDZ[d][v][z];
+						thetaPriors[v].updateGradient(z, v, d, docCount,
+								docTopicCount, getLock(v, runningDSums, d));
+					}
+				}
+				
+			}
+		}
+	}
+	
+	@Override
+	public void doGradientStep(Tup2<Integer, Integer>[][] parameterRanges) {
+		for (Factor f : factors) {
+			if (f.optimizeMeTheta || f.optimizeMePhi) {
+				for (int v : f.revViewIndices.keySet()) {
+					int minZ = parameterRanges[v][0]._1();
+					int maxZ = parameterRanges[v][0]._2();
+					int minD = parameterRanges[v][1]._1();
+					int maxD = parameterRanges[v][1]._2();
+					int minW = parameterRanges[v][2]._1();
+					int maxW = parameterRanges[v][2]._2();
 
-			for (int z = minZ; z < maxZ; z++) {
-				// for (int w = 0; w < W[v]; w++) {
-				for (int w = 0; w < W; w++) {
-					// if (z == 0 && w == 1000) {
-					// Log.info(String.format("Update phi gradient v%d z%d w%d",
-					// v, z, w),
-					// String.format("nZ=%d, nZW=%d", nZ[v][z], nZW[v][z][w]));
-					// }
-					phiPriors[v].updateGradient(z, v, w, nZ[v][z], nZW[v][z][w],
-							getLock(v, this.runningWSums, w));
+					f.doGradientStep(v, minZ, maxZ, minD, maxD, minW, maxW,
+							stepSize);
 				}
 			}
 		}
@@ -555,69 +618,48 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		for (int v = 0; v < numViews; v++) {
 			int minZ = parameterRanges[v][0]._1();
 			int maxZ = parameterRanges[v][0]._2();
-			for (int z = minZ; z < maxZ; z++) {
-				for (int d = 0; d < D; d++) {
-					int docCount = nD[d][v];
-					int docTopicCount = nDZ[d][v][z];
-					thetaPriors[v].updateGradient(z, v, d, docCount,
-							docTopicCount, getLock(v, runningDSums, d));
-				}
-			}
-		}
-	}
-
-	@Override
-	public void doGradientStep(Tup2<Integer, Integer>[][] parameterRanges) {
-		for (Factor f : factors) {
-			for (int v : f.revViewIndices.keySet()) {
-				int minZ = parameterRanges[v][0]._1();
-				int maxZ = parameterRanges[v][0]._2();
-				int minD = parameterRanges[v][1]._1();
-				int maxD = parameterRanges[v][1]._2();
-				int minW = parameterRanges[v][2]._1();
-				int maxW = parameterRanges[v][2]._2();
-
-				f.doGradientStep(v, minZ, maxZ, minD, maxD, minW, maxW,
-						stepSize);
-			}
-		}
-
-		for (int v = 0; v < numViews; v++) {
-			int minZ = parameterRanges[v][0]._1();
-			int maxZ = parameterRanges[v][0]._2();
 			int minW = parameterRanges[v][2]._1();
 			int maxW = parameterRanges[v][2]._2();
-
-			thetaPriors[v].doGradientStep(v, minZ, maxZ, stepSize); // Update delta
-																	// bias
-			phiPriors[v].doGradientStep(v, minW, maxW, stepSize); // Update omega
-																// bias
+			
+			if (thetaPriors[v].optimizeMe) {
+				thetaPriors[v].doGradientStep(v, minZ, maxZ, stepSize); // Update delta bias
+			}
+			
+			if (phiPriors[v].optimizeMe) {
+				phiPriors[v].doGradientStep(v, minW, maxW, stepSize); // Update omega bias
+			}
 		}
 	}
 
 	@Override
 	public void clearGradient(Tup2<Integer, Integer>[][] parameterRanges) {
 		for (Factor f : factors) {
-			for (int v : f.revViewIndices.keySet()) {
-				int minZ = parameterRanges[v][0]._1();
-				int maxZ = parameterRanges[v][0]._2();
-				int minD = parameterRanges[v][1]._1();
-				int maxD = parameterRanges[v][1]._2();
-				int minW = parameterRanges[v][2]._1();
-				int maxW = parameterRanges[v][2]._2();
-				
-				f.clearGradient(minZ, maxZ, minD, maxD, minW, maxW);
+			if (f.optimizeMeTheta || f.optimizeMePhi) { // Don't need to clear the gradient if we're not optimizing anything
+				for (int v : f.revViewIndices.keySet()) {
+					int minZ = parameterRanges[v][0]._1();
+					int maxZ = parameterRanges[v][0]._2();
+					int minD = parameterRanges[v][1]._1();
+					int maxD = parameterRanges[v][1]._2();
+					int minW = parameterRanges[v][2]._1();
+					int maxW = parameterRanges[v][2]._2();
+					
+					f.clearGradient(minZ, maxZ, minD, maxD, minW, maxW);
+				}
 			}
 		}
-
+		
 		for (int v = 0; v < numViews; v++) {
 			int minZ = parameterRanges[v][0]._1();
 			int maxZ = parameterRanges[v][0]._2();
 			int minW = parameterRanges[v][2]._1();
 			int maxW = parameterRanges[v][2]._2();
-
-			thetaPriors[v].clearGradient(v, minZ, maxZ); // Clear delta bias
-			phiPriors[v].clearGradient(v, minW, maxW); // Clear omega bias
+			
+			if (thetaPriors[v].optimizeMe) {
+				thetaPriors[v].clearGradient(v, minZ, maxZ); // Clear delta bias
+			}
+			if (phiPriors[v].optimizeMe) {
+				phiPriors[v].clearGradient(v, minW, maxW); // Clear omega bias
+			}
 		}
 	}
 	@Override
@@ -680,11 +722,11 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 
 			// Initialize factors -- observed and latent.
 			if (f.isObserved()) {
-				f.initialize(observedValues[factorIdx], W, D);
+				f.initialize(observedValues[factorIdx], W, D, wordMap, wordMapInv);
 				// f.initialize(observedValues[factorIdx], W_subset, D);
 				factorIdx++;
 			} else {
-				f.initialize(W, D);
+				f.initialize(W, D, wordMap, wordMapInv);
 				// f.initialize(W_subset, D);
 			}
 		}
@@ -776,6 +818,30 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			fw.close();
 		}
 
+		// Write omega/delta bias terms
+		for (int v = 0; v < numViews; v++) {
+			fw = new FileWriter(new File(outputDir, String.format(
+					"%s.v%d.deltabias", baseName, v)));
+			bw = new BufferedWriter(fw);
+
+			SpriteThetaPrior tprior = thetaPriors[v];
+			tprior.writeDeltaBias(bw);
+
+			bw.close();
+			fw.close();
+
+			fw = new FileWriter(new File(outputDir, String.format(
+					"%s.v%d.omegabias", baseName, v)));
+			bw = new BufferedWriter(fw);
+
+			SpritePhiPrior pprior = phiPriors[v];
+			pprior.writeOmegaBias(bw, wordMapInv);
+			// pprior.writeOmegaBias(bw, wordMapInvs[v]);
+
+			bw.close();
+			fw.close();
+		}
+
 		// Write factor parameters
 
 		for (Factor f : factors) {
@@ -816,26 +882,26 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			// bw.close();
 			// fw.close();
 			// }
-
+			
 			fw = new FileWriter(new File(outputDir, String.format(
 					"%s.%s.alpha", baseName, f.factorName)));
 			bw = new BufferedWriter(fw);
-
+			
 			f.writeAlpha(bw);
 
 			bw.close();
 			fw.close();
-
+			
 			fw = new FileWriter(new File(outputDir, String.format(
 					"%s.%s.delta", baseName, f.factorName)));
 			bw = new BufferedWriter(fw);
-
+			
 			f.writeDelta(bw);
-
+			
 			bw.close();
 			fw.close();
 		}
-
+		
 		// Serialize the model so we can use it/continue training later if
 		// necessary
 		try {
@@ -849,11 +915,11 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			e.printStackTrace();
 		}
 	}
-
+	
 	@Override
 	public void updateGradientTest(Tup2<Integer, Integer>[][] parameterRanges) {
 		// Compute gradients
-
+		
 		for (int v = 0; v < numViews; v++) {
 			int minZ = parameterRanges[v][0]._1();
 			int maxZ = parameterRanges[v][0]._2();
@@ -866,7 +932,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				}
 			}
 		}
-
+		
 	}
 	
 }

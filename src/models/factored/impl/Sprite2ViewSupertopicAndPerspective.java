@@ -37,16 +37,16 @@ public class Sprite2ViewSupertopicAndPerspective extends SpriteFactoredTopicMode
 		Factor[] factors = new Factor[] {
 				new Factor(1, new int[] {0, 1}, new int[] {Z, Z}, 1.0, true,
 						sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, false,
-						false, false, "perspective", true),
+						false, false, "perspective", true, true, true),
 				// This is the only change from the Topic-Perspective model
 				new Factor(C, new int[] {0, 1}, new int[] {Z, Z}, 0.01, true,
 						   sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta,
-						   true, true, true, "supertopic", false)};
+						   true, true, true, "supertopic", false, true, true)};
 		
-		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias),
-				new SpriteThetaPrior(factors, Z, new int[] {1}, initDeltaBias, sigmaDeltaBias)};
-		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias),
-				new SpritePhiPrior(factors, Z, new int[] {1}, initOmegaBias, sigmaOmegaBias)};
+		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias, true),
+				new SpriteThetaPrior(factors, Z, new int[] {1}, initDeltaBias, sigmaDeltaBias, true)};
+		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias, true),
+				new SpritePhiPrior(factors, Z, new int[] {1}, initOmegaBias, sigmaOmegaBias, true)};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
 	}

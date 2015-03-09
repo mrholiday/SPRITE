@@ -1,64 +1,103 @@
 package models.factored;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.util.Map;
 
+import utils.Log;
 import utils.MathUtils;
 
-/**
- * Factor where the beta/delta for each topic is 1 for all views -> component.
- * This assumes that this factor has the same number of components as all topics
- * within views.
- * 
- * @author adrianb
- *
- */
-public class LinkedFactor extends Factor {
+public class InitOmegaFactor extends LinkedFactor {
+
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = -2509749995832748702L;
+	private static final long serialVersionUID = 4101839364338733283L;
 	
-	private double betaDeltaWeight = 1.0;
+	private double[][] omegaInit;
+	private Map<String, Integer> wToIntLDA;
 	
-	public LinkedFactor(int numComponents0, int[] viewIndices0, int[] Z0,
+	double betaDeltaWeight;
+	
+	public boolean optimizable;
+	
+	public InitOmegaFactor(int numComponents0, int[] viewIndices0, int[] Z0,
 			double rho0, boolean tieBetaAndDelta0, double sigmaBeta0,
 			double sigmaOmega0, double sigmaAlpha0, double sigmaDelta0,
 			boolean alphaPositive0, boolean betaPositive0,
 			boolean deltaPositive0, String factorName0, boolean observed0, boolean optimizeMeTheta0,
-			boolean optimizeMePhi0, double betaDeltaWeight0) {
+			boolean optimizeMePhi0, double betaDeltaWeight0, String initOmegaSerPath) {
 		super(numComponents0, viewIndices0, Z0, rho0, tieBetaAndDelta0,
 				sigmaBeta0, sigmaOmega0, sigmaAlpha0, sigmaDelta0,
 				alphaPositive0, betaPositive0, deltaPositive0, factorName0,
-				observed0, optimizeMeTheta0, optimizeMePhi0);
+				observed0, optimizeMeTheta0, optimizeMePhi0, 1.0);
+		
 		betaDeltaWeight = betaDeltaWeight0;
+		FileInputStream fs;
+		ObjectInputStream is;
+		try {
+			fs = new FileInputStream(initOmegaSerPath);
+			is = new ObjectInputStream(fs);
+			SpriteFactoredTopicModel m = (SpriteFactoredTopicModel) is.readObject();
+			omegaInit = new double[C][m.W];
+			wToIntLDA = m.wordMap;
+			
+			for (int v = 0; v < m.nZW.length; v++) {
+				for (int z = 0; z < m.nZW[v].length; z++) {
+					int N = 0;
+					for (int w = 0; w < m.W; w++) {
+						omegaInit[z][w] = m.nZW[v][z][w];
+						N += m.nZW[v][z][w];
+					}
+					for (int w = 0; w < m.W; w++) {
+						omegaInit[z][w] /= N;
+					}
+				}
+			}
+		}
+		catch (IOException e) {
+			Log.error("InitOmegaFactor", e);
+		}
+		catch (ClassNotFoundException e) {
+			Log.error("InitOmegaFactor", e);
+		}
+		
 	}
 	
-	@Override
 	public void initialize(double[][] docScores, int W0, int D0, Map<String, Integer> wtoi, Map<Integer, String> itow) {
 		super.initialize(docScores, W0, D0, wtoi, itow);
+		
+		for (int c = 0; c < C; c++) {
+			for (int w = 0; w < W; w++) {
+				String newDataWord = itow.get(w);
+				int oldDataIdx     = this.wToIntLDA.get(newDataWord);
+				this.omega[c][w] = this.omegaInit[c][oldDataIdx];
+			}
+		}
 		
 		// Set beta and delta to 1 only if the component index is the same as the topic index
 		beta  = new double[numViews][][];
 		delta = new double[numViews][C][];
-		
+
 		for (int v = 0; v < numViews; v++) {
 			for (int c = 0; c < C; c++) {
 				delta[v][c] = new double[Z[v]];
 				for (int z = 0; z < Z[v]; z++) {
 					if (c == z) {
-						delta[v][c][z] = betaDeltaWeight;
+						delta[v][c][z] = 1.0;
 					}
 					else {
 						delta[v][c][z] = 0.0;
 					}
 				}
 			}
-			
+
 			// Init beta/beta bias
 			beta[v] = new double[Z[v]][C];
 			for (int z = 0; z < Z[v]; z++) {
 				for (int c = 0; c < C; c++) {
-					
+
 					if (c == z) {
 						betaB[v][z][c] = 1.0;
 						beta[v][z][c] = betaDeltaWeight;
@@ -70,6 +109,7 @@ public class LinkedFactor extends Factor {
 				}
 			}
 		}
+		
 	}
 	
 	@Override // Do not take gradient steps for beta
