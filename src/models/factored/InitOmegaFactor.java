@@ -3,10 +3,14 @@ package models.factored;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import utils.Log;
 import utils.MathUtils;
+import utils.Tup2;
 
 public class InitOmegaFactor extends LinkedFactor {
 
@@ -72,14 +76,33 @@ public class InitOmegaFactor extends LinkedFactor {
 			for (int w = 0; w < W; w++) {
 				String newDataWord = itow.get(w);
 				int oldDataIdx     = this.wToIntLDA.get(newDataWord);
-				this.omega[c][w] = this.omegaInit[c][oldDataIdx];
+				this.omega[c][w]   = this.omegaInit[c][oldDataIdx];
 			}
+		}
+		
+		// For debugging -- make sure omega is the same as the top words we get from LDA
+		for (int c = 0; c < C; c++) {
+			List<Tup2<Double, String>> wordList = new ArrayList<Tup2<Double, String>>(this.omega[c].length);
+			
+			for (int w = 0; w < W; w++) {
+				wordList.add(new Tup2<Double, String>(this.omega[c][w], itow.get(w)));
+			}
+			
+			Collections.sort(wordList);
+			
+			StringBuilder b = new StringBuilder();
+			b.append("Omega_Init_Component=" + c + ":");
+			for (int i = 0; i < 20; i++) {
+				b.append(" " + wordList.get(wordList.size() - i - 1));
+			}
+			
+			Log.info("InitOmegaFactor", b.toString());
 		}
 		
 		// Set beta and delta to 1 only if the component index is the same as the topic index
 		beta  = new double[numViews][][];
 		delta = new double[numViews][C][];
-
+		
 		for (int v = 0; v < numViews; v++) {
 			for (int c = 0; c < C; c++) {
 				delta[v][c] = new double[Z[v]];
