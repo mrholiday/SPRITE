@@ -7,6 +7,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import prior.SpritePhiPrior;
@@ -328,13 +331,36 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		for (SpritePhiPrior prior : phiPriors) {
 			prior.logState();
 		}
-
+		
 		// Print out per-component weights
 		for (Factor f : factors) {
 			f.logState();
 		}
-	}
+		
+		/*
+		// For debugging InitOmegaFactor
+		if ((this.iter%100) == 0) {
+			int c = 0;
+			Factor firstFactor = this.factors[0];
+			List<Tup2<Double, String>> wordList = new ArrayList<Tup2<Double, String>>(firstFactor.omega[c].length);
+			for (int w = 0; w < W; w++) {
+				wordList.add(new Tup2<Double, String>(firstFactor.omega[c][w], this.wordMapInv.get(w)));
+			}
 
+			Collections.sort(wordList);
+
+			StringBuilder b = new StringBuilder();
+			b.append("Omega_Init_Component=" + c + ":");
+			for (int i = 0; i < 20; i++) {
+				Tup2<Double, String> bestTup = wordList.get(wordList.size() - i - 1);
+				b.append(" " + bestTup._2() + ":" + bestTup._1());
+			}
+			
+			Log.info("InitOmegaFactor", b.toString());
+		}
+		*/
+	}
+	
 	@Override
 	public void collectSamples() {
 		// Only collect samples for the last couple hundred iterations
@@ -359,36 +385,36 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		// will take samples and then compute log-likelihood. Ultimately
 		// I should remove global references to the corpus and sample counts
 		// and pass these in between functions.
-
+		
 		double LL = 0;
-
+		
 		for (int d = 0; d < D; d++) {
 			for (int v = 0; v < numViews; v++) {
 				int numDocTokens = corpus[d][v].length;
-
+				
 				for (int n = 0; n < numDocTokens; n++) {
 					int w = corpus[d][v][n];
 
 					double tokenLL = 0;
-
+					
 					// marginalize over z
 					for (int z = 0; z < Z[v]; z++) {
 						// tokenLL += (nDZ[d][v][z] + priorDZ[d][v][z]) /
 						// (nD[d][v] + thetaNormPerView[v][d])*
 						// (nZW[v][z][w] + priorZW[v][z][w]) / (nZ[v][z] +
 						// phiNormPerView[v][z]);
-
+						
 						tokenLL += (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
 								/ (nD[d][v] + thetaPriors[v].thetaNorm[d])
 								* (nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
 								/ (nZ[v][z] + phiPriors[v].phiNorm[z]);
 					}
-
+					
 					LL += Math.log(tokenLL);
 				}
 			}
 		}
-
+		
 		return LL;
 	}
 	
@@ -576,7 +602,6 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 								getLock(v, this.runningWSums, w));
 					}
 				}
-				
 			}
 		}
 		
@@ -608,7 +633,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 					int maxD = parameterRanges[v][1]._2();
 					int minW = parameterRanges[v][2]._1();
 					int maxW = parameterRanges[v][2]._2();
-
+					
 					f.doGradientStep(v, minZ, maxZ, minD, maxD, minW, maxW,
 							stepSize);
 				}

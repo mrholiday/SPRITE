@@ -81,23 +81,22 @@ public class InitOmegaFactor extends LinkedFactor {
 		}
 		
 		// For debugging -- make sure omega is the same as the top words we get from LDA
-		for (int c = 0; c < C; c++) {
-			List<Tup2<Double, String>> wordList = new ArrayList<Tup2<Double, String>>(this.omega[c].length);
-			
-			for (int w = 0; w < W; w++) {
-				wordList.add(new Tup2<Double, String>(this.omega[c][w], itow.get(w)));
-			}
-			
-			Collections.sort(wordList);
-			
-			StringBuilder b = new StringBuilder();
-			b.append("Omega_Init_Component=" + c + ":");
-			for (int i = 0; i < 20; i++) {
-				b.append(" " + wordList.get(wordList.size() - i - 1));
-			}
-			
-			Log.info("InitOmegaFactor", b.toString());
+		int c2 = 0;
+		List<Tup2<Double, String>> wordList = new ArrayList<Tup2<Double, String>>(this.omega[c2].length);
+		for (int w = 0; w < W; w++) {
+			wordList.add(new Tup2<Double, String>(this.omega[c2][w], itow.get(w)));
 		}
+
+		Collections.sort(wordList);
+
+		StringBuilder b = new StringBuilder();
+		b.append("Omega_Init_Component=" + c2 + ":");
+		for (int i = 0; i < 20; i++) {
+			Tup2<Double, String> bestTup = wordList.get(wordList.size() - i - 1);
+			b.append(" " + bestTup._2() + ":" + bestTup._1());
+		}
+
+		Log.info("InitOmegaFactor", b.toString());
 		
 		// Set beta and delta to 1 only if the component index is the same as the topic index
 		beta  = new double[numViews][][];
@@ -132,7 +131,6 @@ public class InitOmegaFactor extends LinkedFactor {
 				}
 			}
 		}
-		
 	}
 	
 	@Override // Do not take gradient steps for beta
@@ -175,15 +173,15 @@ public class InitOmegaFactor extends LinkedFactor {
 //			b.delete(0, b.length());
 //		}
 		
-		if (v == 0) { // Hack to make sure we only take a gradient step once for all views
-		for (int c = 0; c < C; c++) {
-			for (int w = minW; w < maxW; w++) {
-				gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
-				adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
-				omega[c][w] += (stepSize / (Math.sqrt(adaOmega[c][w]) + MathUtils.eps)) * gradientOmega[c][w];
-//				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
+		if (v == 0 && this.optimizeMePhi) { // Hack to make sure we only take a gradient step once for all views
+			for (int c = 0; c < C; c++) {
+				for (int w = minW; w < maxW; w++) {
+					gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
+					adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
+					omega[c][w] += (stepSize / (Math.sqrt(adaOmega[c][w]) + MathUtils.eps)) * gradientOmega[c][w];
+					//				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
+				}
 			}
-		}
 		}
 		
 //		for (int c = 0; c < C; c++) {
@@ -195,7 +193,7 @@ public class InitOmegaFactor extends LinkedFactor {
 //		}
 		
 		if (!observed) {
-			if (v == 0) { // Hack to make sure we only take a gradient step once for all views
+			if (v == 0 && this.optimizeMeTheta) { // Hack to make sure we only take a gradient step once for all views
 				for (int d = minD; d < maxD; d++) {
 					for (int c = 0; c < C; c++) {
 						gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
