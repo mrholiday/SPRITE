@@ -269,11 +269,11 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 		}
 		
 		for (int d = 0; d < D; d++) { 
-			docsZ[d] = new int[docs[d].length];
-			docsZZ[d] = new int[docs[d].length][Z];
+			docsZ[d] = new int[docs[0][d].length];
+			docsZZ[d] = new int[docs[0][d].length][Z];
 			
 			if (!computePerplexity) {
-				for (int n = 0; n < docs[d].length; n++) {
+				for (int n = 0; n < docs[0][d].length; n++) {
 					int w = docs[0][d][n];
 					
 					int z = r.nextInt(Z); // sample uniformly
@@ -288,7 +288,7 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 				}
 			}
 			else { // Train on every other token.  Ignore the other tokens.
-				for (int n = 0; n < docs[d].length; n += 2) {
+				for (int n = 0; n < docs[0][d].length; n += 2) {
 					int w = docs[0][d][n];
 					
 					int z = r.nextInt(Z); // sample uniformly
@@ -1096,14 +1096,14 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 		if (burnedIn) {
 			for (int d = 0; d < D; d++) {
 				if (!computePerplexity) {
-					for (int n = 0; n < docs[d].length; n++) { 
+					for (int n = 0; n < docs[0][d].length; n++) { 
 						int x = docsZ[d][n];
 						
 						docsZZ[d][n][x] += 1;
 					}
 				}
 				else { // Only collect samples for half of the tokens
-					for (int n = 0; n < docs[d].length; n += 2) { 
+					for (int n = 0; n < docs[0][d].length; n += 2) { 
 						int x = docsZ[d][n];
 						
 						docsZZ[d][n][x] += 1;
@@ -1119,12 +1119,12 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 	public void sampleBatch(int minD, int maxD) {
 		for (int d = minD; d < maxD; d++) {
 			if (!computePerplexity) {
-				for (int n = 0; n < docs[d].length; n++) {
+				for (int n = 0; n < docs[0][d].length; n++) {
 					sample(d, n);
 				}
 			}
 			else {
-				for (int n = 0; n < docs[d].length; n += 2) {
+				for (int n = 0; n < docs[0][d].length; n += 2) {
 					sample(d, n);
 				}
 			}
@@ -1189,7 +1189,7 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 		
 		for (int d = 0; d < D; d++) {
 			if (isHeldOut) { // Compute LL on the held-out set
-				for (int n = 1; n < docs[d].length; n += 2) {
+				for (int n = 1; n < docs[0][d].length; n += 2) {
 					int w = docs[0][d][n];
 					
 					double tokenLL = 0;
@@ -1206,7 +1206,7 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 				}
 			}
 			else { // Compute LL over the half of data that was used for training
-				for (int n = 0; n < docs[d].length; n += 2) { 
+				for (int n = 0; n < docs[0][d].length; n += 2) { 
 					int w = docs[0][d][n];
 					
 					double tokenLL = 0;
@@ -1234,7 +1234,7 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 		for (int d = 0; d < D; d++) {
 			
 			if (isHeldOut) { // Compute LL on the held-out set
-				for (int n = 1; n < docs[d].length; n += 2) {
+				for (int n = 1; n < docs[0][d].length; n += 2) {
 					int w = docs[0][d][n];
 					
 					double tokenLL = 0;
@@ -1251,7 +1251,7 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 			}
 			else { // Compute LL over the training data
 				if (!computePerplexity) { // LL over all examples
-					for (int n = 0; n < docs[d].length; n++) { 
+					for (int n = 0; n < docs[0][d].length; n++) { 
 						int w = docs[0][d][n];
 						
 						double tokenLL = 0;
@@ -1267,7 +1267,7 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 					}
 				}
 				else {
-					for (int n = 0; n < docs[d].length; n += 2) { 
+					for (int n = 0; n < docs[0][d].length; n += 2) { 
 						int w = docs[0][d][n];
 						
 						double tokenLL = 0;
@@ -1390,8 +1390,8 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 			bw.write(docsC1[d] + " ");
 			bw.write(docsC2[d] + " ");
 			
-			for (int n = 0; n < docs[d].length; n++) {
-				String word = wordMapInv.get(docs[d][n]);
+			for (int n = 0; n < docs[0][d].length; n++) {
+				String word = wordMapInv.get(docs[0][d][n]);
 				
 				//bw.write(word+":"+docsZ[d][n]+" "); // only current sample
 				bw.write(word);  // for multiple samples

@@ -9,6 +9,8 @@ import models.original.SpriteICWSM;
 import models.original.SpriteICWSMNoSupervisedOmega;
 import models.original.SpriteICWSMNoSupervisedOmegaPred;
 import models.original.SpriteICWSMPred;
+import models.original.SpriteJointThreeFactor;
+import models.original.SpriteJointThreeFactorPred;
 import models.original.SpriteLDA;
 import models.original.SpriteLDAPred;
 import models.original.SpriteUnsupervised;
@@ -70,7 +72,7 @@ public class LearnTopicModel {
 
 		@Parameter(names="-nthreads", description="Number of threads that will sample and take gradient steps in parallel.  Defaults to 1.")
 		int numThreads = 1;
-
+		
 		@Parameter(names="-computePerplexity", description="Whether held-out perplexity should be computed on half the data (other half used for training)")
 		boolean computePerplexity = false;
 
@@ -174,7 +176,7 @@ public class LearnTopicModel {
 						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
-		else if (c.model == "sprite_icwsm_noomega") {
+		else if (c.model.equals("sprite_icwsm_noomega")) {
 			if (c.predFold >= 0) {
 				// -1 or "" are for arguments that were obligatory but never used...
 				topicModel = new SpriteICWSMNoSupervisedOmegaPred(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
@@ -182,21 +184,27 @@ public class LearnTopicModel {
 						-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
 						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.predFold);
 			}
-//			public DMR(int z, double sigmaA0, double sigmaAB0, double sigmaW0, double sigmaWB0,
-//					double stepSizeADZ0, double stepSizeAZ0, double stepSizeAB0, double stepSizeW0, double stepSizeWB0,
-//					double stepSizeB0, double delta00, double delta10, double deltaB0, double omegaB0, int likelihoodFreq0,
-//					String prefix, double stepA0, int Cth0, int Cph0, int seed0, int numThreads0, boolean computePerplexity0) {
 			else {
-				//topicModel = new SpriteJointThreeFactor(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
-				//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
-				//		                     stepA, Cth, Cph, seed, numThreads, computePerplexity);
 				topicModel = new SpriteICWSMNoSupervisedOmega(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
 						c.sigmaOmegaBias, c.deltaBias,
 						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
+		else if (c.model.equals("sprite_3factor")) {
+			if (c.predFold >= 0) {
+				// -1 or "" are for arguments that were obligatory but never used...
+				topicModel = new SpriteJointThreeFactorPred(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias, -1.0, -1.0,
+						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.predFold);
+			}
+			else {
+				topicModel = new SpriteJointThreeFactor(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias, -1.0, -1.0,
+						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.computePerplexity);
+			}
+		}
 		else {
-			System.out.println("Invalid model specification. Options: sprite sprite_lda sprite_unsupervised");
+			System.out.println("Invalid model specification. Options: sprite sprite_lda sprite_unsupervised sprite_icwsm_noomega dmr sprite_3factor");
 			return;
 		}
 		
