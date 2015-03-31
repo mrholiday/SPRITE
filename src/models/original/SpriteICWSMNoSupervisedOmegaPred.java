@@ -338,7 +338,7 @@ public class SpriteICWSMNoSupervisedOmegaPred extends TopicModel implements Seri
 
 	// returns the mean of the Gaussian prior for the document's alpha value
 	public double alphaMean(int d) {
-		return (lambda0 * docsC1[d]) + (lambda1 * docsC0[d]);
+		return (lambda0 * docsC0[d]) + (lambda1 * docsC1[d]);
 	}
 	
 	// returns the delta_dz prior given all the parameters

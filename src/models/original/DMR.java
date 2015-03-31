@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -118,6 +119,7 @@ public class DMR extends TopicModel implements Serializable {
 	private transient Worker[] THREADS = null;
 	
 	private boolean computePerplexity; // If true, will train on half of tokens, and print out held-out perplexity.
+	
 	
 	public DMR(int z, double sigmaA0, double sigmaAB0, double sigmaW0, double sigmaWB0,
 			double stepSizeADZ0, double stepSizeAZ0, double stepSizeAB0, double stepSizeW0, double stepSizeWB0,
@@ -248,7 +250,8 @@ public class DMR extends TopicModel implements Serializable {
 			//for (int c = 1; c < Cph; c++) {
 			for (int c = 3; c < Cph; c++) {
 				betaB[z][c] = 1.0 / (Cph-1);
-				beta[z][c] = -2.0;
+//				beta[z][c] = -2.0;
+				beta[z][c] = delta[c][z];
 			}
 		}
 		
@@ -435,9 +438,9 @@ public class DMR extends TopicModel implements Serializable {
 			weight += alpha[d][c] * delta[c][z];
 		}
 		//for (int c = 1; c < Cth; c++) {
-		for (int c = 3; c < Cth; c++) {
-			weight += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]);
-		}
+		//for (int c = 3; c < Cth; c++) {
+		//	weight += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]);
+		//}
 		
 		return Math.exp(weight);
 	}
@@ -451,9 +454,9 @@ public class DMR extends TopicModel implements Serializable {
 			//weight += beta[z][c] * omega[c][w];
 		}
 		//for (int c = 1; c < Cph; c++) {
-		for (int c = 3; c < Cph; c++) {
-			//weight += betaB[z][c] * Math.exp(beta[z][c]) * omega[c][w];
-		}
+		//for (int c = 3; c < Cph; c++) {
+		//	weight += betaB[z][c] * Math.exp(beta[z][c]) * omega[c][w];
+		//}
 		
 		return Math.exp(weight);
 	}
@@ -525,16 +528,16 @@ public class DMR extends TopicModel implements Serializable {
 				double dgW2 = MathUtils.digamma(priorDZ[d][z] + eps);
 				
 				double gradientTerm = priorDZ[d][z] * (dg1-dg2+dgW1-dgW2);
-
+				
 				//for (int c = 0; c < 1; c++) { // factor
 				for (int c = 0; c < 3; c++) { // factor
 					gradientBeta[z][c] += alpha[d][c] * gradientTerm;
 				}
-				for (int c = 3; c < Cth; c++) { // hierarchy
-					gradientAlpha[d][c] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-					gradientDelta[c][z] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-					gradientBetaB[z][c] += Math.exp(alpha[d][c]) * Math.exp(delta[c][z]) * gradientTerm;
-				}
+//				for (int c = 3; c < Cth; c++) { // hierarchy
+//					gradientAlpha[d][c] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
+//					gradientDelta[c][z] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
+//					gradientBetaB[z][c] += Math.exp(alpha[d][c]) * Math.exp(delta[c][z]) * gradientTerm;
+//				}
 				gradientDeltaBias[z] += gradientTerm;
 			}
 		}
@@ -574,13 +577,13 @@ public class DMR extends TopicModel implements Serializable {
 				gradientBeta[z][c] = 0.;
 			}
 			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				gradientBeta[z][c] += -(beta[z][c]) / Math.pow(sigmaBeta, 2);
-				adaBeta[z][c] += Math.pow(gradientBeta[z][c], 2);
-				beta[z][c] += (step / (Math.sqrt(adaBeta[z][c])+eps)) * gradientBeta[z][c];
-				//beta[z][c] = 0.0; // unweighted
-				gradientBeta[z][c] = 0.;
-			}
+//			for (int c = 3; c < Cph; c++) {
+//				gradientBeta[z][c] += -(beta[z][c]) / Math.pow(sigmaBeta, 2);
+//				adaBeta[z][c] += Math.pow(gradientBeta[z][c], 2);
+//				beta[z][c] += (step / (Math.sqrt(adaBeta[z][c])+eps)) * gradientBeta[z][c];
+//				//beta[z][c] = 0.0; // unweighted
+//				gradientBeta[z][c] = 0.;
+//			}
 		}
 		
 		double dirp = 0.01; // Dirichlet hyperparameter
@@ -592,37 +595,37 @@ public class DMR extends TopicModel implements Serializable {
 		for (int z = minZ; z < maxZ; z++) {
 			double norm = 0.0;
 			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				//System.out.println("gradient "+gradientBeta[z][c]);
-				double prior = (dirp - 1.0) / betaB[z][c];
-				//System.out.println("prior "+prior);
-				
-				//adaBetaB[z][c] += Math.pow(gradientBetaB[z][c], 2); // traditional update
-				if (adaBetaB[z][c] == 0) adaBetaB[z][c] = 1.0;
-				adaBetaB[z][c] = (rho * adaBetaB[z][c]) + ((1.0-rho) * Math.pow(gradientBetaB[z][c], 2)); // average
-				gradientBetaB[z][c] += priorTemp * prior; // exclude from adaBetaB
-				prevBetaB[z][c] = betaB[z][c]; // store in case update goes wrong
-				betaB[z][c] *= Math.exp((step / (Math.sqrt(adaBetaB[z][c])+eps)) * gradientBetaB[z][c]);
-				
-				norm += betaB[z][c];
-				gradientBetaB[z][c] = 0.;
-			}
+//			for (int c = 3; c < Cph; c++) {
+//				//System.out.println("gradient "+gradientBeta[z][c]);
+//				double prior = (dirp - 1.0) / betaB[z][c];
+//				//System.out.println("prior "+prior);
+//				
+//				//adaBetaB[z][c] += Math.pow(gradientBetaB[z][c], 2); // traditional update
+//				if (adaBetaB[z][c] == 0) adaBetaB[z][c] = 1.0;
+//				adaBetaB[z][c] = (rho * adaBetaB[z][c]) + ((1.0-rho) * Math.pow(gradientBetaB[z][c], 2)); // average
+//				gradientBetaB[z][c] += priorTemp * prior; // exclude from adaBetaB
+//				prevBetaB[z][c] = betaB[z][c]; // store in case update goes wrong
+//				betaB[z][c] *= Math.exp((step / (Math.sqrt(adaBetaB[z][c])+eps)) * gradientBetaB[z][c]);
+//				
+//				norm += betaB[z][c];
+//				gradientBetaB[z][c] = 0.;
+//			}
 			//for (int c = 0; c < 1; c++) {
 			for (int c = 0; c < 3; c++) {
 				betaB[z][c] = 1.0;
 			}
 			//System.out.println("normalizer "+z+" "+norm);
 			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				if (norm == 0.0 || norm == Double.POSITIVE_INFINITY) {
-					System.out.println("BAD betaB");
-					//betaB[z][c] = 1.0 / (Cph - 1);
-					betaB[z][c] = prevBetaB[z][c]; // undo update if not well defined
-				}
-				else {
-					betaB[z][c] /= norm;
-				}
-			}
+//			for (int c = 3; c < Cph; c++) {
+//				if (norm == 0.0 || norm == Double.POSITIVE_INFINITY) {
+//					System.out.println("BAD betaB");
+//					//betaB[z][c] = 1.0 / (Cph - 1);
+//					betaB[z][c] = prevBetaB[z][c]; // undo update if not well defined
+//				}
+//				else {
+//					betaB[z][c] /= norm;
+//				}
+//			}
 		}
 		
 		/*
@@ -645,13 +648,13 @@ public class DMR extends TopicModel implements Serializable {
 		
 		for (int d = minD; d < maxD; d++) {
 			//for (int c = 1; c < Cth; c++) {
-			for (int c = 3; c < Cth; c++) {
-				gradientAlpha[d][c] += -(alpha[d][c]) / Math.pow(sigmaAlpha, 2);
-				adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
-				alpha[d][c] += (step / (Math.sqrt(adaAlpha[d][c])+eps)) * gradientAlpha[d][c];
-				//if (alpha[d][c] < 1.0e-6) alpha[d][c] = 1.0e-6;
-				gradientAlpha[d][c] = 0.;
-			}
+//			for (int c = 3; c < Cth; c++) {
+//				gradientAlpha[d][c] += -(alpha[d][c]) / Math.pow(sigmaAlpha, 2);
+//				adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
+//				alpha[d][c] += (step / (Math.sqrt(adaAlpha[d][c])+eps)) * gradientAlpha[d][c];
+//				//if (alpha[d][c] < 1.0e-6) alpha[d][c] = 1.0e-6;
+//				gradientAlpha[d][c] = 0.;
+//			}
 		}
 		
 		//for (int c = 0; c < 1; c++) {
@@ -662,16 +665,15 @@ public class DMR extends TopicModel implements Serializable {
 		}
 		//for (int c = 1; c < Cth; c++) {
 		for (int c = 3; c < Cth; c++) {
-			for (int z = minZ; z < maxZ; z++) {
-				gradientDelta[c][z] += -(delta[c][z]) / Math.pow(sigmaDelta, 2);
-				adaDelta[c][z] += Math.pow(gradientDelta[c][z], 2);
-				delta[c][z] += (step / (Math.sqrt(adaDelta[c][z])+eps)) * gradientDelta[c][z];
-				//delta[c][z] = 0.0; // unweighted
-				gradientDelta[c][z] = 0.;
-			}
+//			for (int z = minZ; z < maxZ; z++) {
+//				gradientDelta[c][z] += -(delta[c][z]) / Math.pow(sigmaDelta, 2);
+//				adaDelta[c][z] += Math.pow(gradientDelta[c][z], 2);
+//				delta[c][z] += (step / (Math.sqrt(adaDelta[c][z])+eps)) * gradientDelta[c][z];
+//				//delta[c][z] = 0.0; // unweighted
+//				gradientDelta[c][z] = 0.;
+//			}
 		}
-
-
+		
 		for (int z = minZ; z < maxZ; z++) {
 			gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);
 			adaDeltaBias[z] += Math.pow(gradientDeltaBias[z], 2);
@@ -1194,6 +1196,36 @@ public class DMR extends TopicModel implements Serializable {
 		double logProbSum = 0.0;
 		
 		for (int d = 0; d < D; d++) {
+			int startN = isHeldOut ? 1 : 0;
+			for (int n = startN; n < docs[0][d].length; n += 2) {
+				int w = docs[0][d][n];
+				
+				double tokenLL = 0;
+				
+				// marginalize over z
+				
+				for (int z = 0; z < Z; z++) {
+					tokenLL += (nDZ[d][z] + priorDZ[d][z]) / (nD[d] + thetaNorm[d])*
+							(nZW[z][w] + priorZW[z][w]) / (nZ[z] + phiNorm[z]);
+				}
+				
+				logProbSum += MathUtils.log(tokenLL, 2.0);
+				denom++;
+			}
+		}
+		
+		System.out.println("Perplexity denominator: " + denom);
+		perplexity = Math.pow(2.0, -logProbSum/denom);
+		return perplexity;
+	}
+	
+	/*
+	public double computePerplexity(boolean isHeldOut) {
+		double perplexity = 0;
+		double denom = 0.0;
+		double logProbSum = 0.0;
+		
+		for (int d = 0; d < D; d++) {
 			if (isHeldOut) { // Compute LL on the held-out set
 				for (int n = 1; n < docs[0][d].length; n += 2) {
 					int w = docs[0][d][n];
@@ -1233,6 +1265,7 @@ public class DMR extends TopicModel implements Serializable {
 		perplexity = Math.pow(2.0, -logProbSum/denom);
 		return perplexity;
 	}
+	*/
 	
 	public double computeLL(boolean isHeldOut) {
 		double LL = 0;
@@ -1337,6 +1370,7 @@ public class DMR extends TopicModel implements Serializable {
 		}
 		
 		
+		docIds = new BigInteger[D];
 		docs = new int[1][D][];
 		docsC0 = new double[D];
 		docsC1 = new double[D];
@@ -1354,6 +1388,7 @@ public class DMR extends TopicModel implements Serializable {
 			int N = tokens.length;
 			
 			docs[0][d] = new int[N-4];
+			docIds[d]  = new BigInteger(tokens[0]);
 			docsC0[d]  = Double.parseDouble(tokens[1]); 
 			docsC1[d]  = Double.parseDouble(tokens[2]); 
 			docsC2[d]  = Double.parseDouble(tokens[3]);
@@ -1392,6 +1427,7 @@ public class DMR extends TopicModel implements Serializable {
 		BufferedWriter bw = new BufferedWriter(fw);
 		
 		for (int d = 0; d < D; d++) {
+			bw.write(docIds[d] + " ");
 			bw.write(docsC0[d] + " ");
 			bw.write(docsC1[d] + " ");
 			bw.write(docsC2[d] + " ");

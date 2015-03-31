@@ -9,6 +9,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -1210,6 +1211,7 @@ public class DMRPred extends TopicModel implements Serializable {
 		}
 		
 		docs = new int[1][D][];
+		docIds = new BigInteger[D];
 		docsC0 = new double[D];
 		docsC1 = new double[D];
 		docsC2 = new double[D];
@@ -1227,6 +1229,7 @@ public class DMRPred extends TopicModel implements Serializable {
 			int N = tokens.length;
 			
 			docs[0][d] = new int[N-5];
+			docIds[d] = new BigInteger(tokens[0]);
 			docToFold[d] = Integer.parseInt(tokens[1]);
 			docsC0[d] = Double.parseDouble(tokens[2]);
 			docsC1[d] = Double.parseDouble(tokens[3]);
@@ -1267,6 +1270,7 @@ public class DMRPred extends TopicModel implements Serializable {
 		
 		for (int d = 0; d < D; d++) {
 			bw.write((docToFold[d] == predFold ? 1 : 0) + " ");
+			bw.write(docIds[d] + " ");
 			bw.write(docsC0[d] + " ");
 			bw.write(docsC1[d] + " ");
 			bw.write(docsC2[d] + " ");

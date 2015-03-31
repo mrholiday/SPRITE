@@ -31,6 +31,12 @@ public abstract class TopicModel implements Trainable, Serializable {
 	public int[][]    nZ; // View -> Topic samples
 	
 	public void train(int iters, int samples, String filename) throws Exception {
+		String outputDir = new File(filename).getParent();
+		
+		train(iters, samples, filename, outputDir);
+	}
+	
+	public void train(int iters, int samples, String filename, String outputDir) throws Exception {
 		try {
 			inputFilename = filename;
 			readDocs(filename);
@@ -51,7 +57,7 @@ public abstract class TopicModel implements Trainable, Serializable {
 //				}
 			}
 			
-			writeOutput(filename);
+			writeOutput(filename, outputDir);
 		}
 		catch (Exception e) {
 			Log.error("train", "Error in training model.", e);
@@ -65,42 +71,6 @@ public abstract class TopicModel implements Trainable, Serializable {
 		Log.closeLogger();
 	}
 	
-	public void trainWithInitialSamples(int iters, int samples, String filename,
-			int[][][] nDZ0, int[][] nD0, int[][][] nZW0, int[][] nZ0) throws Exception {
-		try {
-			inputFilename = filename;
-			readDocs(filename);
-			initTrain();
-			setSamples(nDZ0, nD0, nZW0, nZ0);
-			
-			Log.info("train", "Sampling...");
-			
-			for (int iter = 1; iter <= iters; iter++) {
-				if (iter >= (iters - burnInIters)) burnedIn = true; // Keep the last couple hundred samples for final estimates
-				
-				Log.info("train", "Iteration " + iter);
-				doSamplingIteration(iter);
-				
-				// save the output periodically
-//				if (iter % writeFreq == 0) {
-//					System.out.println("Saving output...");
-//					writeOutput(filename + iter);
-//				}
-			}
-			
-			writeOutput(filename);
-		}
-		catch (Exception e) {
-			Log.error("train", "Error in training model.", e);
-			e.printStackTrace();
-		}
-		finally {
-			cleanUp();
-		}
-		
-		Log.info("train", "...done.");
-		Log.closeLogger();
-	}
 	
 	/**
 	 * Samples topics and infers \alpha for factors on a new corpus.

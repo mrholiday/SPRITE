@@ -1,5 +1,7 @@
 package main;
 
+import java.io.File;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
@@ -7,6 +9,7 @@ import models.original.DMR;
 import models.original.DMRPred;
 import models.original.SpriteICWSM;
 import models.original.SpriteICWSMNoSupervisedOmega;
+import models.original.SpriteICWSMNoSupervisedOmegaFixedMean;
 import models.original.SpriteICWSMNoSupervisedOmegaPred;
 import models.original.SpriteICWSMPred;
 import models.original.SpriteJointThreeFactor;
@@ -15,6 +18,12 @@ import models.original.SpriteLDA;
 import models.original.SpriteLDAPred;
 import models.original.SpriteUnsupervised;
 import models.original.SpriteUnsupervisedPred;
+import models.original.threefields.DMRPredThreeFields;
+import models.original.threefields.DMRThreeFields;
+import models.original.threefields.SpriteICWSMNoSupervisedOmegaPredThreeFields;
+import models.original.threefields.SpriteICWSMNoSupervisedOmegaThreeFields;
+import models.original.threefields.SpriteICWSMPredThreeFields;
+import models.original.threefields.SpriteICWSMThreeFields;
 
 import utils.Log;
 import utils.MathUtils;
@@ -161,18 +170,17 @@ public class LearnTopicModel {
 			}
 		}
 		else if (c.model.equals("dmr")) {
+			
+			
 			if (c.predFold >= 0) {
 				// -1 or "" are for arguments that were obligatory but never used...
 				topicModel = new DMRPred(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
-						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias, -1.0, -1.0,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias,
 						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.predFold);
 			}
 			else {
-				//topicModel = new SpriteJointThreeFactor(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
-				//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
-				//		                     stepA, Cth, Cph, seed, numThreads, computePerplexity);
 				topicModel = new DMR(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
-						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias, -1.0, -1.0,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias,
 						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
@@ -190,28 +198,91 @@ public class LearnTopicModel {
 						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
+		else if (c.model.equals("sprite_icwsm_noomega_fixedmean")) {
+			topicModel = new SpriteICWSMNoSupervisedOmegaFixedMean(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+					c.sigmaOmegaBias, c.deltaBias,
+					c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
+		}
 		else if (c.model.equals("sprite_3factor")) {
 			if (c.predFold >= 0) {
 				// -1 or "" are for arguments that were obligatory but never used...
 				topicModel = new SpriteJointThreeFactorPred(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
-						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias, -1.0, -1.0,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias,
 						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.predFold);
 			}
 			else {
 				topicModel = new SpriteJointThreeFactor(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
-						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias, -1.0, -1.0,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias,
 						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
+		else if (c.model.equals("dmr_threefields")) {
+			if (c.predFold >= 0) {
+				// -1 or "" are for arguments that were obligatory but never used...
+				topicModel = new DMRPredThreeFields(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.predFold);
+			}
+			else {
+				topicModel = new DMRThreeFields(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.computePerplexity);
+			}
+		}
+		if (c.model.equals("sprite_threefields")) {
+			//topicModel = new SpriteJoint(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
+			//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
+			//		                     stepA, Cth, Cph, seed, numThreads);
+			if (c.predFold >= 0) {
+				// -1 or "" are for arguments that were obligatory but never used...
+				topicModel = new SpriteICWSMPredThreeFields(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1,
+						-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.predFold);
+			}
+			else {
+				//topicModel = new SpriteJointThreeFactor(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
+				//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
+				//		                     stepA, Cth, Cph, seed, numThreads, computePerplexity);
+				topicModel = new SpriteICWSMThreeFields(c.z, c.sigmaAlpha, c.sigmaDelta,
+						c.sigmaDeltaBias, c.sigmaOmega, c.sigmaOmegaBias, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
+			}
+		}
+		else if (c.model.equals("sprite_icwsm_noomega_threefields")) {
+			if (c.predFold >= 0) {
+				// -1 or "" are for arguments that were obligatory but never used...
+				topicModel = new SpriteICWSMNoSupervisedOmegaPredThreeFields(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1,
+						-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.predFold);
+			}
+			else {
+				topicModel = new SpriteICWSMNoSupervisedOmegaThreeFields(c.z, c.sigmaAlpha,
+						c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega, c.sigmaOmegaBias, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
+			}
+		}
+		
 		else {
-			System.out.println("Invalid model specification. Options: sprite sprite_lda sprite_unsupervised sprite_icwsm_noomega dmr sprite_3factor");
+			System.out.println("Invalid model specification. Options: sprite sprite_lda sprite_unsupervised sprite_icwsm_noomega dmr sprite_3factor dmr_threefields sprite_threefields sprite_icwsm_noomega_threefields");
 			return;
 		}
 		
 		// Initializes random stream and logger
 		init(c.seed, c.logPath);
 		
-		topicModel.train(c.iters, c.samples, c.filename);
+		// Write output to a directory directly underneath the input directory
+		String inDir = new File(c.filename).getParent();
+		File outputDirFile = new File(inDir,
+				String.format("%s_%d_%d_%.2f_%.2f_%.2f_%.2f_%d_%d_output", c.model, c.Cth, c.z,
+						   c.step, c.sigmaAlpha, c.deltaBias, c.omegaBias,
+						   c.computePerplexity ? 1 : 0, c.predFold));
+		String outputDir = outputDirFile.getAbsolutePath();
+		
+		outputDirFile.mkdir();
+		
+		topicModel.train(c.iters, c.samples, c.filename, outputDir);
 	}
 
 }

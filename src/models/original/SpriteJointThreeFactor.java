@@ -1224,6 +1224,7 @@ public class SpriteJointThreeFactor extends TopicModel implements Serializable {
 			}
 		}
 		
+		System.out.println("Perplexity denominator: " + denom);
 		perplexity = Math.pow(2.0, -logProbSum/denom);
 		return perplexity;
 	}

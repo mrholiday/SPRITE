@@ -293,10 +293,10 @@ public class SpriteICWSMPred extends TopicModel implements Serializable {
 		}
 		
 		for (int d = 0; d < D; d++) { 
-			docsZ[d] = new int[docs[d].length];
-			docsZZ[d] = new int[docs[d].length][Z];
+			docsZ[d] = new int[docs[0][d].length];
+			docsZZ[d] = new int[docs[0][d].length][Z];
 			
-			for (int n = 0; n < docs[d].length; n++) {
+			for (int n = 0; n < docs[0][d].length; n++) {
 				int w = docs[0][d][n];
 				
 				int z = r.nextInt(Z); // sample uniformly
@@ -337,7 +337,7 @@ public class SpriteICWSMPred extends TopicModel implements Serializable {
 
 	// returns the mean of the Gaussian prior for the document's alpha value
 	public double alphaMean(int d) {
-		return (lambda0 * docsC1[d]) + (lambda1 * docsC0[d]);
+		return (lambda0 * docsC0[d]) + (lambda1 * docsC1[d]);
 	}
 	
 	// returns the delta_dz prior given all the parameters
@@ -821,7 +821,7 @@ public class SpriteICWSMPred extends TopicModel implements Serializable {
 		// collect samples (docsZZ) 
 		if (burnedIn) {
 			for (int d = 0; d < D; d++) {
-				for (int n = 0; n < docs[d].length; n++) { 
+				for (int n = 0; n < docs[0][d].length; n++) { 
 					int x = docsZ[d][n];
 					
 					docsZZ[d][n][x] += 1;
@@ -835,7 +835,7 @@ public class SpriteICWSMPred extends TopicModel implements Serializable {
     
 	public void sampleBatch(int minD, int maxD) {
 		for (int d = minD; d < maxD; d++) {
-			for (int n = 0; n < docs[d].length; n++) {
+			for (int n = 0; n < docs[0][d].length; n++) {
 				sample(d, n);
 			}
 			if (d % 10000 == 0) {
@@ -903,7 +903,7 @@ public class SpriteICWSMPred extends TopicModel implements Serializable {
 		
 		for (int d = 0; d < D; d++) {
 			int startN = isHeldOut ? 1 : 0;
-			for (int n = startN; n < docs[d].length; n += 2) {
+			for (int n = startN; n < docs[0][d].length; n += 2) {
 				int w = docs[0][d][n];
 				
 				double tokenLL = 0;
@@ -930,7 +930,7 @@ public class SpriteICWSMPred extends TopicModel implements Serializable {
 		for (int d = 0; d < D; d++) {
 			
 			if (isHeldOut) { // Compute LL on the held-out set
-				for (int n = 1; n < docs[d].length; n += 2) {
+				for (int n = 1; n < docs[0][d].length; n += 2) {
 					int w = docs[0][d][n];
 					
 					double tokenLL = 0;
@@ -946,7 +946,7 @@ public class SpriteICWSMPred extends TopicModel implements Serializable {
 				}
 			}
 			else { // Compute LL over the training data
-				for (int n = 0; n < docs[d].length; n++) { 
+				for (int n = 0; n < docs[0][d].length; n++) { 
 					int w = docs[0][d][n];
 					
 					double tokenLL = 0;
@@ -1083,8 +1083,8 @@ public class SpriteICWSMPred extends TopicModel implements Serializable {
 			bw.write(docsC1[d] + " ");
 			bw.write(docsC2[d] + " ");
 			
-			for (int n = 0; n < docs[d].length; n++) {
-				String word = wordMapInv.get(docs[d][n]);
+			for (int n = 0; n < docs[0][d].length; n++) {
+				String word = wordMapInv.get(docs[0][d][n]);
 				
 				//bw.write(word+":"+docsZ[d][n]+" "); // only current sample
 				bw.write(word);  // for multiple samples
