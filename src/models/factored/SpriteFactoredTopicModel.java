@@ -487,7 +487,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		// sample new topic value
-		topic = sampleTopic(d, v, n, w);
+//		topic = sampleTopic(d, v, n, w);
+		topic = sampleTopicBinarySearch(d, v, n, w);
 		
 		// increment counts
 		
@@ -500,7 +501,50 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		// set new assignments
 		docsZ[d][v][n] = topic;
 	}
-
+	
+	private int sampleTopicBinarySearch(int d, int v, int n, int w) {
+		// Sample new topic value for a word.  Uses binary search to speed up sampling
+		
+		double p = 0.0;
+		double pTotal = 0.0;
+		double[] pSums = new double[Z[v]];
+		
+		for (int z = 0; z < Z[v]; z++) {
+			pSums[z] = pTotal + (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
+					* (nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
+					/ (nZ[v][z] + phiPriors[v].phiNorm[z]);
+			pTotal = pSums[z];
+		}
+		
+		// Binary search
+		double needle = MathUtils.r.nextDouble() * pTotal;
+		
+		int lowerIdx = 0;
+		int upperIdx = pSums.length - 1;
+		int topic = -1;
+		int probe = -1;
+		
+		while (lowerIdx < upperIdx) {
+			probe           = (upperIdx + lowerIdx)/2;
+			double probeVal = pSums[probe];
+			
+			if (probeVal > needle) {
+				upperIdx = probe - 1;
+			}
+			else if (probeVal < needle) {
+				lowerIdx = probe + 1;
+			}
+			else {
+				break;
+			}
+		}
+		
+		probe = (upperIdx + lowerIdx)/2;
+		topic = probe;
+		
+		return topic;
+	}
+	
 	private int sampleTopic(int d, int v, int n, int w) {
 		// sample new topic value for a word
 		

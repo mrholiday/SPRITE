@@ -170,8 +170,6 @@ public class LearnTopicModel {
 			}
 		}
 		else if (c.model.equals("dmr")) {
-			
-			
 			if (c.predFold >= 0) {
 				// -1 or "" are for arguments that were obligatory but never used...
 				topicModel = new DMRPred(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
@@ -229,7 +227,7 @@ public class LearnTopicModel {
 						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
-		if (c.model.equals("sprite_threefields")) {
+		else if (c.model.equals("sprite_threefields")) {
 			//topicModel = new SpriteJoint(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
 			//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
 			//		                     stepA, Cth, Cph, seed, numThreads);
