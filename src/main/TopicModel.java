@@ -57,7 +57,12 @@ public abstract class TopicModel implements Trainable, Serializable {
 //				}
 			}
 			
-			writeOutput(filename, outputDir);
+			if (outputDir != null) {
+				writeOutput(filename, outputDir);
+			}
+			else {
+				writeOutput(filename);
+			}
 		}
 		catch (Exception e) {
 			Log.error("train", "Error in training model.", e);

@@ -55,7 +55,7 @@ public class Sprite2ViewTopicPerspective extends SpriteFactoredTopicModel {
 			topicModel.TIME_ITERATIONS = true;
 			
 			try {
-				topicModel.train(p.iters, p.samples, p.filename);
+				topicModel.train(p.iters, p.samples, p.filename, p.outDir);
 			} catch (Exception e) {
 				Log.error("train", "Error in training...", e);
 				e.printStackTrace();

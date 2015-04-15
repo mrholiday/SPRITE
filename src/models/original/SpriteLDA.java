@@ -456,7 +456,6 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		double sigmaDelta = 10.0;
 		double sigmaDeltaBias = 10.0;
 		
-			
 		for (int w = minW; w < maxW; w++) {
 			gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2);
 			adaOmegaBias[w] += Math.pow(gradientOmegaBias[w], 2);
@@ -1194,7 +1193,7 @@ public class SpriteLDA extends TopicModel implements Serializable {
 	public double computeLL(int[][][] corpus) {
 		return computeLL(corpus[0]);
 	}
-
+	
 	@Override
 	protected void initTest() {
 		// TODO Auto-generated method stub

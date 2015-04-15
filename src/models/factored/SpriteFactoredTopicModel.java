@@ -822,17 +822,19 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 
 	@Override
 	public void writeOutput(String filename, String outputDir) throws Exception {
+		Log.info("Writing output to: " + outputDir);
+		
 		File outDirFile = new File(outputDir);
 		outDirFile.mkdir();
-
+		
 		String baseName = new File(filename).getName();
-
+		
 		// Write topic assignments file
-
+		
 		FileWriter fw = new FileWriter(
 				new File(outputDir, baseName + ".assign"));
 		BufferedWriter bw = new BufferedWriter(fw);
-
+		
 		for (int d = 0; d < D; d++) {
 			bw.write(docIds[d].toString());
 			for (Factor f : factors) {
@@ -840,7 +842,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 					bw.write("\t" + f.getAlphaString(d));
 				}
 			}
-
+			
 			for (int v = 0; v < numViews; v++) {
 				bw.write("\t");
 				for (int n = 0; n < docs[d][v].length; n++) {
