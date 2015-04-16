@@ -820,6 +820,58 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		double denom = 0.0;
 		double logProbSum = 0.0;
 		
+		/*
+		System.out.println("==== nDZ ====");
+		for (int d = 0; d < D; d++) {
+			StringBuilder b = new StringBuilder();
+			for (int z = 0; z < Z; z++) {
+				b.append(nDZ[d][z] + " ");
+			}
+			System.out.println(b.toString().trim());
+		}
+		
+		System.out.println("==== priorDZ ====");
+		for (int d = 0; d < D; d++) {
+			StringBuilder b = new StringBuilder();
+			for (int z = 0; z < Z; z++) {
+				b.append(priorDZ[d][z] + " ");
+			}
+			System.out.println(b.toString().trim());
+		}
+		
+		System.out.println("==== nZW ====");
+		for (int z = 0; z < Z; z++) {
+			StringBuilder b = new StringBuilder();
+			for (int w = 0; w < 30; w++) {
+				b.append(wordMapInv.get(w) + ":" + nZW[z][w] + " ");
+			}
+			System.out.println(b.toString().trim());
+		}
+		
+		System.out.println("==== priorZW ====");
+		for (int z = 0; z < Z; z++) {
+			StringBuilder b = new StringBuilder();
+			for (int w = 0; w < 30; w++) {
+				b.append(wordMapInv.get(w) + ":" + priorZW[z][w] + " ");
+			}
+			System.out.println(b.toString().trim());
+		}
+		
+		System.out.println("==== thetaNorm ====");
+		StringBuilder b = new StringBuilder();
+		for (int d = 0; d < D; d++) {
+			b.append(thetaNorm[d] + " ");
+		}
+		System.out.println(b.toString().trim());
+		
+		System.out.println("==== phiNorm ====");
+		b = new StringBuilder();
+		for (int z = 0; z < Z; z++) {
+			b.append(phiNorm[z] + " ");
+		}
+		System.out.println(b.toString().trim());
+		*/
+		
 		for (int d = 0; d < D; d++) {
 			int startN = isHeldOut ? 1 : 0;
 			for (int n = startN; n < docs[d][0].length; n += 2) {
@@ -839,13 +891,15 @@ public class SpriteLDA extends TopicModel implements Serializable {
 			}
 		}
 		
+//		System.out.println("Denom: " + denom);
+		
 		perplexity = Math.pow(2.0, -logProbSum/denom);
 		return perplexity;
 	}
 	
 	public double computeLL(boolean isHeldOut) {
 		double LL = 0;
-		
+//		double denom = 0;
 		for (int d = 0; d < D; d++) {
 			
 			if (isHeldOut) { // Compute LL on the held-out set
@@ -861,7 +915,9 @@ public class SpriteLDA extends TopicModel implements Serializable {
 								(nZW[z][w] + priorZW[z][w]) / (nZ[z] + phiNorm[z]);
 					}
 					
-					LL += Math.log(tokenLL);
+//					denom++;
+					
+					LL += MathUtils.log(tokenLL, 2.0);
 				}
 			}
 			else { // Compute LL over the training data
@@ -878,7 +934,8 @@ public class SpriteLDA extends TopicModel implements Serializable {
 									(nZW[z][w] + priorZW[z][w]) / (nZ[z] + phiNorm[z]);
 						}
 						
-						LL += Math.log(tokenLL);
+//						denom++;
+						LL += MathUtils.log(tokenLL, 2.0);
 					}
 				}
 				else {
@@ -894,12 +951,14 @@ public class SpriteLDA extends TopicModel implements Serializable {
 									(nZW[z][w] + priorZW[z][w]) / (nZ[z] + phiNorm[z]);
 						}
 						
-						LL += Math.log(tokenLL);
+//						denom++;
+						LL += MathUtils.log(tokenLL, 2.0);
 					}
 				}
 			}
 		}
-
+		
+		//System.out.println("Denom: " + denom);
 		return LL;
 	}
 	

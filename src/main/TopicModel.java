@@ -21,6 +21,7 @@ public abstract class TopicModel implements Trainable, Serializable {
 	protected boolean burnedIn = false;
 	protected int writeFreq = 1000;
 	protected int logFreq   = 10;
+	protected int likelihoodFreq = 100;
 	
 	protected int[][][] docs;
 	protected BigInteger[] docIds; // Unused except for printing to output
@@ -37,6 +38,11 @@ public abstract class TopicModel implements Trainable, Serializable {
 	}
 	
 	public void train(int iters, int samples, String filename, String outputDir) throws Exception {
+		train(iters, samples, filename, outputDir, 100);
+	}
+	
+	public void train(int iters, int samples, String filename, String outputDir, int likelihoodFreq0) throws Exception {
+		likelihoodFreq = likelihoodFreq0;
 		try {
 			inputFilename = filename;
 			readDocs(filename);

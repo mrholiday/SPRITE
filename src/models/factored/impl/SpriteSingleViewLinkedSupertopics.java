@@ -59,7 +59,7 @@ public class SpriteSingleViewLinkedSupertopics extends SpriteFactoredTopicModel 
 			topicModel.TIME_ITERATIONS = true;
 			
 			try {
-				topicModel.train(p.iters, p.samples, p.filename, p.outDir);
+				topicModel.train(p.iters, p.samples, p.filename, p.outDir, p.likelihoodFreq);
 			} catch (Exception e) {
 				Log.error("train", "Error in training...", e);
 				e.printStackTrace();

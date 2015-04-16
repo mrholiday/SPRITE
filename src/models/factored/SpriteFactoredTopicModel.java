@@ -487,8 +487,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		// sample new topic value
-//		topic = sampleTopic(d, v, n, w);
-		topic = sampleTopicBinarySearch(d, v, n, w);
+		topic = sampleTopic(d, v, n, w);
+//		topic = sampleTopicBinarySearch(d, v, n, w);
 		
 		// increment counts
 		

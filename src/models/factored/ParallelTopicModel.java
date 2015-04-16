@@ -28,7 +28,6 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 	private transient SpriteWorker[] THREADS = null;
 	
 	public boolean TIME_ITERATIONS = false;
-	private int likelihoodFreq      = 100;
 	
 	protected int iter = -1;
 	
