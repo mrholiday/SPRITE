@@ -606,7 +606,7 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		}
 
 		// hyperparameter updates	
-		if (iter >= 200) {
+		if (iter >= 2000) {
 			try {
 				for (int i = 0; i < numThreads; i++) {
 					THREAD_COMM_QUEUE.put(ThreadComm.CALC_GRADIENT);
