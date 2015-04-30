@@ -52,6 +52,12 @@ public class DMR extends TopicModel implements Serializable {
 	public int[][] nZW;
 	public int[] nZ;
     
+	// For computing log-likelihood/perplexity.  Average over the last 100 iterations.
+	public double[][] nDZ100;
+	public double[]   nD100;
+	public double[][] nZW100;
+	public double[]   nZ100;
+	
 	public int D;
 	public int W;
 	public int Z;
@@ -120,6 +126,10 @@ public class DMR extends TopicModel implements Serializable {
 	
 	private boolean computePerplexity; // If true, will train on half of tokens, and print out held-out perplexity.
 	
+	double sigmaOmegaBias = 10.0;
+	double sigmaDeltaBias = 10.0;
+	double sigmaOmega     = 10.0;
+	double sigmaDelta     = 10.0;
 	
 	public DMR(int z, double sigmaA0, double sigmaAB0, double sigmaW0, double sigmaWB0,
 			double stepSizeADZ0, double stepSizeAZ0, double stepSizeAB0, double stepSizeW0, double stepSizeWB0,
@@ -131,6 +141,11 @@ public class DMR extends TopicModel implements Serializable {
 		sigmaAB = sigmaAB0;
 		sigmaW = sigmaW0;
 		sigmaWB = sigmaWB0;
+		sigmaOmegaBias = sigmaWB0;
+		sigmaDeltaBias = sigmaAB0;
+		sigmaOmega = sigmaW0;
+		sigmaDelta = sigmaA0;
+		
 		stepSizeADZ = stepSizeADZ0;
 		stepSizeAZ = stepSizeAZ0;
 		stepSizeAB = stepSizeAB0;
@@ -141,8 +156,11 @@ public class DMR extends TopicModel implements Serializable {
 		omegaB = omegaB0;
 		
 		stepA = stepA0;
-		Cth = Cth0;
-		Cph = Cph0;
+//		Cth = Cth0;
+//		Cph = Cph0;
+		
+		Cth = 3;
+		Cph = 3;
 		
 		likelihoodFreq = likelihoodFreq0;
 		priorPrefix = prefix;
@@ -210,6 +228,11 @@ public class DMR extends TopicModel implements Serializable {
 		nZW = new int[Z][W];
 		nZ = new int[Z];
 		
+		nDZ100 = new double[D][Z];
+		nD100 = new double[D];
+		nZW100 = new double[Z][W];
+		nZ100 = new double[Z];
+		
 		for (int d = 0; d < D; d++) {
 			alpha[d][0] = docsC0[d];
 			alpha[d][1] = docsC1[d];
@@ -247,6 +270,8 @@ public class DMR extends TopicModel implements Serializable {
 		
 		for (int z = 0; z < Z; z++) {
 			betaB[z][0] = 1.0;
+			betaB[z][1] = 1.0;
+			betaB[z][2] = 1.0;
 			//for (int c = 1; c < Cph; c++) {
 			for (int c = 3; c < Cph; c++) {
 				betaB[z][c] = 1.0 / (Cph-1);
@@ -288,6 +313,11 @@ public class DMR extends TopicModel implements Serializable {
 					nZ[z] += 1;
 					nDZ[d][z] += 1;
 					nD[d] += 1;
+					
+					nZW100[z][w] += 0.01;
+					nZ100[z] += 0.01;
+					nDZ100[d][z] += 0.01;
+					nD100[d] += 0.01;
 				}
 			}
 			else { // Train on every other token.  Ignore the other tokens.
@@ -303,6 +333,11 @@ public class DMR extends TopicModel implements Serializable {
 					nZ[z] += 1;
 					nDZ[d][z] += 1;
 					nD[d] += 1;
+					
+					nZW100[z][w] += 0.01;	
+					nZ100[z] += 0.01;
+					nDZ100[d][z] += 0.01;
+					nD100[d] += 0.01;
 				}
 			}
 		}
@@ -562,11 +597,11 @@ public class DMR extends TopicModel implements Serializable {
 		
 		double sigma0 = 10.0;
 		double sigmaBeta = 10.0;
-		double sigmaOmega = 10.0;
-		double sigmaOmegaBias = 10.0;
+//		double sigmaOmega = 10.0;
+//		double sigmaOmegaBias = 10.0;
 		double sigmaAlpha = 10.0;
-		double sigmaDelta = 10.0;
-		double sigmaDeltaBias = 10.0;
+//		double sigmaDelta = 10.0;
+//		double sigmaDeltaBias = 10.0;
 		
 		for (int z = minZ; z < maxZ; z++) {
 			//for (int c = 0; c < 1; c++) {
@@ -757,11 +792,11 @@ public class DMR extends TopicModel implements Serializable {
 		
 		double sigma0 = 10.0;
 		double sigmaBeta = 10.0;
-		double sigmaOmega = 10.0;
-		double sigmaOmegaBias = 10.0;
+//		double sigmaOmega = 10.0;
+//		double sigmaOmegaBias = 10.0;
 		double sigmaAlpha = 10.0;
-		double sigmaDelta = 10.0;
-		double sigmaDeltaBias = 10.0;
+//		double sigmaDelta = 10.0;
+//		double sigmaDeltaBias = 10.0;
 		
 		for (int z = 0; z < Z; z++) {
 			//for (int c = 0; c < 1; c++) {
@@ -902,7 +937,7 @@ public class DMR extends TopicModel implements Serializable {
 						updatePriors(minZ, maxZ);
 					}
 					else if (msg.equals(ThreadComm.SAMPLE)) {
-						sampleBatch(minD, maxD);
+						sampleBatch(minD, maxD, iter);
 						iter += 1;
 					}
 					else if (msg.equals(ThreadComm.CALC_GRADIENT)) {
@@ -958,7 +993,7 @@ public class DMR extends TopicModel implements Serializable {
 		
 		// sample z values for all the tokens
 		if (numThreads <= 1) {
-			sampleBatch(0, D);
+			sampleBatch(0, D, iter);
 		}
 		else {
 			try {
@@ -1111,6 +1146,7 @@ public class DMR extends TopicModel implements Serializable {
 					}
 				}
 				else { // Only collect samples for half of the tokens
+//					for (int n = 0; n < docs[0][d].length; n++) { 
 					for (int n = 0; n < docs[0][d].length; n += 2) { 
 						int x = docsZ[d][n];
 						
@@ -1124,16 +1160,16 @@ public class DMR extends TopicModel implements Serializable {
 		System.out.println(String.format("Iteration time:\t%d\t%d", iter, endTime - startTime));
 	}
     
-	public void sampleBatch(int minD, int maxD) {
+	public void sampleBatch(int minD, int maxD, int iter) {
 		for (int d = minD; d < maxD; d++) {
 			if (!computePerplexity) {
 				for (int n = 0; n < docs[0][d].length; n++) {
-					sample(d, n);
+					sample(d, n, iter);
 				}
 			}
 			else {
 				for (int n = 0; n < docs[0][d].length; n += 2) {
-					sample(d, n);
+					sample(d, n, iter);
 				}
 			}
 			if (d % 10000 == 0) {
@@ -1142,7 +1178,7 @@ public class DMR extends TopicModel implements Serializable {
 		}
 	}
 	
-	public void sample(int d, int n) {
+	public void sample(int d, int n, int iter) {
 		int w = docs[0][d][n];
 		int topic = docsZ[d][n];
 		
@@ -1152,6 +1188,13 @@ public class DMR extends TopicModel implements Serializable {
 			nZW[topic][w] -= 1;
 			nZ[topic] -= 1;
 			nDZ[d][topic] -= 1;
+			
+			if (iter >= 100) {
+				nZW100[topic][w] -= 0.01;	
+				nZ100[topic] -= 0.01;
+				nDZ100[d][topic] -= 0.01;
+				nD100[d] -= 0.01;
+			}
 		}
 		
 		// sample new topic value 
@@ -1184,6 +1227,11 @@ public class DMR extends TopicModel implements Serializable {
 			nZW[topic][w] += 1;	
 			nZ[topic] += 1;
 			nDZ[d][topic] += 1;
+			
+			nZW100[topic][w] += 0.01;	
+			nZ100[topic] += 0.01;
+			nDZ100[d][topic] += 0.01;
+			nD100[d] += 0.01;
 		}
 		
 		// set new assignments
@@ -1209,8 +1257,17 @@ public class DMR extends TopicModel implements Serializable {
 							(nZW[z][w] + priorZW[z][w]) / (nZ[z] + phiNorm[z]);
 				}
 				
+				/*
+				for (int z = 0; z < Z; z++) {
+					tokenLL += (nDZ100[d][z] + priorDZ[d][z]) / (nD100[d] + thetaNorm[d])*
+							   (nZW100[z][w] + priorZW[z][w]) / (nZ100[z] + phiNorm[z]);
+				}
+				*/
+				
 				logProbSum += MathUtils.log(tokenLL, 2.0);
 				denom++;
+				
+//				denom += nD100[d]/nD[d];
 			}
 		}
 		

@@ -41,7 +41,7 @@ public class SpriteLDA extends TopicModel implements Serializable {
 	public BigInteger[] docIds; // Only written to output, tweet summarization easier
 	public     double[] docsC0; // stance
 	public     double[] docsC1; // ownership
-	public     double[] docsC2; // sentiment
+	public     double[] docsC2; // census
 	
 	public int[][] docsZ;
 	public int[][][] docsZZ;
@@ -88,6 +88,10 @@ public class SpriteLDA extends TopicModel implements Serializable {
 	public double sigmaAB;
 	public double sigmaW;
 	public double sigmaWB;
+	public double sigmaDelta;
+	public double sigmaDeltaBias;
+	public double sigmaOmega;
+	public double sigmaOmegaBias;
 	
 	public int likelihoodFreq;
 	
@@ -145,6 +149,12 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		sigmaAB = sigmaAB0;
 		sigmaW = sigmaW0;
 		sigmaWB = sigmaWB0;
+		
+		sigmaDelta = sigmaA0;
+		sigmaDeltaBias = sigmaAB0;
+		sigmaOmega = sigmaW0;
+		sigmaOmegaBias = sigmaWB0;
+		
 		deltaB = deltaB0;
 		omegaB = omegaB0;
 		
@@ -452,9 +462,9 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		double sigma0 = 10.0;
 		double sigmaBeta = 10.0;
 		//double sigmaOmega = 1.0;
-		double sigmaOmegaBias = 10.0;
-		double sigmaDelta = 10.0;
-		double sigmaDeltaBias = 10.0;
+//		double sigmaOmegaBias = 10.0;
+//		double sigmaDelta = 10.0;
+//		double sigmaDeltaBias = 10.0;
 		
 		for (int w = minW; w < maxW; w++) {
 			gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2);

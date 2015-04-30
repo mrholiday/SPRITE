@@ -273,8 +273,8 @@ public class LearnTopicModel {
 		// Write output to a directory directly underneath the input directory
 		String inDir = new File(c.filename).getParent();
 		File outputDirFile = new File(inDir,
-				String.format("%s_%d_%d_%.2f_%.2f_%.2f_%.2f_%d_%d_output", c.model, c.Cth, c.z,
-						   c.step, c.sigmaAlpha, c.deltaBias, c.omegaBias,
+				String.format("%s_%d_%d_%.2f_%.2f_%.2f_%.2f_%.3f_%.3f_%d_%d_output", c.model, c.Cth, c.z,
+						   c.step, c.sigmaAlpha, c.deltaBias, c.omegaBias, c.sigmaDeltaBias, c.sigmaOmegaBias,
 						   c.computePerplexity ? 1 : 0, c.predFold));
 		String outputDir = outputDirFile.getAbsolutePath();
 		

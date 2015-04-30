@@ -35,14 +35,16 @@ public class Sprite2ViewSameSupertopic extends SpriteFactoredTopicModel {
 	private static Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> buildPriors(int Z, int C,
 				double sigmaDeltaBias, double initDeltaBias, double sigmaOmegaBias, double initOmegaBias,
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
-		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0, 1}, new int[] {Z}, 1.0, true,
+		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0, 1}, new int[] {Z, Z}, 1.0, true,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
 										 false, false, "supertopic", false, true, true, 1.0)};
 		
-		SpriteThetaPrior thetaPrior1 = new SpriteThetaPrior(factors, Z, new int[] {0, 1}, initDeltaBias, sigmaDeltaBias, true);
-		SpritePhiPrior phiPrior1 = new SpritePhiPrior(factors, Z, new int[] {0, 1}, initOmegaBias, sigmaOmegaBias, true);
-		SpriteThetaPrior[] tpriors = {thetaPrior1, thetaPrior1};
-		SpritePhiPrior[]   ppriors = {phiPrior1, phiPrior1};
+		SpriteThetaPrior thetaPrior1 = new SpriteThetaPrior(factors, Z, new int[] {0, 1},
+															initDeltaBias, sigmaDeltaBias, true);
+		SpritePhiPrior phiPrior1 = new SpritePhiPrior(factors, Z, new int[] {0, 1},
+													  initOmegaBias, sigmaOmegaBias, true);
+		SpriteThetaPrior[] tpriors = {thetaPrior1};
+		SpritePhiPrior[]   ppriors = {phiPrior1};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
 	}

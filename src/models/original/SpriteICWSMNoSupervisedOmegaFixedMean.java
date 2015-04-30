@@ -93,6 +93,11 @@ public class SpriteICWSMNoSupervisedOmegaFixedMean extends TopicModel implements
 	public double sigmaW;
 	public double sigmaWB;
 	
+	public double sigmaDelta;
+	public double sigmaDeltaBias;
+	public double sigmaOmega;
+	public double sigmaOmegaBias;
+	
 	public int likelihoodFreq;
 	
 	// Pulled out to compute gradient in parallel.
@@ -151,6 +156,11 @@ public class SpriteICWSMNoSupervisedOmegaFixedMean extends TopicModel implements
 		sigmaWB = sigmaWB0;
 		deltaB = deltaB0;
 		omegaB = omegaB0;
+		
+		sigmaDelta = sigmaA0;
+		sigmaDeltaBias = sigmaAB0;
+		sigmaOmega = sigmaW0;
+		sigmaOmegaBias = sigmaWB0;
 		
 		stepA = stepA0;
 		
@@ -459,11 +469,11 @@ public class SpriteICWSMNoSupervisedOmegaFixedMean extends TopicModel implements
 		  double sigmaDeltaBias = 0.5;*/
 		
 		double sigma0 = 10.0;
-		double sigmaBeta = 10.0;
-		double sigmaOmega = 10.0;
+//		double sigmaBeta = 10.0;
+//		double sigmaOmega = 10.0;
 		double sigmaOmegaBias = 10.0;
-		double sigmaDelta = 10.0;
-		double sigmaDeltaBias = 10.0;
+//		double sigmaDelta = 10.0;
+//		double sigmaDeltaBias = 10.0;
 		
 		for (int z = minZ; z < maxZ; z++) {
 			for (int c = 0; c < 1; c++) {
