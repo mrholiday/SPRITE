@@ -165,7 +165,7 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 		
 		stepA = stepA0;
 		
-		// No supertopics in this model
+		// No supertopics in this model, just single distant perspective component
 		Cth = 1;
 		Cph = 1;
 		
@@ -251,8 +251,8 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 			omegaBias[w] = omegaB;
 		}
 		
-		for (int c = 0; c < Cth; c++) { 
-				for (int z = 0; z < Z; z++) {
+		for (int c = 0; c < Cth; c++) {
+			for (int z = 0; z < Z; z++) {
 				delta[c][z] = (r.nextDouble() - 0.5) / 100.0;
 				//delta[c][z] += -2.0;
 			}
@@ -360,10 +360,6 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 		for (int c = 0; c < 1; c++) {
 			weight += alpha[d][c] * delta[c][z];
 		}
-		/*//for (int c = 1; c < Cth; c++) {
-		for (int c = 3; c < Cth; c++) {
-			weight += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]);
-		}*/
 		
 		return Math.exp(weight);
 	}
@@ -375,10 +371,6 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 		for (int c = 0; c < 1; c++) {
 			weight += beta[z][c] * omega[c][w];
 		}
-		/*//for (int c = 1; c < Cph; c++) {
-		for (int c = 3; c < Cph; c++) {
-			weight += betaB[z][c] * Math.exp(beta[z][c]) * omega[c][w];
-		}*/
 		
 		return Math.exp(weight);
 	}
@@ -389,6 +381,12 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 	public void updateGradient(int iter, int minZ, int maxZ) {
 		// compute gradients
 		
+		// For debugging with a single thread.  Want to see if regularization dominates the gradient updates
+		double gradientOmegaBNorm = 0.0;
+		double gradientDeltaBNorm = 0.0;
+		double gradientOmegaNorm  = 0.0;
+		double gradientBetaNorm   = 0.0;
+		
 		for (int z = minZ; z < maxZ; z++) {
 			for (int w = 0; w < W; w++) {
 				double dg1  = MathUtils.digamma(phiNorm[z] + eps);
@@ -398,25 +396,14 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 				
 				double gradientTerm = priorZW[z][w] * (dg1-dg2+dgW1-dgW2);
 				
-//				for (int c = 0; c < 1; c++) {
-//					gradientBeta[z][c] += omega[c][w] * gradientTerm;
-//					
-//					synchronized(wordLocks[w]) {
-//					  gradientOmega[c][w] += beta[z][c] * gradientTerm;
-//					}
-//				}
-				/*//for (int c = 1; c < Cph; c++) { // hierarchy
-				for (int c = 3; c < Cph; c++) { // hierarchy
-					gradientBeta[z][c]  += betaB[z][c] * Math.exp(beta[z][c]) * omega[c][w] * gradientTerm;
-					gradientBetaB[z][c] += Math.exp(beta[z][c]) * omega[c][w] * gradientTerm;
-					gradientOmega[c][w] += betaB[z][c] * Math.exp(beta[z][c]) * gradientTerm;
-				}*/
-				
 				gradientBeta[z][0] += omega[0][w] * gradientTerm;
+				gradientBetaNorm += (omega[0][w] * gradientTerm) * (omega[0][w] * gradientTerm);
 				
 				synchronized(wordLocks[w]) {
-				  gradientOmega[0][w] += beta[z][0] * gradientTerm;
+				  gradientOmega[0][w]  += beta[z][0] * gradientTerm;
 				  gradientOmegaBias[w] += gradientTerm;
+				  gradientOmegaNorm    += (beta[z][0] * gradientTerm) * (beta[z][0] * gradientTerm);
+				  gradientOmegaBNorm   += gradientTerm * gradientTerm;
 				}
 			}
 		}
@@ -430,22 +417,24 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 				
 				double gradientTerm = priorDZ[d][z] * (dg1-dg2+dgW1-dgW2);
 				
-//				for (int c = 0; c < 1; c++) { // factor
-//					gradientAlpha[d][c] += delta[c][z] * gradientTerm;
-//					gradientBeta[z][c] += alpha[d][c] * gradientTerm;
-//				}
-				/*for (int c = 3; c < Cth; c++) { // hierarchy
-					gradientAlpha[d][c] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-					gradientDelta[c][z] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-					gradientBetaB[z][c] += Math.exp(alpha[d][c]) * Math.exp(delta[c][z]) * gradientTerm;
-				}*/
 				synchronized(docLocks[d]) {
 					gradientAlpha[d][0] += delta[0][z] * gradientTerm;
 				}
 				gradientBeta[z][0] += alpha[d][0] * gradientTerm;
 				gradientDeltaBias[z] += gradientTerm;
+				gradientDeltaBNorm += gradientTerm * gradientTerm;
 			}
 		}
+		
+		for (int z = minZ; z < maxZ; z++) {
+			gradientBetaNorm += gradientBeta[z][0] * gradientBeta[z][0];
+		}
+		gradientBetaNorm   = Math.sqrt(gradientBetaNorm);
+		gradientDeltaBNorm = Math.sqrt(gradientDeltaBNorm);
+		gradientOmegaNorm  = Math.sqrt(gradientOmegaNorm);
+		gradientOmegaBNorm = Math.sqrt(gradientOmegaBNorm);
+		
+		
 	}
 	
 	public void doGradientStep(int iter, int minZ, int maxZ, int minW, int maxW, int minD, int maxD) {
@@ -455,22 +444,8 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 		// gradient ascent
 		
 		double step = stepA;
-		double stepB = 1.0;
-		
-		/*double sigma0 = 0.5;
-		  double sigmaBeta = 0.5;
-		  double sigmaOmega = 0.5;
-		  double sigmaOmegaBias = 1.0;
-		  double sigmaAlpha = 0.5;
-		  double sigmaDelta = 0.5;
-		  double sigmaDeltaBias = 0.5;*/
 		
 		double sigma0 = 10.0;
-		double sigmaBeta = 10.0;
-//		double sigmaOmega = 10.0;
-//		double sigmaOmegaBias = 10.0;
-//		double sigmaDelta = 10.0;
-//		double sigmaDeltaBias = 10.0;
 		
 		for (int z = minZ; z < maxZ; z++) {
 			for (int c = 0; c < 1; c++) {
@@ -479,58 +454,7 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 				beta[z][c] += (step / (Math.sqrt(adaBeta[z][c])+eps)) * gradientBeta[z][c];
 				gradientBeta[z][c] = 0.; // Clear gradient for the next iteration
 			}
-			/*//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				gradientBeta[z][c] += -(beta[z][c]) / Math.pow(sigmaBeta, 2);
-				adaBeta[z][c] += Math.pow(gradientBeta[z][c], 2);
-				beta[z][c] += (step / (Math.sqrt(adaBeta[z][c])+eps)) * gradientBeta[z][c];
-				//beta[z][c] = 0.0; // unweighted
-				gradientBeta[z][c] = 0.;
-			}*/
 		}
-		
-		// this block below was for BetaB, which isn't used in this model
-		/*double dirp = 0.01; // Dirichlet hyperparameter
-		double rho = 0.95; // AdaDelta weighting
-		//double priorTemp = 0.0; // no prior
-		double priorTemp = Math.pow(1.00, iter-199);
-		System.out.println("priorTemp = "+priorTemp);
-		double[][] prevBetaB = new double[Z][Cph];
-		for (int z = minZ; z < maxZ; z++) {
-			double norm = 0.0;
-			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				//System.out.println("gradient "+gradientBeta[z][c]);
-				double prior = (dirp - 1.0) / betaB[z][c];
-				//System.out.println("prior "+prior);
-				
-				//adaBetaB[z][c] += Math.pow(gradientBetaB[z][c], 2); // traditional update
-				if (adaBetaB[z][c] == 0) adaBetaB[z][c] = 1.0;
-				adaBetaB[z][c] = (rho * adaBetaB[z][c]) + ((1.0-rho) * Math.pow(gradientBetaB[z][c], 2)); // average
-				gradientBetaB[z][c] += priorTemp * prior; // exclude from adaBetaB
-				prevBetaB[z][c] = betaB[z][c]; // store in case update goes wrong
-				betaB[z][c] *= Math.exp((step / (Math.sqrt(adaBetaB[z][c])+eps)) * gradientBetaB[z][c]);
-				
-				norm += betaB[z][c];
-				gradientBetaB[z][c] = 0.;
-			}
-			//for (int c = 0; c < 1; c++) {
-			for (int c = 0; c < 3; c++) {
-				betaB[z][c] = 1.0;
-			}
-			//System.out.println("normalizer "+z+" "+norm);
-			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				if (norm == 0.0 || norm == Double.POSITIVE_INFINITY) {
-					System.out.println("BAD betaB");
-					//betaB[z][c] = 1.0 / (Cph - 1);
-					betaB[z][c] = prevBetaB[z][c]; // undo update if not well defined
-				}
-				else {
-					betaB[z][c] /= norm;
-				}
-			}
-		}*/
 		
 		for (int c = 0; c < Cph; c++) {
 			for (int w = minW; w < maxW; w++) {
@@ -588,7 +512,7 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 	public void updateLambda() {
 		double step = stepA;
 		
-		 // gradient for lambda
+		// gradient for lambda
         for (int d = 0; d < D; d++) {
                 double gradientTerm = (alpha[d][0] - alphaMean(d)) / Math.pow(sigmaAlpha, 2); // not negated
                 
@@ -601,7 +525,7 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 		adaLambda0 += Math.pow(gradientLambda0, 2);
 		lambda0 += (step / (Math.sqrt(adaLambda0)+eps)) * gradientLambda0;
 		gradientLambda0 = 0.;
-
+		
 		adaLambda1 += Math.pow(gradientLambda1, 2);
 		lambda1 += (step / (Math.sqrt(adaLambda1)+eps)) * gradientLambda1;
 		gradientLambda1 = 0.;
@@ -1220,8 +1144,11 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 			//bw.write(docsC1[d] + " ");
 			//bw.write(docsC2[d] + " ");
 			
+			//for (int c = 0; c < Cth; c++) { 
+			//	bw.write(Math.exp(alpha[d][c])+" ");
+			//}
 			for (int c = 0; c < Cth; c++) { 
-				bw.write(Math.exp(alpha[d][c])+" ");
+				bw.write(alpha[d][c]+" ");
 			}
 			
 			//for (int c = 1; c < Cth; c++) { 

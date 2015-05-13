@@ -13,14 +13,14 @@ the moment)
 ## Building ##
 
     find . -iname *.java > source_files.txt
-    javac -cp ./lib/jcommander-1.48-SNAPSHOT.jar:. @source_files.txt
+    javac -cp ./lib/jcommander-1.49-SNAPSHOT.jar:. @source_files.txt
 
 ## Training ##
 
 ### Sample Usage ###
     
     cd /PATH/TO/SPRITE/src/
-    java -cp ./lib/jcommander-1.48-SNAPSHOT.jar:. main/models/factored/impl/SpriteLDA -Z 20 -nthreads 4 -step 0.01 -iters 5000 -samples 100 -input/PATH/TO/input.data.noscore.txt  -seed -1 -outDir /PATH/TO/TRAIN/OUTPUT/FILES/ -logPath /PATH/TO/TRAIN/OUTPUT/FILES/trainLda.log
+    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. main/models/factored/impl/SpriteLDA -Z 20 -nthreads 4 -step 0.01 -iters 5000 -samples 100 -input/PATH/TO/input.data.noscore.txt  -seed -1 -outDir /PATH/TO/TRAIN/OUTPUT/FILES/ -logPath /PATH/TO/TRAIN/OUTPUT/FILES/trainLda.log
 
 ### Input Format ###
 

@@ -392,24 +392,7 @@ public class SpriteLDA extends TopicModel implements Serializable {
 				
 				double gradientTerm = priorZW[z][w] * (dg1-dg2+dgW1-dgW2);
 				
-//				for (int c = 0; c < 1; c++) {
-//					gradientBeta[z][c] += omega[c][w] * gradientTerm;
-//					
-//					synchronized(wordLocks[w]) {
-//					  gradientOmega[c][w] += beta[z][c] * gradientTerm;
-//					}
-//				}
-				/*//for (int c = 1; c < Cph; c++) { // hierarchy
-				for (int c = 3; c < Cph; c++) { // hierarchy
-					gradientBeta[z][c]  += betaB[z][c] * Math.exp(beta[z][c]) * omega[c][w] * gradientTerm;
-					gradientBetaB[z][c] += Math.exp(beta[z][c]) * omega[c][w] * gradientTerm;
-					gradientOmega[c][w] += betaB[z][c] * Math.exp(beta[z][c]) * gradientTerm;
-				}*/
-				
-				//gradientBeta[z][0] += omega[0][w] * gradientTerm;
-				
 				synchronized(wordLocks[w]) {
-				  //gradientOmega[0][w] += beta[z][0] * gradientTerm;
 				  gradientOmegaBias[w] += gradientTerm;
 				}
 			}
@@ -424,19 +407,6 @@ public class SpriteLDA extends TopicModel implements Serializable {
 				
 				double gradientTerm = priorDZ[d][z] * (dg1-dg2+dgW1-dgW2);
 				
-//				for (int c = 0; c < 1; c++) { // factor
-//					gradientAlpha[d][c] += delta[c][z] * gradientTerm;
-//					gradientBeta[z][c] += alpha[d][c] * gradientTerm;
-//				}
-				/*for (int c = 3; c < Cth; c++) { // hierarchy
-					gradientAlpha[d][c] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-					gradientDelta[c][z] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-					gradientBetaB[z][c] += Math.exp(alpha[d][c]) * Math.exp(delta[c][z]) * gradientTerm;
-				}*/
-				/*synchronized(docLocks[d]) {
-					gradientAlpha[d][0] += delta[0][z] * gradientTerm;
-				}*/
-				//gradientBeta[z][0] += alpha[d][0] * gradientTerm;
 				gradientDeltaBias[z] += gradientTerm;
 			}
 		}
@@ -449,22 +419,6 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		// gradient ascent
 		
 		double step = stepA;
-		double stepB = 1.0;
-		
-		/*double sigma0 = 0.5;
-		  double sigmaBeta = 0.5;
-		  double sigmaOmega = 0.5;
-		  double sigmaOmegaBias = 1.0;
-		  double sigmaAlpha = 0.5;
-		  double sigmaDelta = 0.5;
-		  double sigmaDeltaBias = 0.5;*/
-		
-		double sigma0 = 10.0;
-		double sigmaBeta = 10.0;
-		//double sigmaOmega = 1.0;
-//		double sigmaOmegaBias = 10.0;
-//		double sigmaDelta = 10.0;
-//		double sigmaDeltaBias = 10.0;
 		
 		for (int w = minW; w < maxW; w++) {
 			gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2);
@@ -480,28 +434,6 @@ public class SpriteLDA extends TopicModel implements Serializable {
 			gradientDeltaBias[z] = 0.;
 		}
 	}
-
-	// update lambda gradient and then do gradient step
-	/*public void updateLambda() {
-		double step = 10.0*stepA;
-
-		// gradient for lambda
-		for (int d = 0; d < D; d++) {
-			double gradientTerm = (alpha[d][0] - alphaMean(d)) / Math.pow(sigmaAlpha, 2); // not negated
-
-			gradientLambda0 += docsC0[d] * gradientTerm;
-			gradientLambda1 += docsC1[d] * gradientTerm;
-		}
-
-		//gradientLambda += -(lambda) / Math.pow(sigmaLambda, 2); // do we need regularization for lambda? probably not
-		adaLambda0 += Math.pow(gradientLambda0, 2);
-		lambda0 += (step / (Math.sqrt(adaLambda0)+eps)) * gradientLambda0;
-		gradientLambda0 = 0.;
-
-		adaLambda1 += Math.pow(gradientLambda1, 2);
-		lambda1 += (step / (Math.sqrt(adaLambda1)+eps)) * gradientLambda1;
-		gradientLambda1 = 0.;
-	}*/
 
 	private class Worker extends Thread {
 		/**
@@ -616,7 +548,7 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		}
 
 		// hyperparameter updates	
-		if (iter >= 2000) {
+		if (iter >= 200) {
 			try {
 				for (int i = 0; i < numThreads; i++) {
 					THREAD_COMM_QUEUE.put(ThreadComm.CALC_GRADIENT);

@@ -589,8 +589,8 @@ public class SpriteUnsupervised extends TopicModel implements Serializable {
 
 	// update lambda gradient and then do gradient step
 	public void updateLambda() {
-		double step = 10.0*stepA;
-
+		double step = stepA;
+		
 		// gradient for lambda
 		for (int d = 0; d < D; d++) {
 			double gradientTerm = (alpha[d][0] - alphaMean(d)) / Math.pow(sigmaAlpha, 2); // not negated

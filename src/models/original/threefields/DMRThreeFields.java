@@ -149,6 +149,16 @@ public class DMRThreeFields extends TopicModel implements Serializable {
 		deltaB = deltaB0;
 		omegaB = omegaB0;
 		
+		stepSizeADZ = stepSizeADZ0;
+		stepSizeAZ = stepSizeAZ0;
+		stepSizeAB = stepSizeAB0;
+		stepSizeW = stepSizeW0;
+		stepSizeWB = stepSizeWB0;
+		stepSizeB = stepSizeB0;
+		deltaB = deltaB0;
+		omegaB = omegaB0;
+		
+		
 		stepA = stepA0;
 		
 		// Hardcoded
@@ -259,7 +269,10 @@ public class DMRThreeFields extends TopicModel implements Serializable {
 		}
 		
 		for (int z = 0; z < Z; z++) {
-			betaB[z][0] = 1.0;
+			for (int i = 0; i < betaB[z].length; i++) {
+				betaB[z][i] = 1.0;
+			}
+			
 			//for (int c = 1; c < Cph; c++) {
 			for (int c = 3; c < Cph; c++) {
 				betaB[z][c] = 1.0 / (Cph-1);

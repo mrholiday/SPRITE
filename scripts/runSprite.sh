@@ -21,5 +21,5 @@ NUM_THREADS=10
 
 cd ../sprite/src/
 
-echo "java -cp ../lib/jcommander-1.48-SNAPSHOT.jar:. -Xmx6144M -XX:+UseSerialGC models/factored/impl/${MODEL_NAME} -input ${IN_PATH} -Z ${Z} -omegaB -4.0 -step ${STEP} -iters 5000 -nthreads ${NUM_THREADS} -sigmaAlpha ${SIGMA_ALPHA} -outDir ${OUT_DIR} -logPath ${OUT_DIR}/${MODEL_NAME}_${Z}_${STEP}_${SIGMA_ALPHA}.log"
-java -cp ../lib/jcommander-1.48-SNAPSHOT.jar:. -Xmx6144M -XX:+UseSerialGC models/factored/impl/${MODEL_NAME} -input ${IN_PATH} -Z ${Z} -omegaB -4.0 -step ${STEP} -iters 5000 -nthreads ${NUM_THREADS} -sigmaAlpha ${SIGMA_ALPHA} -outDir ${OUT_DIR} -logPath ${OUT_DIR}/${MODEL_NAME}_${Z}_${STEP}_${SIGMA_ALPHA}.log
+echo "java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. -Xmx6144M -XX:+UseSerialGC models/factored/impl/${MODEL_NAME} -input ${IN_PATH} -Z ${Z} -omegaB -4.0 -step ${STEP} -iters 5000 -nthreads ${NUM_THREADS} -sigmaAlpha ${SIGMA_ALPHA} -outDir ${OUT_DIR} -logPath ${OUT_DIR}/${MODEL_NAME}_${Z}_${STEP}_${SIGMA_ALPHA}.log"
+java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. -Xmx6144M -XX:+UseSerialGC models/factored/impl/${MODEL_NAME} -input ${IN_PATH} -Z ${Z} -omegaB -4.0 -step ${STEP} -iters 5000 -nthreads ${NUM_THREADS} -sigmaAlpha ${SIGMA_ALPHA} -outDir ${OUT_DIR} -logPath ${OUT_DIR}/${MODEL_NAME}_${Z}_${STEP}_${SIGMA_ALPHA}.log
