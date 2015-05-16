@@ -10,13 +10,20 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import main.TopicModel;
 
 import utils.MathUtils;
+import utils.Tup2;
 
 /**
  * SPRITE model used for ICWSM paper with only a single component.
@@ -121,6 +128,10 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 	double adaLambda0;
 	double adaLambda1;
 	double adaLambda2;
+	
+	// For computing topic coherence
+	int[] uniCounts;
+	int[][] biCounts;
 	
 	public int seed;
 	
@@ -293,6 +304,9 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 			}
 		}
 		
+		uniCounts = new int[W];
+		biCounts = new int[W][W];
+		
 		for (int d = 0; d < D; d++) { 
 			docsZ[d] = new int[docs[0][d].length];
 			docsZZ[d] = new int[docs[0][d].length][Z];
@@ -325,6 +339,18 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 					nZ[z] += 1;
 					nDZ[d][z] += 1;
 					nD[d] += 1;
+				}
+			}
+			
+			// For topic coherence
+			Set<Integer> uniqueWords = new HashSet<Integer>();
+			for (int n = 0; n < docs[0][d].length; n++) {
+				uniqueWords.add(docs[0][d][n]);
+			}
+			for (int w : uniqueWords) {
+				uniCounts[w] += 1;
+				for (int w2 : uniqueWords) {
+					biCounts[w][w2] += 1;
 				}
 			}
 		}
@@ -429,8 +455,8 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 		
 		for (int z = minZ; z < maxZ; z++) {
 			for (int d = 0; d < D; d++) {
-				double dg1  = MathUtils.digamma(thetaNorm[z] + eps);
-				double dg2  = MathUtils.digamma(thetaNorm[z] + nD[d] + eps);
+				double dg1  = MathUtils.digamma(thetaNorm[d] + eps);
+				double dg2  = MathUtils.digamma(thetaNorm[d] + nD[d] + eps);
 				double dgW1 = MathUtils.digamma(priorDZ[d][z] + nDZ[d][z] + eps);
 				double dgW2 = MathUtils.digamma(priorDZ[d][z] + eps);
 				
@@ -452,6 +478,16 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 				gradientDeltaBias[z] += gradientTerm;
 			}
 		}
+		
+		 // gradient for lambda
+        for (int d = 0; d < D; d++) {
+                double gradientTerm = (alpha[d][0] - alphaMean(d)) / Math.pow(sigmaAlpha, 2); // not negated
+                
+                gradientLambda0 += docsC0[d] * gradientTerm;
+                gradientLambda1 += docsC1[d] * gradientTerm;
+                gradientLambda2 += docsC2[d] * gradientTerm;
+        }
+        
 	}
 	
 	public void doGradientStep(int iter, int minZ, int maxZ, int minW, int maxW, int minD, int maxD) {
@@ -594,8 +630,21 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 		}
 		*/
 		
+		//gradientLambda += -(lambda) / Math.pow(sigmaLambda, 2); // do we need regularization for lambda? probably not
+		adaLambda0 += Math.pow(gradientLambda0, 2);
+		lambda0 += (step / (Math.sqrt(adaLambda0)+eps)) * gradientLambda0;
+		gradientLambda0 = 0.;
+
+		adaLambda1 += Math.pow(gradientLambda1, 2);
+		lambda1 += (step / (Math.sqrt(adaLambda1)+eps)) * gradientLambda1;
+		gradientLambda1 = 0.;
+		
+		adaLambda2 += Math.pow(gradientLambda2, 2);
+		lambda2 += (step / (Math.sqrt(adaLambda2)+eps)) * gradientLambda2;
+		gradientLambda2 = 0.;
 	}
 
+	/*
 	// update lambda gradient and then do gradient step
 	public void updateLambda() {
 		double step = stepA;
@@ -622,6 +671,7 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 		lambda2 += (step / (Math.sqrt(adaLambda2)+eps)) * gradientLambda2;
 		gradientLambda2 = 0.;
 	}
+*/
 
 	private class Worker extends Thread {
 		/**
@@ -766,7 +816,7 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 				}
 			}
 			
-			updateLambda();
+//			updateLambda();
 		}
 		
 		for (int z = 0; z < Z; z++) {
@@ -857,6 +907,9 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 				System.out.println("Train Perplexity: " + computePerplexity(false));
 				System.out.println("Held-out Perplexity: " + computePerplexity(true));
 			}
+			
+			Tup2<Double, Double> coherence = computeCoher();
+			System.out.println("Coherence: " + coherence._1() + " " + coherence._2());
 		}
 		
 		// collect samples (docsZZ) 
@@ -973,6 +1026,115 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 			}
 		}
 		
+		/*
+		// For debugging: full posterior likelihood
+		
+		// P(\theta | \alpha, \delta)
+		double[][] theta = new double[D][Z];
+		double llTheta   = 0.0;
+		
+		for (int d = 0; d < D; d++) {
+			double pTotal = 0.0;
+			for (int z = 0; z < Z; z++) {
+				theta[d][z] = (nDZ[d][z] + priorDZ[d][z]) / (nD[d] + thetaNorm[d]);
+				pTotal += theta[d][z];
+			}
+			//for (int z = 0; z < Z; z++) {
+			//	theta[d][z] /= pTotal;
+			//}
+			
+			System.out.print("Theta[" + d + "]: ");
+			StringBuilder b = new StringBuilder();
+			for (int z = 0; z < Z; z++) {
+				System.out.print(" " + theta[d][z]);
+			}
+			System.out.println();
+			
+			System.out.print("PriorDZ[" + d + "]: ");
+			b = new StringBuilder();
+			for (int z = 0; z < Z; z++) {
+				System.out.print(" " + priorDZ[d][z]);
+			}
+			System.out.println();
+			
+			llTheta += MathUtils.dirichletLogProb(theta[d], priorDZ[d])/Math.log(2.0);
+			
+			System.out.println("Theta weight: " + pTotal);
+			System.out.println("logProbTheta: " + MathUtils.dirichletLogProb(theta[d], priorDZ[d])/Math.log(2.0));
+		}
+		System.out.println("LL theta:" + llTheta);
+		
+		// P(\phi | \beta, \omega)
+		double[][] phi = new double[Z][W];
+		double llPhi   = 0.0;
+		
+		for (int z = 0; z < Z; z++) {
+			double pTotal = 0.0;
+			for (int w = 0; w < W; w++) {
+				phi[z][w] = (nZW[z][w] + priorZW[z][w]) / (nZ[z] + phiNorm[z]);
+			    pTotal += phi[z][w];
+			}
+			//for (int w = 0; w < W; w++) {
+			//	phi[z][w] /= pTotal;
+			//}
+			
+			System.out.print("Phi[" + z + "]: ");
+			StringBuilder b = new StringBuilder();
+			for (int w = 0; w < W; w++) {
+				System.out.print(" " + phi[z][w]);
+			}
+			System.out.println();
+			
+			System.out.print("PriorZW[" + z + "]: ");
+			b = new StringBuilder();
+			for (int w = 0; w < W; w++) {
+				System.out.print(" " + priorZW[z][w]);
+			}
+			System.out.println();
+			llPhi += MathUtils.dirichletLogProb(phi[z], priorZW[z])/Math.log(2.0);
+			
+			System.out.println("Phi weight: " + pTotal);
+			System.out.println("logProbPhi: " + MathUtils.dirichletLogProb(phi[z], priorZW[z])/Math.log(2.0));
+		}
+		System.out.println("LL phi: " + llPhi);
+		
+		// P(alpha, beta, delta, omega | regularization)
+		double llAlpha    = 0.0;
+		for (int d = 0; d < D; d++) {
+			double mean = this.alphaMean(d);
+			for (int c = 0; c < Cth; c++) {
+				double probAlpha = MathUtils.normalProb(alpha[d][c], mean, sigmaAlpha);
+				llAlpha += MathUtils.log(probAlpha, 2.0);
+				
+				System.out.println("alpha[" + d + "]: " + alpha[d][c] + " alphaMean: " + mean);
+				System.out.println("probAlpha[" + d + "]: " + probAlpha);
+			}
+		}
+		System.out.println("LL alpha: " + llAlpha);
+		
+		double llDelta = 0.0;
+		for (int z = 0; z < Z; z++) {
+			for (int c = 0; c < Cph; c++) {
+				llDelta += MathUtils.log(MathUtils.normalProb(delta[c][z], 0.0,
+						this.sigmaDelta), 2.0);
+			}
+			llDelta += MathUtils.log(MathUtils.normalProb(this.deltaBias[z],
+					0.0, this.sigmaDeltaBias), 2.0);
+		}
+		System.out.println("LL delta: " + llDelta);
+		
+		double llOmega = 0.0;
+		for (int w = 0; w < W; w++) {
+			llOmega += MathUtils.log(MathUtils.normalProb(this.omegaBias[w],
+					0.0, this.sigmaOmegaBias), 2.0);
+		}
+		System.out.println("LL omega: " + llOmega);
+		
+		System.out.println("Perplexity denominator: " + denom);
+		double posteriorLL = logProbSum + llTheta + llPhi + llAlpha + llDelta + llOmega;
+		System.out.println("Posterior LL for heldout=" + isHeldOut + ": " + posteriorLL);
+		*/
+		
 		perplexity = Math.pow(2.0, -logProbSum/denom);
 		return perplexity;
 	}
@@ -1061,6 +1223,88 @@ public class SpriteICWSMNoSupervisedOmegaThreeFields extends TopicModel implemen
 		}
 		
 		return LL;
+	}
+	
+	public Tup2<Double, Double> computeCoher() {
+		double coher = 0.0;
+		double coherWithPrior = 0.0;
+		
+		int M = 20;
+		for (int z = 0; z < Z; z++) {
+			double coherZ = 0.0;
+			
+			List<Tup2<Integer, Integer>> topwords  = new ArrayList<Tup2<Integer, Integer>>();
+			for (int w = 0; w < W; w++) {
+				topwords.add(new Tup2<Integer, Integer>(nZW[z][w], w));
+			}
+			
+			Collections.sort(topwords, new Comparator<Tup2<Integer, Integer>>() {
+				@Override
+				public int compare(Tup2<Integer, Integer> o1,
+						Tup2<Integer, Integer> o2) {
+					return - o1._1().compareTo(o2._1());
+				}
+			});
+			
+			System.out.println(String.format("Topwords[%d]: %s:%d %s:%d %s:%d %s:%d %s:%d",
+					z, wordMapInv.get(topwords.get(0)._2()), topwords.get(0)._1(),
+					wordMapInv.get(topwords.get(1)._2()), topwords.get(1)._1(),
+					wordMapInv.get(topwords.get(2)._2()), topwords.get(2)._1(),
+					wordMapInv.get(topwords.get(3)._2()), topwords.get(3)._1(),
+					wordMapInv.get(topwords.get(4)._2()), topwords.get(4)._1()));
+			
+			for (int m = 1; m < M; m++) {
+				int word2 = topwords.get(m)._2();
+				
+				for (int i = 0; i < m; i++) {
+					int word1 = topwords.get(i)._2();
+					
+					//System.out.println(wordMapInv.get(vm)+" "+wordMapInv.get(vi)+" "+DCC[vm][vi]+" "+DC[vi]);
+					coherZ += Math.log((biCounts[word2][word1] + 1.0) / uniCounts[word1]);
+				}
+			}
+			
+			int debugWord1 = topwords.get(0)._2();
+			int debugWord2 = topwords.get(1)._2();
+			
+//			System.out.println(String.format("Counts[%d]: %s,%s:%d,%d,%d => %f",
+//					z, wordMapInv.get(debugWord1), wordMapInv.get(debugWord2),
+//					uniCounts[debugWord1], uniCounts[debugWord2], biCounts[debugWord2][debugWord1],
+//					Math.log((biCounts[debugWord2][debugWord1] + 1.0) / uniCounts[debugWord1])));
+			coher += coherZ;
+//			System.out.println(String.format("Coher[%d]: %f %f", z, coherZ, coher));
+			
+			double coherZWithPrior = 0.0;
+			
+			ArrayList<Tup2<Double, Integer>> topwordsWithPrior  = new ArrayList<Tup2<Double, Integer>>();
+			for (int w = 0; w < W; w++) {
+				topwordsWithPrior.add(new Tup2<Double, Integer>((double)(nZW[z][w] + priorZW[z][w])/((double)nZ[z] + phiNorm[z]), w));
+			}
+			Collections.sort(topwordsWithPrior, new Comparator<Tup2<Double, Integer>>() {
+				@Override
+				public int compare(Tup2<Double, Integer> o1,
+						Tup2<Double, Integer> o2) {
+					return - o1._1().compareTo(o2._1());
+				}
+			});
+			
+			for (int m = 1; m < M; m++) {
+				int word2 = topwordsWithPrior.get(m)._2();
+				
+				for (int i = 0; i < m; i++) {
+					int word1 = topwordsWithPrior.get(i)._2();
+					
+					//System.out.println(wordMapInv.get(vm)+" "+wordMapInv.get(vi)+" "+DCC[vm][vi]+" "+DC[vi]);
+					coherZWithPrior += Math.log((biCounts[word2][word1] + 1.0) / uniCounts[word1]);
+				}
+			}
+			coherWithPrior += coherZWithPrior;
+		}
+
+		coher /= Z;
+		coherWithPrior /= Z;
+		
+		return new Tup2<Double, Double>(coher, coherWithPrior);
 	}
 	
 	public void readDocs(String filename) throws Exception {

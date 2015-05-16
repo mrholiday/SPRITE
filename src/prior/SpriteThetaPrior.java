@@ -99,10 +99,10 @@ public class SpriteThetaPrior implements Serializable {
 	 */
 	public void updateGradient(int z, int v, int d, int docCount, int docTopicCount, Integer docLock) {
 		double priorDZ    = thetaTilde[d][z];
-		double thetaNormZ = thetaNorm[z];
+		double thetaNormD = thetaNorm[d];
 		
-		double dg1  = MathUtils.digamma(thetaNormZ + MathUtils.eps);
-		double dg2  = MathUtils.digamma(thetaNormZ + docCount + MathUtils.eps);
+		double dg1  = MathUtils.digamma(thetaNormD + MathUtils.eps);
+		double dg2  = MathUtils.digamma(thetaNormD + docCount + MathUtils.eps);
 		double dgW1 = MathUtils.digamma(priorDZ + docTopicCount + MathUtils.eps);
 		double dgW2 = MathUtils.digamma(priorDZ + MathUtils.eps);
 		
@@ -141,10 +141,10 @@ public class SpriteThetaPrior implements Serializable {
 	 */
 	public void updateAlphaGradient(int z, int v, int d, int docCount, int docTopicCount, Integer docLock) {
 		double priorDZ    = thetaTilde[d][z];
-		double thetaNormZ = thetaNorm[z];
+		double thetaNormD = thetaNorm[d];
 		
-		double dg1  = MathUtils.digamma(thetaNormZ + MathUtils.eps);
-		double dg2  = MathUtils.digamma(thetaNormZ + docCount + MathUtils.eps);
+		double dg1  = MathUtils.digamma(thetaNormD + MathUtils.eps);
+		double dg2  = MathUtils.digamma(thetaNormD + docCount + MathUtils.eps);
 		double dgW1 = MathUtils.digamma(priorDZ + docTopicCount + MathUtils.eps);
 		double dgW2 = MathUtils.digamma(priorDZ + MathUtils.eps);
 		

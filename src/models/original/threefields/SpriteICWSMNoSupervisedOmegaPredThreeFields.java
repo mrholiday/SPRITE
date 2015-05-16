@@ -452,6 +452,15 @@ public class SpriteICWSMNoSupervisedOmegaPredThreeFields extends TopicModel impl
 				gradientDeltaBias[z] += gradientTerm;
 			}
 		}
+		
+		 // gradient for lambda
+        for (int d = 0; d < D; d++) {
+                double gradientTerm = (alpha[d][0] - alphaMean(d)) / Math.pow(sigmaAlpha, 2); // not negated
+                
+                gradientLambda0 += docsC0[d] * gradientTerm;
+                gradientLambda1 += docsC1[d] * gradientTerm;
+                gradientLambda2 += docsC2[d] * gradientTerm;
+        }
 	}
 	
 	public void doGradientStep(int iter, int minZ, int maxZ, int minW, int maxW, int minD, int maxD) {
@@ -591,8 +600,22 @@ public class SpriteICWSMNoSupervisedOmegaPredThreeFields extends TopicModel impl
 			deltaBias[z] += (step / (Math.sqrt(adaDeltaBias[z])+eps)) * gradientDeltaBias[z];
 			gradientDeltaBias[z] = 0.;
 		}
+		
+		//gradientLambda += -(lambda) / Math.pow(sigmaLambda, 2); // do we need regularization for lambda? probably not
+		adaLambda0 += Math.pow(gradientLambda0, 2);
+		lambda0 += (step / (Math.sqrt(adaLambda0)+eps)) * gradientLambda0;
+		gradientLambda0 = 0.;
+		
+		adaLambda1 += Math.pow(gradientLambda1, 2);
+		lambda1 += (step / (Math.sqrt(adaLambda1)+eps)) * gradientLambda1;
+		gradientLambda1 = 0.;
+		
+		adaLambda2 += Math.pow(gradientLambda2, 2);
+		lambda2 += (step / (Math.sqrt(adaLambda1)+eps)) * gradientLambda2;
+		gradientLambda2 = 0.;
 	}
-
+	
+	/*
 	// update lambda gradient and then do gradient step
 	public void updateLambda() {
 		double step = stepA;
@@ -619,6 +642,7 @@ public class SpriteICWSMNoSupervisedOmegaPredThreeFields extends TopicModel impl
 		lambda2 += (step / (Math.sqrt(adaLambda1)+eps)) * gradientLambda2;
 		gradientLambda2 = 0.;
 	}
+	*/
 	
 	private class Worker extends Thread {
 		/**
@@ -765,7 +789,7 @@ public class SpriteICWSMNoSupervisedOmegaPredThreeFields extends TopicModel impl
 				}
 			}
 			
-			updateLambda();
+//			updateLambda();
 		}
 		
 		for (int z = 0; z < Z; z++) {

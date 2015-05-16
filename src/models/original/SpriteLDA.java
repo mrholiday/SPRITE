@@ -10,13 +10,20 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import main.TopicModel;
 
 import utils.MathUtils;
+import utils.Tup2;
 
 /**
  * LDA model based on SPRITE code. This just means the perspective
@@ -115,6 +122,10 @@ public class SpriteLDA extends TopicModel implements Serializable {
 	double[][] adaAlpha;
 	double adaLambda0;
 	double adaLambda1;
+	
+	// For computing topic coherence
+	int[] uniCounts;
+	int[][] biCounts;
 	
 	public int seed;
 	
@@ -284,6 +295,9 @@ public class SpriteLDA extends TopicModel implements Serializable {
 			}
 		}
 		
+		uniCounts = new int[W];
+		biCounts = new int[W][W];
+		
 		for (int d = 0; d < D; d++) { 
 			docsZ[d] = new int[docs[d][0].length];
 			docsZZ[d] = new int[docs[d][0].length][Z];
@@ -316,6 +330,17 @@ public class SpriteLDA extends TopicModel implements Serializable {
 					nZ[z] += 1;
 					nDZ[d][z] += 1;
 					nD[d] += 1;
+				}
+			}
+			// For topic coherence
+			Set<Integer> uniqueWords = new HashSet<Integer>();
+			for (int n = 0; n < docs[d][0].length; n++) {
+				uniqueWords.add(docs[d][0][n]);
+			}
+			for (int w : uniqueWords) {
+				uniCounts[w] += 1;
+				for (int w2 : uniqueWords) {
+					biCounts[w][w2] += 1;
 				}
 			}
 		}
@@ -400,8 +425,8 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		
 		for (int z = minZ; z < maxZ; z++) {
 			for (int d = 0; d < D; d++) {
-				double dg1  = MathUtils.digamma(thetaNorm[z] + eps);
-				double dg2  = MathUtils.digamma(thetaNorm[z] + nD[d] + eps);
+				double dg1  = MathUtils.digamma(thetaNorm[d] + eps);
+				double dg2  = MathUtils.digamma(thetaNorm[d] + nD[d] + eps);
 				double dgW1 = MathUtils.digamma(priorDZ[d][z] + nDZ[d][z] + eps);
 				double dgW2 = MathUtils.digamma(priorDZ[d][z] + eps);
 				
@@ -665,6 +690,8 @@ public class SpriteLDA extends TopicModel implements Serializable {
 				System.out.println("Train Perplexity: " + computePerplexity(false));
 				System.out.println("Held-out Perplexity: " + computePerplexity(true));
 			}
+			Tup2<Double, Double> coherence = computeCoher();
+			System.out.println("Coherence: " + coherence._1() + " " + coherence._2());
 		}
 		
 		// collect samples (docsZZ) 
@@ -930,6 +957,88 @@ public class SpriteLDA extends TopicModel implements Serializable {
 		return LL;
 	}
 
+	public Tup2<Double, Double> computeCoher() {
+		double coher = 0.0;
+		double coherWithPrior = 0.0;
+		
+		int M = 20;
+		for (int z = 0; z < Z; z++) {
+			double coherZ = 0.0;
+			
+			List<Tup2<Integer, Integer>> topwords  = new ArrayList<Tup2<Integer, Integer>>();
+			for (int w = 0; w < W; w++) {
+				topwords.add(new Tup2<Integer, Integer>(nZW[z][w], w));
+			}
+			
+			Collections.sort(topwords, new Comparator<Tup2<Integer, Integer>>() {
+				@Override
+				public int compare(Tup2<Integer, Integer> o1,
+						Tup2<Integer, Integer> o2) {
+					return - o1._1().compareTo(o2._1());
+				}
+			});
+			
+			System.out.println(String.format("Topwords[%d]: %s:%d %s:%d %s:%d %s:%d %s:%d",
+					z, wordMapInv.get(topwords.get(0)._2()), topwords.get(0)._1(),
+					wordMapInv.get(topwords.get(1)._2()), topwords.get(1)._1(),
+					wordMapInv.get(topwords.get(2)._2()), topwords.get(2)._1(),
+					wordMapInv.get(topwords.get(3)._2()), topwords.get(3)._1(),
+					wordMapInv.get(topwords.get(4)._2()), topwords.get(4)._1()));
+			
+			for (int m = 1; m < M; m++) {
+				int word2 = topwords.get(m)._2();
+				
+				for (int i = 0; i < m; i++) {
+					int word1 = topwords.get(i)._2();
+					
+					//System.out.println(wordMapInv.get(vm)+" "+wordMapInv.get(vi)+" "+DCC[vm][vi]+" "+DC[vi]);
+					coherZ += Math.log((biCounts[word2][word1] + 1.0) / uniCounts[word1]);
+				}
+			}
+			
+			int debugWord1 = topwords.get(0)._2();
+			int debugWord2 = topwords.get(1)._2();
+			
+//			System.out.println(String.format("Counts[%d]: %s,%s:%d,%d,%d => %f",
+//					z, wordMapInv.get(debugWord1), wordMapInv.get(debugWord2),
+//					uniCounts[debugWord1], uniCounts[debugWord2], biCounts[debugWord2][debugWord1],
+//					Math.log((biCounts[debugWord2][debugWord1] + 1.0) / uniCounts[debugWord1])));
+			coher += coherZ;
+//			System.out.println(String.format("Coher[%d]: %f %f", z, coherZ, coher));
+			
+			double coherZWithPrior = 0.0;
+			
+			ArrayList<Tup2<Double, Integer>> topwordsWithPrior  = new ArrayList<Tup2<Double, Integer>>();
+			for (int w = 0; w < W; w++) {
+				topwordsWithPrior.add(new Tup2<Double, Integer>((double)(nZW[z][w] + priorZW[z][w])/((double)nZ[z] + phiNorm[z]), w));
+			}
+			Collections.sort(topwordsWithPrior, new Comparator<Tup2<Double, Integer>>() {
+				@Override
+				public int compare(Tup2<Double, Integer> o1,
+						Tup2<Double, Integer> o2) {
+					return - o1._1().compareTo(o2._1());
+				}
+			});
+			
+			for (int m = 1; m < M; m++) {
+				int word2 = topwordsWithPrior.get(m)._2();
+				
+				for (int i = 0; i < m; i++) {
+					int word1 = topwordsWithPrior.get(i)._2();
+					
+					//System.out.println(wordMapInv.get(vm)+" "+wordMapInv.get(vi)+" "+DCC[vm][vi]+" "+DC[vi]);
+					coherZWithPrior += Math.log((biCounts[word2][word1] + 1.0) / uniCounts[word1]);
+				}
+			}
+			coherWithPrior += coherZWithPrior;
+		}
+
+		coher /= Z;
+		coherWithPrior /= Z;
+		
+		return new Tup2<Double, Double>(coher, coherWithPrior);
+	}
+	
 	public void readDocs(String filename) throws Exception {
 		System.out.println("Reading input...");
 		
