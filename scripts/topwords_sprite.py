@@ -193,6 +193,7 @@ def main(basename, numScores):
 if __name__ ==  "__main__":
   import sys
   numScores = 3
+  #numScores = 1
   
   baseName = sys.argv[1]
   if len(sys.argv) > 2:

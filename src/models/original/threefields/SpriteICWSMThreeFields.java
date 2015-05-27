@@ -224,6 +224,10 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 		lambda1 = 1.0;
 		lambda2 = 1.0;
 		
+//		lambda0 = 0.0;
+//		lambda1 = 0.0;
+//		lambda2 = 0.0;
+		
 		adaOmega = new double[Cph][W];
 		adaOmegaBias = new double[W];
 		adaBeta = new double[Z][Cph];
@@ -359,16 +363,17 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 		THREAD_DONE_QUEUE = new ArrayBlockingQueue<String>(numThreads);
 		THREADS     = new Worker[numThreads];
 		
-		int dStep = D/numThreads;
-		int zStep = Z/numThreads;
-		int wStep = W/numThreads;
+		float dStep = D/((float)numThreads);
+		float zStep = Z/((float)numThreads);
+		float wStep = W/((float)numThreads);
+		
 		for (int i = 0; i < numThreads; i++) {
-			int minW = wStep*i;
-			int maxW = i < (numThreads-1) ? wStep*(i+1) : W;
-			int minD = dStep*i;
-			int maxD = i < (numThreads-1) ? dStep*(i+1) : D;
-			int minZ = zStep*i;
-			int maxZ = i < (numThreads-1) ? zStep*(i+1) : Z;
+			int minW = (int)(wStep*i);
+			int maxW = i < (numThreads-1) ? (int)(wStep*(i+1)) : W;
+			int minD = (int)(dStep*i);
+			int maxD = i < (numThreads-1) ? (int)(dStep*(i+1)) : D;
+			int minZ = (int)(zStep*i);
+			int maxZ = i < (numThreads-1) ? (int)(zStep*(i+1)) : Z;
 			THREADS[i] = new Worker(minW, maxW, minD, maxD, minZ, maxZ, i);
 			THREADS[i].start();
 		}
@@ -1409,7 +1414,7 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 			
 			//for (int c = 1; c < Cth; c++) { 
 			for (int c = 0; c < Cth; c++) { 
-				bw.write(" "+Math.exp(delta[c][z]));
+				bw.write(" "+delta[c][z]);
 			}
 			bw.newLine();
 		}

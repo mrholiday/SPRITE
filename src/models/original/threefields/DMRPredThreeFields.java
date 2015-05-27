@@ -236,10 +236,10 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 				alpha[d][2] = docsC2[d];
 			}
 			//for (int c = 1; c < Cth; c++) {
-			for (int c = 3; c < Cth; c++) {
-				alpha[d][c] = -2.0;
-				//alpha[d][c] += (r.nextDouble() - 0.5) / 100.0;
-			}
+//			for (int c = 3; c < Cth; c++) {
+//				alpha[d][c] = -2.0;
+//				//alpha[d][c] += (r.nextDouble() - 0.5) / 100.0;
+//			}
 		}
 		
 		for (int z = 0; z < Z; z++) {
@@ -250,27 +250,33 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		}
 		
 		//for (int c = 1; c < Cth; c++) { 
-		for (int c = 3; c < Cth; c++) { 
+		for (int c = 0; c < Cth; c++) { 
 				for (int z = 0; z < Z; z++) {
 				delta[c][z] = (r.nextDouble() - 0.5) / 100.0;
-				delta[c][z] += -2.0;
+//				delta[c][z] += -2.0;
 			}
 		}
 		
 		//for (int c = 1; c < Cph; c++) {
-		for (int c = 3; c < Cph; c++) {
-			for (int w = 0; w < W; w++) {
-				//omega[c][w] = (r.nextDouble() - 0.5) / 100.0;
-				//omega[c][w] += -2.0;
-			}
-		}
+//		for (int c = 0; c < Cph; c++) {
+//			for (int w = 0; w < W; w++) {
+//				omega[c][w] = (r.nextDouble() - 0.5) / 100.0;
+//				omega[c][w] += -2.0;
+//			}
+//		}
+		
+//		for (int z = 0; z < Z; z++) {
+//			betaB[z][0] = 1.0;
+//			//for (int c = 1; c < Cph; c++) {
+//			for (int c = 3; c < Cph; c++) {
+//				betaB[z][c] = 1.0 / (Cph-1);
+//				beta[z][c] = -2.0;
+//			}
+//		}
 		
 		for (int z = 0; z < Z; z++) {
-			betaB[z][0] = 1.0;
-			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				betaB[z][c] = 1.0 / (Cph-1);
-				beta[z][c] = -2.0;
+			for (int c = 0; c < 3; c++) {
+				beta[z][c] = delta[c][z];
 			}
 		}
 		
@@ -318,22 +324,24 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 			//THREAD_BITS = new Boolean[numThreads];
 			THREADS     = new Worker[numThreads];
 			
-			int dStep = D/numThreads;
-			int zStep = Z/numThreads;
-			int wStep = W/numThreads;
+			float dStep = D/((float)numThreads);
+			float zStep = Z/((float)numThreads);
+			float wStep = W/((float)numThreads);
+			
 			for (int i = 0; i < numThreads; i++) {
-				int minW = wStep*i;
-				int maxW = i < (numThreads-1) ? wStep*(i+1) : W;
-				int minD = dStep*i;
-				int maxD = i < (numThreads-1) ? dStep*(i+1) : D;
-				int minZ = zStep*i;
-				int maxZ = i < (numThreads-1) ? zStep*(i+1) : Z;
+				int minW = (int)(wStep*i);
+				int maxW = i < (numThreads-1) ? (int)(wStep*(i+1)) : W;
+				int minD = (int)(dStep*i);
+				int maxD = i < (numThreads-1) ? (int)(dStep*(i+1)) : D;
+				int minZ = (int)(zStep*i);
+				int maxZ = i < (numThreads-1) ? (int)(zStep*(i+1)) : Z;
 				THREADS[i] = new Worker(minW, maxW, minD, maxD, minZ, maxZ, i);
 				THREADS[i].start();
 			}
 		}
 	}
-
+	
+	/*
 	// initialize bias variables by using moment-matching approx to Dirichlet params, then take the log
 	public void initializeBias() {
 		// first delta
@@ -432,6 +440,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		System.out.println();
 		}
 	}
+	*/
 	
 	// returns the delta_dz prior given all the parameters
 	public double priorA(int d, int z) {
@@ -442,9 +451,9 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 			weight += alpha[d][c] * delta[c][z];
 		}
 		//for (int c = 1; c < Cth; c++) {
-		for (int c = 3; c < Cth; c++) {
-			weight += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]);
-		}
+//		for (int c = 3; c < Cth; c++) {
+//			weight += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]);
+//		}
 		
 		return Math.exp(weight);
 	}
@@ -454,17 +463,18 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		double weight = omegaBias[w];
 		
 		//for (int c = 0; c < 1; c++) {
-		for (int c = 0; c < 3; c++) {
-			//weight += beta[z][c] * omega[c][w];
-		}
+//		for (int c = 0; c < 3; c++) {
+//			//weight += beta[z][c] * omega[c][w];
+//		}
 		//for (int c = 1; c < Cph; c++) {
-		for (int c = 3; c < Cph; c++) {
-			//weight += betaB[z][c] * Math.exp(beta[z][c]) * omega[c][w];
-		}
+//		for (int c = 3; c < Cph; c++) {
+//			//weight += betaB[z][c] * Math.exp(beta[z][c]) * omega[c][w];
+//		}
 		
 		return Math.exp(weight);
 	}
 	
+	/*
 	public void clearGradient() {
 		for (int c = 0; c < Cph; c++) {
 			for (int z = 0; z < Z; z++) {
@@ -493,6 +503,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 			gradientDeltaBias[z] = 0.;
 		}
 	}
+	*/
 	
 	/*
 	 * Updates the gradients for a subset of topics and words.
@@ -509,31 +520,14 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 				
 				double gradientTerm = priorZW[z][w] * (dg1-dg2+dgW1-dgW2);
 				
-				/*
-				//for (int c = 0; c < 1; c++) {
-				for (int c = 0; c < 3; c++) { // factor
-					gradientBeta[z][c] += omega[c][w] * gradientTerm;
-					gradientOmega[c][w] += beta[z][c] * gradientTerm;
-				}
-				*/
-				
-				/*
-				//for (int c = 1; c < Cph; c++) { // hierarchy
-				for (int c = 3; c < Cph; c++) { // hierarchy
-					gradientBeta[z][c]  += betaB[z][c] * Math.exp(beta[z][c]) * omega[c][w] * gradientTerm;
-					gradientBetaB[z][c] += Math.exp(beta[z][c]) * omega[c][w] * gradientTerm;
-					gradientOmega[c][w] += betaB[z][c] * Math.exp(beta[z][c]) * gradientTerm;
-				}
-				*/
-				
 				gradientOmegaBias[w] += gradientTerm;
 			}
 		}
 		
 		for (int z = minZ; z < maxZ; z++) {
 			for (int d = 0; d < D; d++) {
-				double dg1  = MathUtils.digamma(thetaNorm[z] + eps);
-				double dg2  = MathUtils.digamma(thetaNorm[z] + nD[d] + eps);
+				double dg1  = MathUtils.digamma(thetaNorm[d] + eps);
+				double dg2  = MathUtils.digamma(thetaNorm[d] + nD[d] + eps);
 				double dgW1 = MathUtils.digamma(priorDZ[d][z] + nDZ[d][z] + eps);
 				double dgW2 = MathUtils.digamma(priorDZ[d][z] + eps);
 				
@@ -543,11 +537,11 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 				for (int c = 0; c < 3; c++) { // factor
 					gradientBeta[z][c] += alpha[d][c] * gradientTerm;
 				}
-				for (int c = 3; c < Cth; c++) { // hierarchy
-					gradientAlpha[d][c] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-					gradientDelta[c][z] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
-					gradientBetaB[z][c] += Math.exp(alpha[d][c]) * Math.exp(delta[c][z]) * gradientTerm;
-				}
+//				for (int c = 3; c < Cth; c++) { // hierarchy
+//					gradientAlpha[d][c] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
+//					gradientDelta[c][z] += Math.exp(alpha[d][c]) * betaB[z][c] * Math.exp(delta[c][z]) * gradientTerm;
+//					gradientBetaB[z][c] += Math.exp(alpha[d][c]) * Math.exp(delta[c][z]) * gradientTerm;
+//				}
 				gradientDeltaBias[z] += gradientTerm;
 			}
 		}
@@ -560,7 +554,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		// gradient ascent
 		
 		double step = stepA;
-		double stepB = 1.0;
+//		double stepB = 1.0;
 		
 		/*double sigma0 = 0.5;
 		  double sigmaBeta = 0.5;
@@ -570,73 +564,73 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		  double sigmaDelta = 0.5;
 		  double sigmaDeltaBias = 0.5;*/
 		
-		double sigma0 = 10.0;
+//		double sigma0 = 10.0;
 		double sigmaBeta = 10.0;
 //		double sigmaOmega = 10.0;
 //		double sigmaOmegaBias = 10.0;
-		double sigmaAlpha = 10.0;
+//		double sigmaAlpha = 10.0;
 //		double sigmaDelta = 10.0;
 //		double sigmaDeltaBias = 10.0;
 		
 		for (int z = minZ; z < maxZ; z++) {
 			//for (int c = 0; c < 1; c++) {
 			for (int c = 0; c < 3; c++) {
-				gradientBeta[z][c] += -(beta[z][c]) / Math.pow(sigma0, 2);
-				adaBeta[z][c] += Math.pow(gradientBeta[z][c], 2);
-				beta[z][c] += (step / (Math.sqrt(adaBeta[z][c])+eps)) * gradientBeta[z][c];
-				gradientBeta[z][c] = 0.;
-			}
-			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
 				gradientBeta[z][c] += -(beta[z][c]) / Math.pow(sigmaBeta, 2);
 				adaBeta[z][c] += Math.pow(gradientBeta[z][c], 2);
 				beta[z][c] += (step / (Math.sqrt(adaBeta[z][c])+eps)) * gradientBeta[z][c];
-				//beta[z][c] = 0.0; // unweighted
 				gradientBeta[z][c] = 0.;
 			}
+			//for (int c = 1; c < Cph; c++) {
+//			for (int c = 3; c < Cph; c++) {
+//				gradientBeta[z][c] += -(beta[z][c]) / Math.pow(sigmaBeta, 2);
+//				adaBeta[z][c] += Math.pow(gradientBeta[z][c], 2);
+//				beta[z][c] += (step / (Math.sqrt(adaBeta[z][c])+eps)) * gradientBeta[z][c];
+//				//beta[z][c] = 0.0; // unweighted
+//				gradientBeta[z][c] = 0.;
+//			}
 		}
 		
-		double dirp = 0.01; // Dirichlet hyperparameter
-		double rho = 0.95; // AdaDelta weighting
-		//double priorTemp = 0.0; // no prior
-		double priorTemp = Math.pow(1.00, iter-199);
-		System.out.println("priorTemp = "+priorTemp);
-		double[][] prevBetaB = new double[Z][Cph];
-		for (int z = minZ; z < maxZ; z++) {
-			double norm = 0.0;
-			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				//System.out.println("gradient "+gradientBeta[z][c]);
-				double prior = (dirp - 1.0) / betaB[z][c];
-				//System.out.println("prior "+prior);
-				
-				//adaBetaB[z][c] += Math.pow(gradientBetaB[z][c], 2); // traditional update
-				if (adaBetaB[z][c] == 0) adaBetaB[z][c] = 1.0;
-				adaBetaB[z][c] = (rho * adaBetaB[z][c]) + ((1.0-rho) * Math.pow(gradientBetaB[z][c], 2)); // average
-				gradientBetaB[z][c] += priorTemp * prior; // exclude from adaBetaB
-				prevBetaB[z][c] = betaB[z][c]; // store in case update goes wrong
-				betaB[z][c] *= Math.exp((step / (Math.sqrt(adaBetaB[z][c])+eps)) * gradientBetaB[z][c]);
-				
-				norm += betaB[z][c];
-				gradientBetaB[z][c] = 0.;
-			}
-			//for (int c = 0; c < 1; c++) {
-			for (int c = 0; c < 3; c++) {
-				betaB[z][c] = 1.0;
-			}
-			//System.out.println("normalizer "+z+" "+norm);
-			//for (int c = 1; c < Cph; c++) {
-			for (int c = 3; c < Cph; c++) {
-				if (norm == 0.0 || norm == Double.POSITIVE_INFINITY) {
-					System.out.println("BAD betaB");
-					//betaB[z][c] = 1.0 / (Cph - 1);
-					betaB[z][c] = prevBetaB[z][c]; // undo update if not well defined
-				}
-				else {
-					betaB[z][c] /= norm;
-				}
-			}
-		}
+//		double dirp = 0.01; // Dirichlet hyperparameter
+//		double rho = 0.95; // AdaDelta weighting
+//		//double priorTemp = 0.0; // no prior
+//		double priorTemp = Math.pow(1.00, iter-199);
+//		System.out.println("priorTemp = "+priorTemp);
+//		double[][] prevBetaB = new double[Z][Cph];
+//		for (int z = minZ; z < maxZ; z++) {
+//			double norm = 0.0;
+//			//for (int c = 1; c < Cph; c++) {
+//			for (int c = 3; c < Cph; c++) {
+//				//System.out.println("gradient "+gradientBeta[z][c]);
+//				double prior = (dirp - 1.0) / betaB[z][c];
+//				//System.out.println("prior "+prior);
+//				
+//				//adaBetaB[z][c] += Math.pow(gradientBetaB[z][c], 2); // traditional update
+//				if (adaBetaB[z][c] == 0) adaBetaB[z][c] = 1.0;
+//				adaBetaB[z][c] = (rho * adaBetaB[z][c]) + ((1.0-rho) * Math.pow(gradientBetaB[z][c], 2)); // average
+//				gradientBetaB[z][c] += priorTemp * prior; // exclude from adaBetaB
+//				prevBetaB[z][c] = betaB[z][c]; // store in case update goes wrong
+//				betaB[z][c] *= Math.exp((step / (Math.sqrt(adaBetaB[z][c])+eps)) * gradientBetaB[z][c]);
+//				
+//				norm += betaB[z][c];
+//				gradientBetaB[z][c] = 0.;
+//			}
+//			//for (int c = 0; c < 1; c++) {
+//			for (int c = 0; c < 3; c++) {
+//				betaB[z][c] = 1.0;
+//			}
+//			//System.out.println("normalizer "+z+" "+norm);
+//			//for (int c = 1; c < Cph; c++) {
+//			for (int c = 3; c < Cph; c++) {
+//				if (norm == 0.0 || norm == Double.POSITIVE_INFINITY) {
+//					System.out.println("BAD betaB");
+//					//betaB[z][c] = 1.0 / (Cph - 1);
+//					betaB[z][c] = prevBetaB[z][c]; // undo update if not well defined
+//				}
+//				else {
+//					betaB[z][c] /= norm;
+//				}
+//			}
+//		}
 		
 		/*
 		for (int c = 0; c < Cph; c++) {
@@ -656,16 +650,16 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 			gradientOmegaBias[w] = 0.;
 		}
 		
-		for (int d = minD; d < maxD; d++) {
-			//for (int c = 1; c < Cth; c++) {
-			for (int c = 3; c < Cth; c++) {
-				gradientAlpha[d][c] += -(alpha[d][c]) / Math.pow(sigmaAlpha, 2);
-				adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
-				alpha[d][c] += (step / (Math.sqrt(adaAlpha[d][c])+eps)) * gradientAlpha[d][c];
-				//if (alpha[d][c] < 1.0e-6) alpha[d][c] = 1.0e-6;
-				gradientAlpha[d][c] = 0.;
-			}
-		}
+//		for (int d = minD; d < maxD; d++) {
+//			//for (int c = 1; c < Cth; c++) {
+//			for (int c = 3; c < Cth; c++) {
+//				gradientAlpha[d][c] += -(alpha[d][c]) / Math.pow(sigmaAlpha, 2);
+//				adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
+//				alpha[d][c] += (step / (Math.sqrt(adaAlpha[d][c])+eps)) * gradientAlpha[d][c];
+//				//if (alpha[d][c] < 1.0e-6) alpha[d][c] = 1.0e-6;
+//				gradientAlpha[d][c] = 0.;
+//			}
+//		}
 		
 		//for (int c = 0; c < 1; c++) {
 		for (int c = 0; c < 3; c++) {
@@ -674,15 +668,15 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 			}
 		}
 		//for (int c = 1; c < Cth; c++) {
-		for (int c = 3; c < Cth; c++) {
-			for (int z = minZ; z < maxZ; z++) {
-				gradientDelta[c][z] += -(delta[c][z]) / Math.pow(sigmaDelta, 2);
-				adaDelta[c][z] += Math.pow(gradientDelta[c][z], 2);
-				delta[c][z] += (step / (Math.sqrt(adaDelta[c][z])+eps)) * gradientDelta[c][z];
-				//delta[c][z] = 0.0; // unweighted
-				gradientDelta[c][z] = 0.;
-			}
-		}
+//		for (int c = 3; c < Cth; c++) {
+//			for (int z = minZ; z < maxZ; z++) {
+//				gradientDelta[c][z] += -(delta[c][z]) / Math.pow(sigmaDelta, 2);
+//				adaDelta[c][z] += Math.pow(gradientDelta[c][z], 2);
+//				delta[c][z] += (step / (Math.sqrt(adaDelta[c][z])+eps)) * gradientDelta[c][z];
+//				//delta[c][z] = 0.0; // unweighted
+//				gradientDelta[c][z] = 0.;
+//			}
+//		}
 		for (int z = minZ; z < maxZ; z++) {
 			gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);
 			adaDeltaBias[z] += Math.pow(gradientDeltaBias[z], 2);
@@ -1279,7 +1273,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 	public void writeOutput(String filename, String outputDir) throws Exception {
 		String baseName = new File(filename).getName();
 		
-		FileWriter fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.assign", predFold)));
+		FileWriter fw = new FileWriter(new File(outputDir, baseName + String.format(".dmr.pred.%d.assign", predFold)));
 		BufferedWriter bw = new BufferedWriter(fw);
 		
 		for (int d = 0; d < D; d++) {
@@ -1305,7 +1299,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		bw.close();
 		fw.close();
 
-		fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.beta", predFold)));
+		fw = new FileWriter(new File(outputDir, baseName + String.format(".dmr.pred.%d.beta", predFold)));
 		bw = new BufferedWriter(fw);
 		for (int z = 0; z < Z; z++) { 
 			//for (int c = 0; c < 1; c++) {
@@ -1322,7 +1316,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		bw.close();
 		fw.close();
 
-		fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.betaB", predFold)));
+		fw = new FileWriter(new File(outputDir, baseName + String.format(".dmr.pred.%d.betaB", predFold)));
 		bw = new BufferedWriter(fw);
 		for (int z = 0; z < Z; z++) { 
 			for (int c = 0; c < Cph; c++) {
@@ -1333,7 +1327,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		bw.close();
 		fw.close();
 
-		fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.omega", predFold)));
+		fw = new FileWriter(new File(outputDir, baseName + String.format(".dmr.pred.%d.omega", predFold)));
 		bw = new BufferedWriter(fw);
 		for (int w = 0; w < W; w++) {
 			String word = wordMapInv.get(w);
@@ -1348,7 +1342,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		bw.close();
 		fw.close();
 		
-		fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.omegaBias", predFold)));
+		fw = new FileWriter(new File(outputDir, baseName + String.format(".dmr.pred.%d.omegaBias", predFold)));
 		bw = new BufferedWriter(fw);
 		for (int w = 0; w < W; w++) {
 			String word = wordMapInv.get(w);
@@ -1359,7 +1353,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		bw.close();
 		fw.close();
 
-		fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.alpha", predFold)));
+		fw = new FileWriter(new File(outputDir, baseName + String.format(".dmr.pred.%d.alpha", predFold)));
 		bw = new BufferedWriter(fw);
 		for (int d = 0; d < D; d++) {
 			//for (int c = 0; c < 1; c++) { 
@@ -1375,7 +1369,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		bw.close();
 		fw.close();
 
-		fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.delta", predFold)));
+		fw = new FileWriter(new File(outputDir, baseName + String.format(".dmr.pred.%d.delta", predFold)));
 		bw = new BufferedWriter(fw);
 		for (int z = 0; z < Z; z++) {
 			bw.write(""+z);
@@ -1393,7 +1387,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		bw.close();
 		fw.close();
 		
-		fw = new FileWriter(new File(outputDir, baseName + String.format(".pred.%d.deltaBias", predFold)));
+		fw = new FileWriter(new File(outputDir, baseName + String.format(".dmr.pred.%d.deltaBias", predFold)));
 		bw = new BufferedWriter(fw);
 		for (int z = 0; z < Z; z++) {
 			bw.write(""+z);

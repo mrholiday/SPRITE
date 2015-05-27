@@ -22,8 +22,11 @@ import models.original.threefields.DMRPredThreeFields;
 import models.original.threefields.DMRThreeFields;
 import models.original.threefields.SpriteICWSMNoSupervisedOmegaPredThreeFields;
 import models.original.threefields.SpriteICWSMNoSupervisedOmegaThreeFields;
+import models.original.threefields.SpriteICWSMOmegaInitPredThreeFields;
+import models.original.threefields.SpriteICWSMOmegaInitThreeFields;
 import models.original.threefields.SpriteICWSMPredThreeFields;
 import models.original.threefields.SpriteICWSMThreeFields;
+import models.original.threefields.Sprite_DAG;
 
 import utils.Log;
 import utils.MathUtils;
@@ -98,6 +101,9 @@ public class LearnTopicModel {
 		
 		@Parameter(names="-logPath", description="Where to log the training output.  Defaults to stdout")
 		String logPath = null;
+		
+		@Parameter(names="-omegaPath", description="Path to already-initialized omega to load")
+		String omegaPath = null;
 		
 		@Parameter(names = "--help", help = true)
 		private boolean help;
@@ -247,6 +253,26 @@ public class LearnTopicModel {
 						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
+		else if (c.model.equals("sprite_omegaInit_threefields")) {
+			//topicModel = new SpriteJoint(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
+			//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
+			//		                     stepA, Cth, Cph, seed, numThreads);
+			if (c.predFold >= 0) {
+				// -1 or "" are for arguments that were obligatory but never used...
+				topicModel = new SpriteICWSMOmegaInitPredThreeFields(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1,
+						-1, -1, -1, -1, -1, -1, -1, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.predFold, c.omegaPath);
+			}
+			else {
+				//topicModel = new SpriteJointThreeFactor(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
+				//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
+				//		                     stepA, Cth, Cph, seed, numThreads, computePerplexity);
+				topicModel = new SpriteICWSMOmegaInitThreeFields(c.z, c.sigmaAlpha, c.sigmaDelta,
+						c.sigmaDeltaBias, c.sigmaOmega, c.sigmaOmegaBias, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity, c.omegaPath);
+			}
+		}
 		else if (c.model.equals("sprite_icwsm_noomega_threefields")) {
 			if (c.predFold >= 0) {
 				// -1 or "" are for arguments that were obligatory but never used...
@@ -261,7 +287,12 @@ public class LearnTopicModel {
 						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
-		
+		else if (c.model.equals("sprite_full_dag")) {
+			topicModel = new Sprite_DAG(c.z, c.sigmaDelta, c.sigmaDeltaBias,
+					c.sigmaOmega, c.sigmaOmegaBias, 0.01, 0.01, 0.01, 0.01, 0.01,
+					0.01, -1.0, -1.0, c.deltaBias, c.omegaBias, c.likelihoodFreq,
+					"full_dag", 0.01, c.Cth, c.Cph);
+		}
 		else {
 			System.out.println("Invalid model specification. Options: sprite sprite_lda sprite_unsupervised sprite_icwsm_noomega dmr sprite_3factor dmr_threefields sprite_threefields sprite_icwsm_noomega_threefields");
 			return;

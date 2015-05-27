@@ -2,8 +2,8 @@ package utils;
 
 import java.util.Random;
 
-import org.apache.commons.math3.analysis.function.Gaussian;
-import org.apache.commons.math3.special.Gamma;
+//import org.apache.commons.math3.analysis.function.Gaussian;
+//import org.apache.commons.math3.special.Gamma;
 
 public class MathUtils {
 	
@@ -35,6 +35,7 @@ public class MathUtils {
 		return r + Math.log(x) - 0.5 / x + t;
 	}
 	
+	/*
 	public static double normalProb(double x, double mu, double sigma) {
 		Gaussian normalDist = new Gaussian(mu, sigma);
 		return normalDist.value(x);
@@ -78,6 +79,7 @@ public class MathUtils {
 		System.out.println("Dirichlet log prob: " + num + ", " + norm);
 		return num - norm;
 	}
+	*/
 	
 	public static double log(double x, double base) {
 	    return (Math.log(x) / Math.log(base));

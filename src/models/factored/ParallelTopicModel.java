@@ -57,11 +57,11 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		THREAD_MASTER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
 		THREADS     = new SpriteTrainWorker[numThreads];
 		
-		int[][] stepSizes = new int[varDims.length][];
+		float[][] stepSizes = new float[varDims.length][];
 		for (int i = 0; i < varDims.length; i++) {
-			stepSizes[i] = new int[varDims[i].length];
+			stepSizes[i] = new float[varDims[i].length];
 			for (int j = 0; j < varDims[i].length; j++) {
-				stepSizes[i][j] = varDims[i][j]/numThreads;
+				stepSizes[i][j] = varDims[i][j]/(float)numThreads;
 			}
 		}
 		
@@ -72,8 +72,8 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 				paramRanges[j] = new Tup2[varDims[j].length];
 				
 				for (int k = 0; k < varDims[j].length; k++) {
-					int minRange = stepSizes[j][k]*i;
-					int maxRange = i < (numThreads - 1) ? stepSizes[j][k] * (i+1) : varDims[j][k];
+					int minRange = (int)(stepSizes[j][k]*i);
+					int maxRange = i < (numThreads - 1) ? (int)(stepSizes[j][k] * (i+1)) : varDims[j][k];
 					
 					paramRanges[j][k] = new Tup2<Integer, Integer>(minRange, maxRange);
 				}
@@ -95,11 +95,11 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		THREAD_MASTER_QUEUE = new ArrayBlockingQueue<ThreadCommunication>(numThreads);
 		THREADS     = new SpriteTestWorker[numThreads];
 		
-		int[][] stepSizes = new int[varDims.length][];
+		float[][] stepSizes = new float[varDims.length][];
 		for (int i = 0; i < varDims.length; i++) {
-			stepSizes[i] = new int[varDims[i].length];
+			stepSizes[i] = new float[varDims[i].length];
 			for (int j = 0; j < varDims[i].length; j++) {
-				stepSizes[i][j] = varDims[i][j]/numThreads;
+				stepSizes[i][j] = varDims[i][j]/(float)numThreads;
 			}
 		}
 		
@@ -110,8 +110,8 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 				paramRanges[j] = new Tup2[varDims[j].length];
 				
 				for (int k = 0; k < varDims[j].length; k++) {
-					int minRange = stepSizes[j][k]*i;
-					int maxRange = i < (numThreads - 1) ? stepSizes[j][k] * (i+1) : varDims[j][k];
+					int minRange = (int)(stepSizes[j][k]*i);
+					int maxRange = i < (numThreads - 1) ? (int)(stepSizes[j][k] * (i+1)) : varDims[j][k];
 					
 					paramRanges[j][k] = new Tup2<Integer, Integer>(minRange, maxRange);
 				}
