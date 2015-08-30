@@ -210,19 +210,19 @@ public class Factor implements Serializable {
 			alpha = new double[D][C]; // Latent factor
 			for (int d = 0; d < D; d++) {
 				for (int c = 0; c < C; c++) {
-//					if (!alphaPositive) {
-//						alpha[d][c] += (MathUtils.r.nextDouble() - 0.5) / 100.0;
-//					}
-//					else {
-//						alpha[d][c] = -2.0 + (MathUtils.r.nextDouble() - 0.5)/100.; // Small positive number when exped
-//					}
-					
 					if (!alphaPositive) {
-						alpha[d][c] = 0.;
+						alpha[d][c] += (MathUtils.r.nextDouble() - 0.5) / 100.0;
 					}
 					else {
-						alpha[d][c] = -2.0; // Small positive number when exped
+						alpha[d][c] = -2.0 + (MathUtils.r.nextDouble() - 0.5)/100.; // Small positive number when exped
 					}
+					
+//					if (!alphaPositive) {
+//						alpha[d][c] = 0.;
+//					}
+//					else {
+//						alpha[d][c] = -2.0; // Small positive number when exped
+//					}
 				}
 			}
 		}
@@ -256,19 +256,19 @@ public class Factor implements Serializable {
 				
 				if (!observed) {
 					for (int z = 0; z < Z[v]; z++) {
-//						if (!deltaPositive) {
-//							delta[v][c][z] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
-//						}
-//						else {
-//							delta[v][c][z] = -2.0 + (MathUtils.r.nextDouble() - 0.5) / 100.0; // Small positive number when exped
-//						}
-						
 						if (!deltaPositive) {
-							delta[v][c][z] = 0.;
+							delta[v][c][z] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
 						}
 						else {
-							delta[v][c][z] = -2.; // Small positive number when exped
+							delta[v][c][z] = -2.0 + (MathUtils.r.nextDouble() - 0.5) / 100.0; // Small positive number when exped
 						}
+						
+//						if (!deltaPositive) {
+//							delta[v][c][z] = 0.;
+//						}
+//						else {
+//							delta[v][c][z] = -2.; // Small positive number when exped
+//						}
 					}
 				}
 				else {
@@ -296,19 +296,19 @@ public class Factor implements Serializable {
 					}
 					else {
 						if (!observed) {
-//							if (!betaPositive) {
-//								beta[v][z][c] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
-//							}
-//							else {
-//								beta[v][z][c] = -2.0 + (MathUtils.r.nextDouble() - 0.5) / 100.0; // Small positive number when exped
-//							}
-							
 							if (!betaPositive) {
-								beta[v][z][c] = 0.;
+								beta[v][z][c] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
 							}
 							else {
-								beta[v][z][c] = -2.0; // Small positive number when exped
+								beta[v][z][c] = -2.0 + (MathUtils.r.nextDouble() - 0.5) / 100.0; // Small positive number when exped
 							}
+							
+//							if (!betaPositive) {
+//								beta[v][z][c] = 0.;
+//							}
+//							else {
+//								beta[v][z][c] = -2.0; // Small positive number when exped
+//							}
 						}
 						else {
 							if (betaPositive) {
