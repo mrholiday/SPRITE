@@ -20,9 +20,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import utils.MathUtils;
 import main.TopicModel;
 
-import utils.MathUtils;
 import utils.Tup2;
 
 /**
@@ -1300,7 +1300,7 @@ public class SpriteLDA extends TopicModel implements Serializable {
 
 	@Override
 	public void collectSamples() { }
-
+	
 	@Override
 	public double computeLL(int[][][] corpus) {
 		return computeLL(corpus[0]);

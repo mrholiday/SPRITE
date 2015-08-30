@@ -8,6 +8,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.io.Reader;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -30,9 +31,9 @@ import utils.Tup2;
  * The component coefficient \alpha is estimated for each document
  * but has a Gaussian prior whose mean is a function of input values
  * (hashtag-based gun control stance and state-level gun ownership rates).
- * Includes a third feature as well.
+ * Includes a third feature as well.  Omega initialized SAGE-style.
  */
-public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
+public class SpriteICWSMOmegaInitThreeFields extends TopicModel implements Serializable {
     
 	/**
 	 * 
@@ -151,9 +152,11 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 	
 	private boolean computePerplexity; // If true, will train on half of tokens, and print out held-out perplexity.
 	
-	public SpriteICWSMThreeFields(int z, double sigmaAlpha0, double sigmaA0, double sigmaAB0, double sigmaW0, double sigmaWB0,
+	String omegaPath;
+	
+	public SpriteICWSMOmegaInitThreeFields(int z, double sigmaAlpha0, double sigmaA0, double sigmaAB0, double sigmaW0, double sigmaWB0,
 			double deltaB0, double omegaB0, int likelihoodFreq0,
-			String prefix, double stepA0, int seed0, int numThreads0, boolean computePerplexity0) {
+			String prefix, double stepA0, int seed0, int numThreads0, boolean computePerplexity0, String omegaPath0) {
 		Z = z;
 		
 		topicLocks = new Integer[Z];
@@ -187,6 +190,30 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 		
 		numThreads = numThreads0;
 		computePerplexity = computePerplexity0;
+		
+		omegaPath = omegaPath0;
+	}
+	
+	public double[] loadOmega() {
+		double[] omega = new double[W];
+		
+		try {
+			BufferedReader r = new BufferedReader(new FileReader(omegaPath));
+			
+			String s = null;
+			while((s = r.readLine()) != null) {
+				String[] flds = s.split("\\s+");
+				int wIdx = this.wordMap.get(flds[0]);
+				omega[wIdx] = Double.valueOf(flds[1].trim());
+			}
+		}
+		catch (IOException e) {
+			System.out.println("Problem reading from: " + omegaPath);
+			e.printStackTrace();
+			System.exit(1);
+		}
+		
+		return omega;
 	}
 	
 	public void initTrain() {
@@ -273,12 +300,18 @@ public class SpriteICWSMThreeFields extends TopicModel implements Serializable {
 			}
 		}
 		
+		
+		omega[0] = loadOmega();
+		
+		/*
 		for (int c = 0; c < Cph; c++) {
+			
 			for (int w = 0; w < W; w++) {
 				omega[c][w] = (r.nextDouble() - 0.5) / 100.0;
 				//omega[c][w] += -2.0;
 			}
 		}
+		*/
 		
 		for (int z = 0; z < Z; z++) {
 			for (int c = 0; c < Cph; c++) {

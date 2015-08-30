@@ -3,10 +3,14 @@ package prior;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import utils.Log;
 import utils.MathUtils;
+import utils.Tup2;
 import models.factored.Factor;
 
 /**
@@ -29,7 +33,9 @@ public class SpritePhiPrior implements Serializable {
 	public int W; // Vocabulary size
 	
 	// Bias term.  Assuming this is ever-present.
-	private double[] omegaBias;
+//	private double[] omegaBias;
+	public double[] omegaBias;
+	
 	private double initOmegaBias; // Initial value for omegaBias
 	
 	// Sum over vocabulary for each topic.
@@ -38,9 +44,13 @@ public class SpritePhiPrior implements Serializable {
 	// Topic -> Word -> weight.  \widetilde{phi} in TACL paper
 	public double[][] phiTilde;
 	
-	private double[] gradientOmegaBias;
+	public double[] gradientOmegaBias;
+	
+//	private double[] gradientOmegaBias;
 	private double[] adaOmegaBias;
 	private double   sigmaOmegaBias;
+	
+	private int NUM_CALLS = 0;
 	
 	private int[] views; // The views that \widetilde{\phi} is responsible for.
 //	private int currentView; // The view this \widetilde{\phi} is responsible for.
@@ -48,9 +58,17 @@ public class SpritePhiPrior implements Serializable {
 	public boolean optimizeMe;
 	
 	public void writeOmegaBias(BufferedWriter bw, Map<Integer, String> wordMapInv) throws IOException {
+		List<Tup2<Double, String>> omegaSorted = new ArrayList<Tup2<Double, String>>();
+		
 		for (int w = 0; w < W; w++) {
-			String word = wordMapInv.get(w);
-			bw.write(String.format("%s %f\n", word, omegaBias[w]));
+			omegaSorted.add(new Tup2<Double, String>(omegaBias[w], wordMapInv.get(w)));
+		}
+		
+		Collections.sort(omegaSorted);
+		Collections.reverse(omegaSorted); // Highest weight first
+		
+		for (Tup2<Double, String> wtAndWord : omegaSorted) {
+			bw.write(String.format("%s %f\n", wtAndWord._2(), wtAndWord._1()));
 		}
 	}
 	
@@ -139,9 +157,10 @@ public class SpritePhiPrior implements Serializable {
 			
 //			if (v == views[0]) {
 			gradientOmegaBias[w] += gradientTerm;
-			gradientOmegaBias[w] += -(omegaBias[w]) / (Math.pow(sigmaOmegaBias, 2) * Z * views.length);
+//			gradientOmegaBias[w] += -(omegaBias[w]) / (Math.pow(sigmaOmegaBias, 2) * Z * views.length);
 //			}
 		}
+		NUM_CALLS += 1;
 	}
 	
 	public void doGradientStep(int v, int minW, int maxW, double stepSize) {
@@ -153,7 +172,7 @@ public class SpritePhiPrior implements Serializable {
 		
 		if (v == views[0]) {
 			for (int w = minW; w < maxW; w++) {
-				// gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2); // Now done in updateGradient
+				gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2); // Now done in updateGradient
 				adaOmegaBias[w] += Math.pow(gradientOmegaBias[w], 2);
 				omegaBias[w] += (stepSize / (Math.sqrt(adaOmegaBias[w]) + MathUtils.eps)) * gradientOmegaBias[w];
 			}
@@ -173,7 +192,8 @@ public class SpritePhiPrior implements Serializable {
 	 * Updates both \widetilde{\phi} and the sum over the vocabulary.
 	 * 
 	 * @param minZ Minimum topic index
-	 * @param maxZ Maximum topic index
+	 * @param maxZ Maximum tonewModel.thetaPriors[0].thetaNorm;
+			pic index
 	 */
 	public void updatePrior(int v, int minZ, int maxZ) {
 		updatePhiTilde(v, minZ, maxZ);

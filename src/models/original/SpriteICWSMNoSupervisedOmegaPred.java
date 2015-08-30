@@ -16,9 +16,9 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import utils.MathUtils;
 import main.TopicModel;
 
-import utils.MathUtils;
 
 /**
  * SPRITE model used for ICWSM paper with only a single component.

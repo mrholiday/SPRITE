@@ -243,13 +243,17 @@ public class Log {
 		}
 	}
 	
-	public static void initFileLogger(String logPath) {
+	public static void initFileLogger(String logPath, boolean append) {
 		File f = new File(logPath);
 		try {
-			fileWriter = new BufferedWriter(new FileWriter(f));
+			fileWriter = new BufferedWriter(new FileWriter(f, append));
 		} catch (IOException e) {
 			System.err.println(String.format("Could not initialize file logger to %s  Default to stdout.", logPath));
 		}
+	}
+	
+	public static void initFileLogger(String logPath) {
+		Log.initFileLogger(logPath, false);
 	}
 	
 	public static void closeLogger() {

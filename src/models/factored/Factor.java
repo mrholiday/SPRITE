@@ -6,8 +6,9 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import utils.Log;
 import utils.MathUtils;
+
+import utils.Log;
 
 /**
  * 
@@ -25,9 +26,9 @@ public class Factor implements Serializable {
 	private static final long serialVersionUID = 5910933371949825941L;
 	
 	// Which parameters are restricted to be positive.
-	public boolean alphaPositive = false;
-	public boolean betaPositive  = false;
-	public boolean deltaPositive = false;
+	public final boolean alphaPositive;
+	public final boolean betaPositive;
+	public final boolean deltaPositive;
 	
 	// Should beta and delta be tied?  This will set delta <- beta
 	// after each gradient step.
@@ -83,6 +84,7 @@ public class Factor implements Serializable {
 	
 	public int C;
 	public int[] Z; // Different number of topics per view
+	public int N_topics; // Total number of topics across all views
 	public int W; // Vocabulary size is union across all views
 	//public int[] W; // Different vocabulary per view
 	public int D;
@@ -129,6 +131,11 @@ public class Factor implements Serializable {
 		numViews    = viewIndices.length;
 		
 		Z = Z0;
+		N_topics = 0;
+		
+		for (int v = 0; v < Z.length; v++) {
+			N_topics += Z[v];
+		}
 		
 		C = numComponents0;
 		rho = rho0;
@@ -157,7 +164,7 @@ public class Factor implements Serializable {
 	
 	/**
 	 * Painful initialization.  Silly me for trying to support more than one view.
-	 * TODO: Figure out how to initialize more gracefully.
+	 * TODO: Figure out how to initialize more cleanly.
 	 * 
 	 * @param docScores If this factor is observed, alpha is set to these values.
 	 * @param W0 Vocabulary size for all views
@@ -203,8 +210,15 @@ public class Factor implements Serializable {
 			alpha = new double[D][C]; // Latent factor
 			for (int d = 0; d < D; d++) {
 				for (int c = 0; c < C; c++) {
+//					if (!alphaPositive) {
+//						alpha[d][c] += (MathUtils.r.nextDouble() - 0.5) / 100.0;
+//					}
+//					else {
+//						alpha[d][c] = -2.0 + (MathUtils.r.nextDouble() - 0.5)/100.; // Small positive number when exped
+//					}
+					
 					if (!alphaPositive) {
-						alpha[d][c] += (MathUtils.r.nextDouble() - 0.5) / 100.0;
+						alpha[d][c] = 0.;
 					}
 					else {
 						alpha[d][c] = -2.0; // Small positive number when exped
@@ -222,10 +236,14 @@ public class Factor implements Serializable {
 		omega = new double[C][W]; // Component-to-token, for phi
 		//omega = new double[numViews][C][]; // Component-to-token, for phi
 		
-		// Init omega
-		for (int c = 0; c < C; c++) {
-			for (int w = 0; w < W; w++) {
-				omega[c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+		// Init omega.  If alpha is observed, just initialize to zeros.
+		// This keeps this implementation consistent with Michael's joint supertopic-perspective model.
+		if (!observed) {
+			for (int c = 0; c < C; c++) {
+				for (int w = 0; w < W; w++) {
+					omega[c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+//					omega[c][w] = 0.;
+				}
 			}
 		}
 		
@@ -235,12 +253,29 @@ public class Factor implements Serializable {
 				adaDelta[v][c] = new double[Z[v]];
 				gradientDelta[v][c] = new double[Z[v]];
 				delta[v][c] = new double[Z[v]];
-				for (int z = 0; z < Z[v]; z++) {
-					if (!deltaPositive) {
-						delta[v][c][z] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+				
+				if (!observed) {
+					for (int z = 0; z < Z[v]; z++) {
+//						if (!deltaPositive) {
+//							delta[v][c][z] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+//						}
+//						else {
+//							delta[v][c][z] = -2.0 + (MathUtils.r.nextDouble() - 0.5) / 100.0; // Small positive number when exped
+//						}
+						
+						if (!deltaPositive) {
+							delta[v][c][z] = 0.;
+						}
+						else {
+							delta[v][c][z] = -2.; // Small positive number when exped
+						}
 					}
-					else {
-						delta[v][c][z] = -2.0; // Small positive number when exped
+				}
+				else {
+					if (deltaPositive) {
+						for (int z = 0; z < Z[v]; z++) {
+							delta[v][c][z] = Double.NEGATIVE_INFINITY; // 0. when exped
+						}
 					}
 				}
 			}
@@ -254,32 +289,37 @@ public class Factor implements Serializable {
 			betaB[v] = new double[Z[v]][C];
 			for (int z = 0; z < Z[v]; z++) {
 				for (int c = 0; c < C; c++) {
-					betaB[v][z][c] = 1.0;
+					betaB[v][z][c] = isSparse ? 1.0/C : 1.0;
 					
 					if (tieBetaAndDelta) {
 						beta[v][z][c] = delta[v][c][z];
 					}
 					else {
-						if (!betaPositive) {
-							beta[v][z][c] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+						if (!observed) {
+//							if (!betaPositive) {
+//								beta[v][z][c] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
+//							}
+//							else {
+//								beta[v][z][c] = -2.0 + (MathUtils.r.nextDouble() - 0.5) / 100.0; // Small positive number when exped
+//							}
+							
+							if (!betaPositive) {
+								beta[v][z][c] = 0.;
+							}
+							else {
+								beta[v][z][c] = -2.0; // Small positive number when exped
+							}
 						}
 						else {
-							beta[v][z][c] = -2.0; // Small positive number when exped
+							if (betaPositive) {
+								beta[v][z][c] = Double.NEGATIVE_INFINITY; // Zero when exped
+							}
 						}
 					}
-
+					
 				}
 			}
 			
-			// Init omega
-//			adaOmega[v]      = new double[C][W[v]];
-//			gradientOmega[v] = new double[C][W[v]];
-//			omega[v]         = new double[C][W[v]];
-//			for (int c = 0; c < C; c++) {
-//				for (int w = 0; w < W[v]; w++) {
-//					omega[v][c][w] = (MathUtils.r.nextDouble() - 0.5) / 100.0;
-//				}
-//			}
 		}
 	}
 	
@@ -308,7 +348,7 @@ public class Factor implements Serializable {
 						alpha[d][c] += (MathUtils.r.nextDouble() - 0.5) / 100.0;
 					}
 					else {
-						alpha[d][c] = -2.0; // Small positive number when exped
+						alpha[d][c] = -2.0 + (MathUtils.r.nextDouble() - 0.5) / 100.0; // Small positive number when exped
 					}
 				}
 			}
@@ -320,7 +360,8 @@ public class Factor implements Serializable {
 	
 	/**
 	 * 
-	 * @param gradientTerm Gradient for LL
+	 * @param gradientTerm Gradient for LL (\widetilde{\phi} * diff of digammas)
+	 * 
 	 * @param z Topic
 	 * @param v View
 	 * @param w Word
@@ -333,31 +374,45 @@ public class Factor implements Serializable {
 			
 			if (isSparse) {
 				if (betaB[v][z][c] > MathUtils.eps) {
-					gradientBeta[v][z][c] += omega[c][w] * betaB[v][z][c] * gradientTerm;
+					if (betaPositive) {
+						gradientBeta[v][z][c] += omega[c][w] * betaRightSign * betaB[v][z][c] * gradientTerm;
+					}
+					else {
+						gradientBeta[v][z][c] += omega[c][w] * betaB[v][z][c] * gradientTerm;
+					}
 				}
 				gradientBetaB[v][z][c] += betaRightSign * omega[c][w] * gradientTerm;
 			}
 			else {
-				gradientBeta[v][z][c] += omega[c][w] * gradientTerm;
+				if (betaPositive) {
+					gradientBeta[v][z][c] += omega[c][w] * betaRightSign * gradientTerm;
+				}
+				else {
+					gradientBeta[v][z][c] += omega[c][w] * gradientTerm;
+				}
 			}
 			
-			gradientOmega[c][w] += betaRightSign * betaB[v][z][c] * gradientTerm;
-			gradientOmega[c][w] += -(omega[c][w]) / (sigmaOmega_sqr * Z[v] * numViews); // Regularize
-		}
-		
-//		for (int c = 0; c < C; c++) {
-//			double betaRightSign    = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
-//			
-//			if (isSparse) {
-//				gradientBeta[v][z][c] += omega[v][c][w] * betaB[v][z][c] * gradientTerm;
-//				gradientBetaB[v][z][c] += betaRightSign * omega[v][c][w] * gradientTerm;
+			assert !Double.isNaN(gradientBeta[v][z][c]);
+			assert !Double.isNaN(gradientBetaB[v][z][c]);
+			
+//			// Regularize
+//			if (tieBetaAndDelta) {
+//				gradientBeta[v][z][c] += -(beta[v][z][c]) / (sigmaBeta_sqr * W * 2);
 //			}
 //			else {
-//				gradientBeta[v][z][c] += omega[v][c][w] * gradientTerm;
+//				gradientBeta[v][z][c] += -(beta[v][z][c]) / (sigmaBeta_sqr * W);
 //			}
-//
-//			gradientOmega[v][c][w] += betaRightSign * betaB[v][z][c] * gradientTerm;
-//		}
+			
+			//gradientOmega[c][w] += betaRightSign * betaB[v][z][c] * omega[c][w] * gradientTerm;
+			gradientOmega[c][w] += betaRightSign * betaB[v][z][c] * gradientTerm;
+			
+//			gradientOmega[c][w] += -(omega[c][w]) / (sigmaOmega_sqr * N_topics); // Regularize
+			
+			assert !Double.isNaN(gradientOmega[c][w]);
+		}
+		
+		if ((z == 0) && (w == 0))
+			Log.debug("Breakpt");
 	}
 	
 	public void updateThetaGradient(double gradientTerm, int z, int v, int d) {
@@ -365,41 +420,97 @@ public class Factor implements Serializable {
 		
 		for (int c = 0; c < C; c++) {
 			double deltaRightSign = deltaPositive ? Math.exp(delta[v][c][z]) : delta[v][c][z];
-			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
+			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c])    : alpha[d][c];
 			
 			if (tieBetaAndDelta) { // Will assign beta to delta after the gradient step
-				if (isSparse && (betaB[v][z][c] > MathUtils.eps)) {
-					gradientBeta[v][z][c] += alphaRightSign * betaB[v][z][c] * gradientTerm;
+				if (isSparse) {
+					if (betaB[v][z][c] > MathUtils.eps) {
+						
+						if (betaPositive) {
+							gradientBeta[v][z][c] += alphaRightSign * betaB[v][z][c] * deltaRightSign * gradientTerm;
+						}
+						else {
+							gradientBeta[v][z][c] += alphaRightSign * betaB[v][z][c] * gradientTerm;
+						}
+					}
+					
+					gradientBetaB[v][z][c] += alphaRightSign * deltaRightSign * gradientTerm;
 				}
 				else {
-					gradientBeta[v][z][c] += alphaRightSign * gradientTerm;
+					if (betaPositive) {
+						gradientBeta[v][z][c] += alphaRightSign * deltaRightSign * gradientTerm;
+					}
+					else {
+						gradientBeta[v][z][c] += alphaRightSign * gradientTerm;
+					}
 				}
-				gradientBeta[v][z][c] += -(beta[v][z][c]) / (sigmaBeta_sqr * D); // Regularized
+				
+//				gradientBeta[v][z][c] += -(beta[v][z][c]) / (sigmaBeta_sqr * D * 2); // Regularized
+				
+				assert !Double.isNaN(gradientBeta[v][z][c]);
 			}
 			else {
-				if (isSparse && (betaB[v][z][c] > MathUtils.eps)) {
-					gradientDelta[v][c][z] += alphaRightSign * betaB[v][z][c] * gradientTerm;
+				if (isSparse) {
+					if (betaB[v][z][c] > MathUtils.eps) {
+						if (deltaPositive) {
+							gradientDelta[v][c][z] += alphaRightSign * betaB[v][z][c] * deltaRightSign * gradientTerm;
+						}
+						else {
+							gradientDelta[v][c][z] += alphaRightSign * betaB[v][z][c] * gradientTerm;
+						}
+					}
 				}
 				else {
-					gradientDelta[v][c][z] += alphaRightSign * gradientTerm;
+					if (deltaPositive) {
+						gradientDelta[v][c][z] += alphaRightSign * deltaRightSign * gradientTerm;
+					}
+					else {
+						gradientDelta[v][c][z] += alphaRightSign * gradientTerm;
+					}
 				}
-				gradientDelta[v][c][z] += -(delta[v][c][z]) / (sigmaDelta_sqr * D);
+//				gradientDelta[v][c][z] += -(delta[v][c][z]) / (sigmaDelta_sqr * D);
+				
+				assert !Double.isNaN(gradientDelta[v][c][z]);
 			}
 			
 			if (isSparse)
 				gradientBetaB[v][z][c] += alphaRightSign * deltaRightSign * gradientTerm;
 			
+			assert !Double.isNaN(gradientBeta[v][z][c]);
+			assert !Double.isNaN(gradientBetaB[v][z][c]);
+			
 			if (!observed) {
 				if (isSparse) {
-					if (betaB[v][z][c] > MathUtils.eps)
-						gradientAlpha[d][c] += betaB[v][z][c] * deltaRightSign * gradientTerm;
+					
+					if (betaB[v][z][c] > MathUtils.eps) {
+						if (alphaPositive) {
+							gradientAlpha[d][c] += betaB[v][z][c] * deltaRightSign * alphaRightSign * gradientTerm;
+						}
+						else {
+							gradientAlpha[d][c] += betaB[v][z][c] * deltaRightSign * gradientTerm;
+						}
+					}
 				}
 				else {
-					gradientAlpha[d][c] += deltaRightSign * gradientTerm;
+					
+					if (alphaPositive) {
+						gradientAlpha[d][c] += deltaRightSign * alphaRightSign * gradientTerm;
+					}
+					else {
+						gradientAlpha[d][c] += deltaRightSign * gradientTerm;
+					}
 				}
-				gradientAlpha[d][c] += -(alpha[d][c]) / (sigmaAlpha_sqr * Z[v]);
+				
+//				gradientAlpha[d][c] += -(alpha[d][c]) / (sigmaAlpha_sqr * N_topics);
+				
 			}
+			
+			assert !Double.isNaN(gradientAlpha[d][c]);
+			
 		}
+		
+		if ((z == 0) && (d == 0))
+			Log.debug("Breakpt");
 	}
 	
 	public void updateAlphaGradient(double gradientTerm, int z, int v, int d) {
@@ -407,20 +518,35 @@ public class Factor implements Serializable {
 		
 		for (int c = 0; c < C; c++) {
 			double deltaRightSign = deltaPositive ? Math.exp(delta[v][c][z]) : delta[v][c][z];
+			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
 			
 			if (!observed) {
 				if (isSparse) {
-					if (betaB[v][z][c] > MathUtils.eps)
-						gradientAlpha[d][c] += betaB[v][z][c] * deltaRightSign * gradientTerm;
+					if (betaB[v][z][c] > MathUtils.eps) {
+						if (alphaPositive) {
+							gradientAlpha[d][c] += betaB[v][z][c] * deltaRightSign * alphaRightSign * gradientTerm;
+						}
+						else {
+							gradientAlpha[d][c] += betaB[v][z][c] * deltaRightSign * gradientTerm;
+						}
+					}
 				}
 				else {
-					gradientAlpha[d][c] += deltaRightSign * gradientTerm;
+					if (alphaPositive) {
+						gradientAlpha[d][c] += deltaRightSign * alphaRightSign * gradientTerm;
+					}
+					else {
+						gradientAlpha[d][c] += deltaRightSign * gradientTerm;
+					}
 				}
-				gradientAlpha[d][c] += -(alpha[d][c]) / (sigmaAlpha_sqr * Z[v]);
+				
+//				gradientAlpha[d][c] += -(alpha[d][c]) / (sigmaAlpha_sqr * N_topics);
 			}
+			assert !Double.isNaN(gradientAlpha[d][c]);
 		}
+		
+		
 	}
-	
 	
 	/**
 	 * 
@@ -438,7 +564,7 @@ public class Factor implements Serializable {
 		
 		for (int z = minZ; z < maxZ; z++) {
 			for (int c = 0; c < C; c++) {
-				// gradientBeta[v][z][c] += -(beta[v][z][c]) / sigmaBeta_sqr; // Done in updateGradient
+				gradientBeta[v][z][c] += -(beta[v][z][c]) / sigmaBeta_sqr;
 				adaBeta[v][z][c] += Math.pow(gradientBeta[v][z][c], 2);
 				beta[v][z][c] += (stepSize / (Math.sqrt(adaBeta[v][z][c]) + MathUtils.eps)) * gradientBeta[v][z][c];
 //				gradientBeta[v][z][c] = 0.; // Clear gradient for the next iteration
@@ -461,7 +587,15 @@ public class Factor implements Serializable {
 					adaBetaB[v][z][c] = (adadeltaRho * adaBetaB[v][z][c]) + ((1.0 - adadeltaRho) * Math.pow(gradientBetaB[v][z][c], 2)); // average
 					gradientBetaB[v][z][c] += priorTemp * prior; // exclude from adaBetaB
 					prevBetaB[z][c] = betaB[v][z][c]; // store in case update goes wrong
-					betaB[v][z][c] *= Math.exp((stepSize / (Math.sqrt(adaBetaB[v][z][c]) + MathUtils.eps)) * gradientBetaB[v][z][c]);
+					
+					if (Double.isInfinite(gradientBetaB[v][z][c])) {
+						betaB[v][z][c] = 0.0;
+//						Log.warn(String.format("Infinite betaB gradient: V=%d, Z=%d, C=%d", v, z, c));
+					}
+					else {
+						betaB[v][z][c] *= Math.exp((stepSize / (Math.sqrt(adaBetaB[v][z][c]) + MathUtils.eps)) * gradientBetaB[v][z][c]);
+					}
+					assert !Double.isNaN(betaB[v][z][c]);
 					
 					norm += betaB[v][z][c];
 //					gradientBetaB[v][z][c] = 0.;
@@ -475,21 +609,22 @@ public class Factor implements Serializable {
 					else {
 						betaB[v][z][c] /= norm;
 					}
+					assert !Double.isNaN(betaB[v][z][c]);
 				}
 			}
 		}
 		else {
-			for (int z = minZ; z < maxZ; z++) {
-				for (int c = 0; c < C; c++) {
-					betaB[v][z][c] = 1.0;
-				}
-			}
+//			for (int z = minZ; z < maxZ; z++) {
+//				for (int c = 0; c < C; c++) {
+//					betaB[v][z][c] = 1.0;
+//				}
+//			}
 		}
 		
 		if (v == 0) {
 			for (int c = 0; c < C; c++) {
 				for (int w = minW; w < maxW; w++) {
-					// gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
+					gradientOmega[c][w] += -(omega[c][w]) / sigmaOmega_sqr;
 					adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
 					omega[c][w] += (stepSize / (Math.sqrt(adaOmega[c][w]) + MathUtils.eps)) * gradientOmega[c][w];
 					//				gradientOmega[c][w] = 0.; // Clear gradient for the next iteration
@@ -497,20 +632,11 @@ public class Factor implements Serializable {
 			}
 		}
 		
-//		for (int c = 0; c < C; c++) {
-//			for (int w = minW; w < maxW; w++) {
-//				gradientOmega[v][c][w] += -(omega[v][c][w]) / sigmaOmega_sqr;
-//				adaOmega[v][c][w] += Math.pow(gradientOmega[v][c][w], 2);
-//				omega[v][c][w] += (stepSize / (Math.sqrt(adaOmega[v][c][w]) + MathUtils.eps)) * gradientOmega[v][c][w];
-//				gradientOmega[v][c][w] = 0.; // Clear gradient for the next iteration
-//			}
-//		}
-		
 		if (!observed) {
 			if (v == 0) { // Hack to make sure we only take a gradient step once for all views this factor is associated with
 				for (int d = minD; d < maxD; d++) {
 					for (int c = 0; c < C; c++) {
-						// gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
+						gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
 						adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
 						alpha[d][c] += (stepSize / (Math.sqrt(adaAlpha[d][c]) + MathUtils.eps)) * gradientAlpha[d][c];
 						//					gradientAlpha[d][c] = 0.; // Clear gradient for the next iteration
@@ -529,7 +655,7 @@ public class Factor implements Serializable {
 		else {
 			for (int c = 0; c < C; c++) {
 				for (int z = minZ; z < maxZ; z++) {
-					// gradientDelta[v][c][z] += -(delta[v][c][z]) / sigmaDelta_sqr;
+					gradientDelta[v][c][z] += -(delta[v][c][z]) / sigmaDelta_sqr;
 					adaDelta[v][c][z] += Math.pow(gradientDelta[v][c][z], 2);
 					delta[v][c][z] += (stepSize / (Math.sqrt(adaDelta[v][c][z]) + MathUtils.eps)) * gradientDelta[v][c][z];
 					// gradientDelta[v][c][z] = 0.; // Clear gradient for next iteration
@@ -556,7 +682,7 @@ public class Factor implements Serializable {
 			for (int w = minW; w < maxW; w++) {
 				gradientOmega[c][w] = 0.;
 			}
-			for (int d = minW; d < maxD; d++) {
+			for (int d = minD; d < maxD; d++) {
 				gradientAlpha[d][c] = 0.;
 			}
 		}
@@ -575,12 +701,20 @@ public class Factor implements Serializable {
 		double weight = 0.0;
 		
 		for (int c = 0; c < C; c++) {
-			if (betaB[v][z][c] > MathUtils.eps) {
+			if (isSparse) {
+				if (betaB[v][z][c] > MathUtils.eps) {
+					double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
+					weight += betaB[v][z][c] * betaRightSign * omega[c][w];
+					//weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
+				}
+			}
+			else {
 				double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
-				weight += betaB[v][z][c] * betaRightSign * omega[c][w];
-				//weight += betaB[v][z][c] * betaRightSign * omega[v][c][w];
+				weight += betaRightSign * omega[c][w];
 			}
 		}
+		
+		assert !Double.isNaN(weight);
 		
 		return weight; // SpritePhiPrior will exponentiate this
 	}
@@ -599,12 +733,20 @@ public class Factor implements Serializable {
 		double weight = 0.0;
 		
 		for (int c = 0; c < C; c++) {
-			if (betaB[v][z][c] > MathUtils.eps) {
-				double deltaRightSign = deltaPositive  ? Math.exp(delta[v][c][z]) : delta[v][c][z];
-				double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
-				weight += alphaRightSign * betaB[v][z][c] * deltaRightSign;
+			double deltaRightSign = deltaPositive  ? Math.exp(delta[v][c][z]) : delta[v][c][z];
+			double alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
+			
+			if (isSparse) {
+				if (betaB[v][z][c] > MathUtils.eps) {
+					weight += alphaRightSign * betaB[v][z][c] * deltaRightSign;
+				}
+			}
+			else {
+				weight += alphaRightSign * deltaRightSign;
 			}
 		}
+		
+		assert !Double.isNaN(weight);
 		
 		return weight; // SpriteThetaPrior will exponentiate this
 	}
@@ -619,7 +761,8 @@ public class Factor implements Serializable {
 				
 				b.append(String.format("delta_%d_%d", v, z));
 				for (int c = 0; c < C; c++) {
-					b.append(String.format(" %.3f", delta[v][c][z]));
+					double deltaRightSign = deltaPositive ? Math.exp(delta[v][c][z]) : delta[v][c][z];
+					b.append(String.format(" %.3f", deltaRightSign));
 				}
 				
 				Log.info("factor_" + factorName + "_iteration", b.toString());
@@ -629,12 +772,23 @@ public class Factor implements Serializable {
 				
 				b.append(String.format("beta_%d_%d", v, z));
 				for (int c = 0; c < C; c++) {
-					b.append(String.format(" %.3f", beta[v][z][c]));
+					double betaRightSign = betaPositive ? Math.exp(beta[v][z][c]) : beta[v][z][c];
+					b.append(String.format(" %.3f", betaRightSign));
 				}
 				
 				Log.info("factor_" + factorName + "_iteration", b.toString());
 			}
 			
+			for (int z = 0; z < Z[v]; z++) {
+				StringBuilder b = new StringBuilder();
+				
+				b.append(String.format("betaB_%d_%d", v, z));
+				for (int c = 0; c < C; c++) {
+					b.append(String.format(" %.3f", betaB[v][z][c]));
+				}
+				
+				Log.info("factor_" + factorName + "_iteration", b.toString());
+			}
 		}
 		
 		//for (int w = 0; w < W[v]; w += 10000) {
@@ -663,9 +817,11 @@ public class Factor implements Serializable {
 	public String getAlphaString(int d) {
 		StringBuilder builder = new StringBuilder();
 		
-		builder.append("" + this.alpha[d][0]);
+		double alphaRightSign = alphaPositive ? Math.exp(alpha[d][0]) : alpha[d][0];
+		builder.append("" + alphaRightSign);
 		for (int c = 1; c < C; c++) {
-			builder.append(" " + this.alpha[d][c]);
+			alphaRightSign = alphaPositive ? Math.exp(alpha[d][c]) : alpha[d][c];
+			builder.append(" " + alphaRightSign);
 		}
 		
 		return builder.toString();

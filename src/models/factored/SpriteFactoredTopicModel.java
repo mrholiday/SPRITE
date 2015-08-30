@@ -12,15 +12,20 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import main.SpriteWorker.ThreadCommunication;
+import main.SpriteWorker.ThreadCommunication.ThreadCommand;
+
+import utils.MathUtils;
+
 import prior.SpritePhiPrior;
 import prior.SpriteThetaPrior;
 
 import utils.IO;
 import utils.Log;
-import utils.MathUtils;
 import utils.Tup2;
 import utils.Tup3;
 import utils.Tup5;
+import utils.Utils;
 
 /**
  * Should be equivalent to SpriteJoint model but allows for multiple factors.
@@ -81,11 +86,11 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	// Should be the same size, one per view
 	protected SpriteThetaPrior[] thetaPriors;
 	protected SpritePhiPrior[] phiPriors;
-
+	
 	private double stepSize; // Master step size
 	
 	public String outputDir = null; // Where model parameters get written
-
+	
 	/**
 	 * Gets the ranges over which we want to split our threads up for each view.
 	 * The length of \theta and \phi priors are assumed equal.
@@ -203,14 +208,14 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				}
 			}
 		}
-
+		
 		runningDSums = new int[numViews];
 		runningDSums[0] = D;
 		runningZSums = new int[numViews];
 		runningZSums[0] = Z[0];
 		runningWSums = new int[numViews];
 		runningWSums[0] = W;
-
+		
 		// Compute running sums of topics/words to initialize thread locks
 		for (int v = 1; v < numViews; v++) {
 			runningDSums[v] = D;
@@ -246,8 +251,25 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				topicLocks[zLock] = (Integer) zLock;
 			}
 		}
-
+		
 		super.initTrain(); // Spin up threads
+		
+		// Initialize priors
+		for (int i = 0; i < numThreads; i++) {
+			try {
+				THREAD_WORKER_QUEUE.put(new ThreadCommunication(ThreadCommand.UPDATE_PRIOR, threadName));
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
+		for (int i = 0; i < numThreads; i++) {
+			try {
+				THREAD_MASTER_QUEUE.take();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	@Override
@@ -446,7 +468,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				for (int n = 0; n < docs[d][v].length; n++) {
 					sample(d, v, n);
 				}
-
+				
 				if (d % 10000 == 0) {
 					Log.info("SpriteFactoredTopicModel",
 							String.format("Done view %d, document %d", v, d));
@@ -473,7 +495,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 	}
-
+	
 	private void sample(int d, int v, int n) {
 		int w = docs[d][v][n];
 		int topic = docsZ[d][v][n];
@@ -486,9 +508,19 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			nDZ[d][v][topic] -= 1;
 		}
 		
-		// sample new topic value
-		topic = sampleTopic(d, v, n, w);
-//		topic = sampleTopicBinarySearch(d, v, n, w);
+//		 sample new topic value
+//		double r = MathUtils.r.nextDouble();
+//		
+//		int topic1 = sampleTopic(d, v, n, w, r);
+//		int topic2 = sampleTopicBinarySearch(d, v, n, w, r);
+//		
+//		System.out.println(d + " " + v + " " + n + " " + w + " " + topic1 + " " + topic2);
+		
+//		assert topic1 == topic2;
+//		topic = topic2;
+		
+//		topic = sampleTopic(d, v, n, w);
+		topic = sampleTopicBinarySearch(d, v, n, w);
 		
 		// increment counts
 		
@@ -540,7 +572,95 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		probe = (upperIdx + lowerIdx)/2;
-		topic = probe;
+		topic = pSums[probe] > needle ? probe : probe + 1;
+		
+		assert upperIdx <= (lowerIdx+1);
+		assert topic >= 0 && topic < Z[v];
+		
+		/*
+		if (upperIdx > lowerIdx + 1) {
+			Log.error("sampling", String.format("Upper Idx: %d Lower Idx: %d", upperIdx, lowerIdx));
+			topic = -1;
+		}
+		if (topic < 0 || topic >= Z[v]) {
+			StringBuilder b = new StringBuilder();
+			
+			Log.error("sampling", "Did not sample topic correctly: " + topic);
+			
+			for (int z = 0; z < Z[v]; z++) { b.append(pSums[z] + ", "); }
+			
+			Log.error("sampling", "Topic weight sums: " + b.toString());
+			Log.error("sampling", "Needle: " + needle);
+		}
+		*/
+		
+		return topic;
+	}
+	
+	private int sampleTopicBinarySearch(int d, int v, int n, int w, double r) {
+		// Sample new topic value for a word.  Uses binary search to speed up sampling
+		
+		double p = 0.0;
+		double pTotal = 0.0;
+		double[] pSums = new double[Z[v]];
+		
+		for (int z = 0; z < Z[v]; z++) {
+			double val = (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z]) * (nZW[v][z][w] + phiPriors[v].phiTilde[z][w]) / (nZ[v][z] + phiPriors[v].phiNorm[z]);
+			
+			assert val >= 0.;
+			
+			pSums[z] = pTotal + val;
+			pTotal = pSums[z];
+		}
+		
+		// Binary search
+		double needle = r * pTotal;
+		
+		int lowerIdx = 0;
+		int upperIdx = pSums.length - 1;
+		int topic = -1;
+		int probe = -1;
+		
+		while (lowerIdx < upperIdx) {
+			probe           = (upperIdx + lowerIdx)/2;
+			double probeVal = pSums[probe];
+			
+			if (probeVal > needle) {
+				upperIdx = probe - 1;
+			}
+			else if (probeVal < needle) {
+				lowerIdx = probe + 1;
+			}
+			else {
+				break;
+			}
+		}
+		
+		probe = (upperIdx + lowerIdx)/2;
+		topic = pSums[probe] > needle ? probe : probe + 1;
+		
+//		System.out.println("pSums: " + Utils.mkStr(pSums));
+//		System.out.println("Binary sample: " + probe + " " + needle + " " + pSums[probe] + " " + topic);
+		
+		assert upperIdx <= (lowerIdx+1);
+		assert topic >= 0 && topic < Z[v];
+		
+		/*
+		if (upperIdx > lowerIdx + 1) {
+			Log.error("sampling", String.format("Upper Idx: %d Lower Idx: %d", upperIdx, lowerIdx));
+			topic = -1;
+		}
+		if (topic < 0 || topic >= Z[v]) {
+			StringBuilder b = new StringBuilder();
+			
+			Log.error("sampling", "Did not sample topic correctly: " + topic);
+			
+			for (int z = 0; z < Z[v]; z++) { b.append(pSums[z] + ", "); }
+			
+			Log.error("sampling", "Topic weight sums: " + b.toString());
+			Log.error("sampling", "Needle: " + needle);
+		}
+		*/
 		
 		return topic;
 	}
@@ -591,12 +711,42 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		for (int z = 0; z < Z[v]; z++) {
 			probVal += p[z];
 			
-			if (probVal > u) {
+			if (probVal >= u) {
 				topic = z;
 				break;
 			}
 		}
-
+		
+		return topic;
+	}
+	
+	private int sampleTopic(int d, int v, int n, int w, double r) {
+		// sample new topic value for a word
+		
+		int topic = -1;
+		
+		double[] p = new double[Z[v]];
+		double pTotal = 0;
+		
+		for (int z = 0; z < Z[v]; z++) {
+			p[z] = (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
+					* (nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
+					/ (nZ[v][z] + phiPriors[v].phiNorm[z]);
+			pTotal += p[z];
+		}
+		
+		double u = r * pTotal;
+		
+		double probVal = 0.0;
+		for (int z = 0; z < Z[v]; z++) {
+			probVal += p[z];
+			
+			if (probVal >= u) {
+				topic = z;
+				break;
+			}
+		}
+		
 		return topic;
 	}
 	

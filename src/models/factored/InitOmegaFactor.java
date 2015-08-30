@@ -8,8 +8,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import utils.Log;
 import utils.MathUtils;
+
+import utils.Log;
 import utils.Tup2;
 
 public class InitOmegaFactor extends LinkedFactor {

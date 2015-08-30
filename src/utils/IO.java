@@ -73,7 +73,7 @@ public class IO {
 			observedFactors = new double[numFactorsObserved][D][];
 			
 			fr = new FileReader(inputPath);
-			br = new BufferedReader(fr); 
+			br = new BufferedReader(fr);
 			
 			int d = 0;
 			while ((s = br.readLine()) != null) {

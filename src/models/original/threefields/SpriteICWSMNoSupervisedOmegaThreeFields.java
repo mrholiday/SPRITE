@@ -20,9 +20,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import utils.MathUtils;
 import main.TopicModel;
 
-import utils.MathUtils;
 import utils.Tup2;
 
 /**

@@ -136,23 +136,7 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 		iter = iter0;
 		
 		long startTime = System.currentTimeMillis();
-		// Compute the priors with the new params and update the cached prior variables 
-		for (int i = 0; i < numThreads; i++) {
-			try {
-				THREAD_WORKER_QUEUE.put(new ThreadCommunication(ThreadCommand.UPDATE_PRIOR, threadName));
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-
-		for (int i = 0; i < numThreads; i++) {
-			try {
-				THREAD_MASTER_QUEUE.take();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-
+		
 		// sample topic values for all the tokens
 		try {
 			for (int i = 0; i < numThreads; i++) {
@@ -188,6 +172,10 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 				}
 			}
 			
+//			if (iter % 100 == 0) {
+//				Log.debug("Gradient breakpoint");
+//			}
+			
 			// Take a step along the gradient
 			try {
 				for (int i = 0; i < numThreads; i++) {
@@ -211,6 +199,23 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			for (int i = 0; i < numThreads; i++) {
+				try {
+					THREAD_MASTER_QUEUE.take();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			// Compute the priors with the new params and update the cached prior variables 
+			for (int i = 0; i < numThreads; i++) {
+				try {
+					THREAD_WORKER_QUEUE.put(new ThreadCommunication(ThreadCommand.UPDATE_PRIOR, threadName));
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			
 			for (int i = 0; i < numThreads; i++) {
 				try {
 					THREAD_MASTER_QUEUE.take();

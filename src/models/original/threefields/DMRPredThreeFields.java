@@ -14,9 +14,9 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import utils.MathUtils;
 import main.TopicModel;
 
-import utils.MathUtils;
 
 /**
  * Hardcoded SPRITE model with three perspective features.  For our
@@ -66,7 +66,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 	public double[][] alpha;
     
 	public double omegaB;
-	//public double[][] omega;
+//	public double[][] omega;
 	public double[] omegaBias;
 	public double[][] priorZW;
 	public double[] phiNorm;
@@ -94,7 +94,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 	public int likelihoodFreq;
 	
 	// Pulled out to compute gradient in parallel.
-	//double[][] gradientOmega;
+//	double[][] gradientOmega;
 	double[] gradientOmegaBias;
 	double[][] gradientBeta;
 	double[][] gradientBetaB;
@@ -103,7 +103,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 	double[] gradientDeltaBias;
 	double[][] gradientAlpha;
 	
-	//double[][] adaOmega;
+//	double[][] adaOmega;
 	double[] adaOmegaBias;
 	double[][] adaBeta;
 	double[][] adaBetaB;
@@ -126,11 +126,20 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 	private int predFold; // The held-out fold
 	private int[] docToFold; // Mapping from document to the fold it belongs to.
 	
+	private Integer[] wordLocks;
+	private Integer[] topicLocks;
+	private Integer[] docLocks;
+	
 	public DMRPredThreeFields(int z, double sigmaA0, double sigmaAB0, double sigmaW0, double sigmaWB0,
 			double stepSizeADZ0, double stepSizeAZ0, double stepSizeAB0, double stepSizeW0, double stepSizeWB0,
 			double stepSizeB0, double delta00, double delta10, double deltaB0, double omegaB0, int likelihoodFreq0,
 			String prefix, double stepA0, int Cth0, int Cph0, int seed0, int numThreads0, int predFold0) {
 		Z = z;
+		
+		topicLocks = new Integer[Z];
+		for (int i = 0; i < Z; i++) {
+			topicLocks[i] = (Integer)i;
+		}
 		
 		sigmaA = sigmaA0;
 		sigmaAB = sigmaAB0;
@@ -193,12 +202,12 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		
 		beta = new double[Z][Cph];
 		betaB = new double[Z][Cph];
-		//omega = new double[Cph][W];
+//		omega = new double[Cph][W];
 		omegaBias = new double[W];
 		phiNorm = new double[Z];
 		priorZW = new double[Z][W];
 		
-		//adaOmega = new double[Cph][W];
+//		adaOmega = new double[Cph][W];
 		adaOmegaBias = new double[W];
 		adaBeta = new double[Z][Cph];
 		adaBetaB = new double[Z][Cph];
@@ -207,7 +216,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		adaAlpha = new double[D][Cth];
 		
 		// Initialize gradient
-		//gradientOmega = new double[Cph][W];
+//		gradientOmega = new double[Cph][W];
 		gradientOmegaBias = new double[W];
 		gradientBeta = new double[Z][Cph];
 		gradientBetaB = new double[Z][Cph];
@@ -261,7 +270,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 //		for (int c = 0; c < Cph; c++) {
 //			for (int w = 0; w < W; w++) {
 //				omega[c][w] = (r.nextDouble() - 0.5) / 100.0;
-//				omega[c][w] += -2.0;
+////				omega[c][w] += -2.0;
 //			}
 //		}
 		
@@ -464,7 +473,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		
 		//for (int c = 0; c < 1; c++) {
 //		for (int c = 0; c < 3; c++) {
-//			//weight += beta[z][c] * omega[c][w];
+//			weight += beta[z][c] * omega[c][w];
 //		}
 		//for (int c = 1; c < Cph; c++) {
 //		for (int c = 3; c < Cph; c++) {
@@ -520,7 +529,17 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 				
 				double gradientTerm = priorZW[z][w] * (dg1-dg2+dgW1-dgW2);
 				
-				gradientOmegaBias[w] += gradientTerm;
+//				for (int c = 0; c < Cph; c++) {
+//					gradientBeta[z][c] += omega[c][w] * gradientTerm;
+//				}
+				
+				synchronized(wordLocks[w]) {
+//					for (int c = 0; c < Cph; c++) {
+//						gradientOmega[c][w] += beta[z][c] * gradientTerm;
+//					}
+					gradientOmegaBias[w] += gradientTerm;
+				}
+//				gradientOmegaBias[w] += gradientTerm;
 			}
 		}
 		
@@ -534,7 +553,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 				double gradientTerm = priorDZ[d][z] * (dg1-dg2+dgW1-dgW2);
 				
 				//for (int c = 0; c < 1; c++) { // factor
-				for (int c = 0; c < 3; c++) { // factor
+				for (int c = 0; c < Cth; c++) { // factor
 					gradientBeta[z][c] += alpha[d][c] * gradientTerm;
 				}
 //				for (int c = 3; c < Cth; c++) { // hierarchy
@@ -632,16 +651,14 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 //			}
 //		}
 		
-		/*
-		for (int c = 0; c < Cph; c++) {
-			for (int w = minW; w < maxW; w++) {
-				gradientOmega[c][w] += -(omega[c][w]) / Math.pow(sigmaOmega, 2);
-				adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
-				omega[c][w] += (step / (Math.sqrt(adaOmega[c][w])+eps)) * gradientOmega[c][w];
-				gradientOmega[c][w] = 0.;
-			}
-		}
-		*/
+//		for (int c = 0; c < Cph; c++) {
+//			for (int w = minW; w < maxW; w++) {
+//				gradientOmega[c][w] += -(omega[c][w]) / Math.pow(sigmaOmega, 2);
+//				adaOmega[c][w] += Math.pow(gradientOmega[c][w], 2);
+//				omega[c][w] += (step / (Math.sqrt(adaOmega[c][w])+eps)) * gradientOmega[c][w];
+//				gradientOmega[c][w] = 0.;
+//			}
+//		}
 		
 		for (int w = minW; w < maxW; w++) {
 			gradientOmegaBias[w] += -(omegaBias[w]) / Math.pow(sigmaOmegaBias, 2);
@@ -1130,7 +1147,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		
 		// decrement counts
 		
-		synchronized((Integer)topic) {
+		synchronized(topicLocks[topic]) {
 			if (docToFold[d] != predFold) {
 				nZW[topic][w] -= 1;
 				nZ[topic] -= 1;
@@ -1164,7 +1181,7 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		
 		// increment counts
 		
-		synchronized((Integer)topic) {
+		synchronized(topicLocks[topic]) {
 			if (docToFold[d] != predFold) {
 				nZW[topic][w] += 1;
 				nZ[topic] += 1;
@@ -1218,6 +1235,11 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 			D++;
 		}
 		
+		docLocks = new Integer[D];
+		for (int i = 0; i < D; i++) {
+			docLocks[i] = (Integer)i;
+		}
+		
 		docs = new int[1][D][];
 		docIds = new BigInteger[D];
 		docsC0 = new double[D];
@@ -1265,6 +1287,11 @@ public class DMRPredThreeFields extends TopicModel implements Serializable {
 		fr.close();
 		
 		W = wordMap.size();
+		
+		wordLocks = new Integer[W];
+		for (int i = 0; i < W; i++) {
+			wordLocks[i] = (Integer)i;
+		}
 		
 		System.out.println(D + " documents");
 		System.out.println(W + " word types");

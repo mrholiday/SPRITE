@@ -5,6 +5,9 @@ import java.io.File;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 
+import cslda.CSLDA;
+import cslda.CSLDAPred;
+
 import models.original.DMR;
 import models.original.DMRPred;
 import models.original.SpriteICWSM;
@@ -12,12 +15,15 @@ import models.original.SpriteICWSMNoSupervisedOmega;
 import models.original.SpriteICWSMNoSupervisedOmegaFixedMean;
 import models.original.SpriteICWSMNoSupervisedOmegaPred;
 import models.original.SpriteICWSMPred;
+import models.original.SpriteJoint;
 import models.original.SpriteJointThreeFactor;
 import models.original.SpriteJointThreeFactorPred;
 import models.original.SpriteLDA;
 import models.original.SpriteLDAPred;
 import models.original.SpriteUnsupervised;
 import models.original.SpriteUnsupervisedPred;
+import models.original.threefields.DMROmegaThreeFields;
+import models.original.threefields.DMRPredOmegaThreeFields;
 import models.original.threefields.DMRPredThreeFields;
 import models.original.threefields.DMRThreeFields;
 import models.original.threefields.SpriteICWSMNoSupervisedOmegaPredThreeFields;
@@ -28,8 +34,8 @@ import models.original.threefields.SpriteICWSMPredThreeFields;
 import models.original.threefields.SpriteICWSMThreeFields;
 import models.original.threefields.Sprite_DAG;
 
-import utils.Log;
 import utils.MathUtils;
+import utils.Log;
 
 public class LearnTopicModel {
 	
@@ -72,10 +78,13 @@ public class LearnTopicModel {
 
 		@Parameter(names="-Cph", description="Number of components across \\phi's factors.  Defaults to 11.")
 		int Cph = 11;
-
+		
+		@Parameter(names="-sigmaCSLDA", description="Lower -> CSLDA favors topics that better predict labels")
+		double sigmaCSLDA = 10.0;
+		
 		//@Parameter(names="-temper", description="Temperature constant")
 		//double temper = 1.0;
-
+		
 		@Parameter(names="-seed", description="Random seed.  Default is to use machine clock time")
 		int seed = -1;
 
@@ -148,7 +157,21 @@ public class LearnTopicModel {
 						c.omegaBias, c.likelihoodFreq, "", c.step, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
-		
+		else if (c.model.equals("sprite_joint")) {
+			topicModel = new SpriteJoint(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega, c.sigmaOmegaBias, c.step, c.step,
+					                     c.step, c.step, c.step, c.step, -1, -1, c.deltaBias, c.omegaBias,
+					                     c.likelihoodFreq, "sprite_joint", c.step, c.Cth, c.Cph, c.seed, c.numThreads);
+		}
+		else if (c.model.equals("cslda")) {
+			if (c.predFold < 0) {
+				topicModel = new CSLDA(c.z, c.deltaBias, c.omegaBias, c.sigmaCSLDA, c.step, c.sigmaDeltaBias,
+						c.sigmaOmegaBias, c.computePerplexity); 
+			}
+			else {
+				topicModel = new CSLDAPred(c.z, c.deltaBias, c.omegaBias, c.sigmaCSLDA, c.step, c.sigmaDeltaBias,
+						c.sigmaOmegaBias, c.predFold); 
+			}
+		}
 		else if (c.model.equals("sprite_lda")) {
 			if (c.predFold >= 0) {
 				  topicModel = new SpriteLDAPred(c.z, c.sigmaAlpha, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
@@ -233,6 +256,19 @@ public class LearnTopicModel {
 						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.computePerplexity);
 			}
 		}
+		else if (c.model.equals("dmr_omega_threefields")) {
+			if (c.predFold >= 0) {
+				// -1 or "" are for arguments that were obligatory but never used...
+				topicModel = new DMRPredOmegaThreeFields(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.predFold);
+			}
+			else {
+				topicModel = new DMROmegaThreeFields(c.z, c.sigmaDelta, c.sigmaDeltaBias, c.sigmaOmega,
+						c.sigmaOmegaBias, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, c.deltaBias,
+						c.omegaBias, c.likelihoodFreq, "", c.step, 3, 3, c.seed, c.numThreads, c.computePerplexity);
+			}
+		}
 		else if (c.model.equals("sprite_threefields")) {
 			//topicModel = new SpriteJoint(z, sigmaA, sigmaAB, sigmaW, sigmaWB, stepSizeADZ, stepSizeAZ, stepSizeAB, stepSizeW,
 			//		                     stepSizeWB, stepSizeB, delta0, delta1, deltaB, omegaB, likelihoodFreq, priorPrefix,
@@ -294,9 +330,11 @@ public class LearnTopicModel {
 					"full_dag", 0.01, c.Cth, c.Cph);
 		}
 		else {
-			System.out.println("Invalid model specification. Options: sprite sprite_lda sprite_unsupervised sprite_icwsm_noomega dmr sprite_3factor dmr_threefields sprite_threefields sprite_icwsm_noomega_threefields");
+			System.out.println("Invalid model specification. Options: sprite sprite_lda sprite_unsupervised sprite_icwsm_noomega dmr sprite_3factor dmr_threefields dmr_omega_threefields sprite_threefields sprite_icwsm_noomega_threefields");
 			return;
 		}
+		
+//		topicModel.likelihoodFreq = c.likelihoodFreq;
 		
 		// Initializes random stream and logger
 		init(c.seed, c.logPath);
@@ -311,7 +349,8 @@ public class LearnTopicModel {
 		
 		outputDirFile.mkdir();
 		
-		topicModel.train(c.iters, c.samples, c.filename, outputDir);
+		System.out.println("Likelihood freq: " + topicModel.likelihoodFreq);
+		topicModel.train(c.iters, c.samples, c.filename, outputDir, c.likelihoodFreq);
 	}
 
 }

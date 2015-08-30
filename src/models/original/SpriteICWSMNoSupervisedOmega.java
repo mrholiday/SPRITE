@@ -14,9 +14,9 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import utils.MathUtils;
 import main.TopicModel;
 
-import utils.MathUtils;
 
 // TODO: Broken.  Need to correctly index to docs.  Same goes for all the other old models where docs was changed from 2-d array to 3-d.
 

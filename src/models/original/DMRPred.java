@@ -14,9 +14,9 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import utils.MathUtils;
 import main.TopicModel;
 
-import utils.MathUtils;
 
 /**
  * Hardcoded SPRITE model with three perspective features.  For our

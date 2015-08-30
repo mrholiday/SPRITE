@@ -4,6 +4,7 @@ import java.util.Map;
 
 import utils.MathUtils;
 
+
 /**
  * Factor where the beta/delta for each topic is 1 for all views -> component.
  * This assumes that this factor has the same number of components as all topics

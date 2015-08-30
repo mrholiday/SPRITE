@@ -28,7 +28,9 @@ public class SpriteThetaPrior implements Serializable {
 	public int D; // Number of documents
 	
 	// Bias term.  Assuming this is ever-present.
-	private double[] deltaBias;
+//	private double[] deltaBias;
+	public double[] deltaBias;
+	
 	private double initDeltaBias; // Initial value for deltaBias
 	
 	// Sum over topics for each document.
@@ -40,7 +42,9 @@ public class SpriteThetaPrior implements Serializable {
 	private int[] views; // Views this prior is responsible for
 //	private int currentView; // View this prior over theta is responsible for.
 	
-	private double[] gradientDeltaBias;
+	public double[] gradientDeltaBias;
+	
+//	private double[] gradientDeltaBias;
 	private double[] adaDeltaBias;
 	private double   sigmaDeltaBias;
 	
@@ -117,9 +121,11 @@ public class SpriteThetaPrior implements Serializable {
 			
 //			if (v == views[0]) { // Only update this once for all views it is associated with
 			gradientDeltaBias[z] += gradientTerm;
-			gradientDeltaBias[z] += -(deltaBias[z]) / (Math.pow(sigmaDeltaBias, 2) * D * views.length); // Regularize \delta^{BIAS}
+			
+//			gradientDeltaBias[z] += -(deltaBias[z]) / (Math.pow(sigmaDeltaBias, 2) * D * views.length); // Regularize \delta^{BIAS}
 //			}
 		}
+		
 	}
 	
 	public void clearGradient(int v, int minZ, int maxZ) {
@@ -168,9 +174,12 @@ public class SpriteThetaPrior implements Serializable {
 		
 		if (v == views[0]) {
 			for (int z = minZ; z < maxZ; z++) {
-				// gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);  // This is rightly done in updateGradient now.
-				adaDeltaBias[z] += Math.pow(gradientDeltaBias[z], 2);
-				deltaBias[z] += (stepSize / (Math.sqrt(adaDeltaBias[z]) + MathUtils.eps)) * gradientDeltaBias[z];
+				gradientDeltaBias[z] += -(deltaBias[z]) / Math.pow(sigmaDeltaBias, 2);
+				
+				if (optimizeMe) {
+					adaDeltaBias[z] += Math.pow(gradientDeltaBias[z], 2);
+					deltaBias[z] += (stepSize / (Math.sqrt(adaDeltaBias[z]) + MathUtils.eps)) * gradientDeltaBias[z];
+				}
 			}
 		}
 	}
