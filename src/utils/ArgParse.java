@@ -76,6 +76,9 @@ public class ArgParse {
 		
 		@Parameter(names="-initOmegaPath", description="Path to initialize omega from")
 		public String initOmegaPath = null;
+		
+		@Parameter(names="-numFactors", description="How many supertopic factors to build our model with")
+		public int numFactors = -1;
 	}
 	
 	private static void initRandAndLog(int seed, String logPath) {
