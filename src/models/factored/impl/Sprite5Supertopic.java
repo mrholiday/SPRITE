@@ -36,7 +36,7 @@ public class Sprite5Supertopic extends SpriteFactoredTopicModel {
 		Factor[] factors = new Factor[5];
 		
 		for (int i = 0; i < 5; i++) {
-			factors[i] = new Factor(C, new int[] {0}, new int[] {Z}, 0.001, true,
+			factors[i] = new Factor(C, new int[] {0}, new int[] {Z}, 0.001, false,
 									sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
 									true, true, "supertopic-" + i, false, true, true);
 		}

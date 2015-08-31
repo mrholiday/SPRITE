@@ -32,7 +32,7 @@ public class SpriteSupertopic extends SpriteFactoredTopicModel {
 	private static Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> buildPriors(int Z, int C,
 				double sigmaDeltaBias, double initDeltaBias, double sigmaOmegaBias, double initOmegaBias,
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
-		Factor[] factors = new Factor[] {new Factor(C, new int[] {0}, new int[] {Z}, 0.01, true,
+		Factor[] factors = new Factor[] {new Factor(C, new int[] {0}, new int[] {Z}, 0.01, false,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
 										 true, true, "supertopic", false, true, true)};
 		
