@@ -79,6 +79,9 @@ public class ArgParse {
 		
 		@Parameter(names="-numFactors", description="How many supertopic factors to build our model with")
 		public int numFactors = -1;
+		
+		@Parameter(names="-priorWeight", description="How heavily to weight the theta/phi priors")
+		public double priorWeight = 1.0;
 	}
 	
 	private static void initRandAndLog(int seed, String logPath) {

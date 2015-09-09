@@ -26,8 +26,8 @@ public class Sprite2ViewLinkedTopics extends SpriteFactoredTopicModel {
 	
 	public Sprite2ViewLinkedTopics(SpriteThetaPrior[] thetaPriors0,
 			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
-			double stepSize0) {
-		super(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0);
+			double stepSize0, double priorWeight0) {
+		super(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0, priorWeight0);
 	}
 	
 	private static Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> buildPriors(int Z, int C,
@@ -53,7 +53,7 @@ public class Sprite2ViewLinkedTopics extends SpriteFactoredTopicModel {
 		if (p != null) {
 			Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> graph = buildPriors(p.z, p.C, p.sigmaDeltaBias, p.deltaBias, p.sigmaOmegaBias,
 																					 p.omegaBias, p.sigmaBeta, p.sigmaOmega, p.sigmaAlpha, p.sigmaDelta);
-			topicModel = new Sprite2ViewLinkedTopics(graph._2(), graph._3(), graph._1(), p.numThreads, p.step);
+			topicModel = new Sprite2ViewLinkedTopics(graph._2(), graph._3(), graph._1(), p.numThreads, p.step, p.priorWeight);
 			topicModel.outputDir = p.outDir;
 			topicModel.TIME_ITERATIONS = true;
 			

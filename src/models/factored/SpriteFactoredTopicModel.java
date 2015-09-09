@@ -91,6 +91,8 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	public String outputDir = null; // Where model parameters get written
 	
+	public double priorWeight = 1.0; // Normally fixed to 1.  Adjusting this to debug 2-view model for now.
+	
 	/**
 	 * Gets the ranges over which we want to split our threads up for each view.
 	 * The length of \theta and \phi priors are assumed equal.
@@ -106,7 +108,14 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 
 		return ranges;
 	}
-
+	
+	public SpriteFactoredTopicModel(SpriteThetaPrior[] thetaPriors0,
+			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
+			double stepSize0, double priorWeight0) {
+		this(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0);
+		priorWeight = priorWeight0;
+	}
+	
 	public SpriteFactoredTopicModel(SpriteThetaPrior[] thetaPriors0,
 			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
 			double stepSize0) {
@@ -416,7 +425,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 				
 				for (int n = 0; n < numDocTokens; n++) {
 					int w = corpus[d][v][n];
-
+					
 					double tokenLL = 0;
 					
 					// marginalize over z
@@ -426,10 +435,10 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 						// (nZW[v][z][w] + priorZW[v][z][w]) / (nZ[v][z] +
 						// phiNormPerView[v][z]);
 						
-						tokenLL += (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
-								/ (nD[d][v] + thetaPriors[v].thetaNorm[d])
-								* (nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
-								/ (nZ[v][z] + phiPriors[v].phiNorm[z]);
+						tokenLL += (nDZ[d][v][z] + priorWeight * thetaPriors[v].thetaTilde[d][z])
+								/ (nD[d][v] + priorWeight * thetaPriors[v].thetaNorm[d])
+								* (nZW[v][z][w] + priorWeight * phiPriors[v].phiTilde[z][w])
+								/ (nZ[v][z] + priorWeight * phiPriors[v].phiNorm[z]);
 					}
 					
 					LL += Math.log(tokenLL);
@@ -542,9 +551,9 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		double[] pSums = new double[Z[v]];
 		
 		for (int z = 0; z < Z[v]; z++) {
-			pSums[z] = pTotal + (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
-					* (nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
-					/ (nZ[v][z] + phiPriors[v].phiNorm[z]);
+			pSums[z] = pTotal + (nDZ[d][v][z] + priorWeight * thetaPriors[v].thetaTilde[d][z])
+					* (nZW[v][z][w] + priorWeight * phiPriors[v].phiTilde[z][w])
+					/ (nZ[v][z] + priorWeight * phiPriors[v].phiNorm[z]);
 			pTotal = pSums[z];
 		}
 		
@@ -605,7 +614,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		double[] pSums = new double[Z[v]];
 		
 		for (int z = 0; z < Z[v]; z++) {
-			double val = (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z]) * (nZW[v][z][w] + phiPriors[v].phiTilde[z][w]) / (nZ[v][z] + phiPriors[v].phiNorm[z]);
+			double val = (nDZ[d][v][z] + priorWeight * thetaPriors[v].thetaTilde[d][z]) * (nZW[v][z][w] + priorWeight * phiPriors[v].phiTilde[z][w]) / (nZ[v][z] + priorWeight * phiPriors[v].phiNorm[z]);
 			
 			assert val >= 0.;
 			
@@ -674,9 +683,9 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		double pTotal = 0;
 		
 		for (int z = 0; z < Z[v]; z++) {
-			p[z] = (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
-					* (nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
-					/ (nZ[v][z] + phiPriors[v].phiNorm[z]);
+			p[z] = (nDZ[d][v][z] + priorWeight * thetaPriors[v].thetaTilde[d][z])
+					* (nZW[v][z][w] + priorWeight * phiPriors[v].phiTilde[z][w])
+					/ (nZ[v][z] + priorWeight * phiPriors[v].phiNorm[z]);
 			
 //			int ndzCollapsed = 0;
 //			int nzwCollapsed = 0;
@@ -729,9 +738,9 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		double pTotal = 0;
 		
 		for (int z = 0; z < Z[v]; z++) {
-			p[z] = (nDZ[d][v][z] + thetaPriors[v].thetaTilde[d][z])
-					* (nZW[v][z][w] + phiPriors[v].phiTilde[z][w])
-					/ (nZ[v][z] + phiPriors[v].phiNorm[z]);
+			p[z] = (nDZ[d][v][z] + priorWeight * thetaPriors[v].thetaTilde[d][z])
+					* (nZW[v][z][w] + priorWeight * phiPriors[v].phiTilde[z][w])
+					/ (nZ[v][z] + priorWeight * phiPriors[v].phiNorm[z]);
 			pTotal += p[z];
 		}
 		
