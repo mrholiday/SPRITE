@@ -10,19 +10,18 @@ import utils.ArgParse.Arguments;
 import utils.Tup3;
 
 /**
- * Topic model with one single-component perspective factor for a single view.
- * Perspective factor influences document and topic distributions.
+ * Single-feature DMR model.
  * 
  * @author adrianb
  *
  */
-public class SpriteTopicPerspective extends SpriteFactoredTopicModel {
+public class SpriteDMR extends SpriteFactoredTopicModel {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -8356557959212672700L;
 	
-	public SpriteTopicPerspective(SpriteThetaPrior[] thetaPriors0,
+	public SpriteDMR(SpriteThetaPrior[] thetaPriors0,
 			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
 			double stepSize0) {
 		super(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0);
@@ -31,12 +30,12 @@ public class SpriteTopicPerspective extends SpriteFactoredTopicModel {
 	private static Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> buildPriors(int Z,
 				double sigmaDeltaBias, double initDeltaBias, double sigmaOmegaBias, double initOmegaBias,
 				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
-		Factor[] factors = new Factor[] {new Factor(1, new int[] {0}, new int[] {Z}, 1.0, true,
+		Factor[] factors = new Factor[] {new Factor(1, new int[] {0}, new int[] {Z}, 1.0, false,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, false,
 										 false, false, "perspective", true, true, true)};
 		
 		SpriteThetaPrior[] tpriors = {new SpriteThetaPrior(factors, Z, new int[] {0}, initDeltaBias, sigmaDeltaBias, true)};
-		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias, true)};
+		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(new Factor[] {}, Z, new int[] {0}, initOmegaBias, sigmaOmegaBias, true)};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
 	}
@@ -49,7 +48,7 @@ public class SpriteTopicPerspective extends SpriteFactoredTopicModel {
 		if (p != null) {
 			Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> graph = buildPriors(p.z, p.sigmaDeltaBias, p.deltaBias, p.sigmaOmegaBias,
 																					 p.omegaBias, p.sigmaBeta, p.sigmaOmega, p.sigmaAlpha, p.sigmaDelta);
-			topicModel = new SpriteTopicPerspective(graph._2(), graph._3(), graph._1(), p.numThreads, p.step);
+			topicModel = new SpriteDMR(graph._2(), graph._3(), graph._1(), p.numThreads, p.step);
 			topicModel.outputDir = p.outDir;
 			topicModel.TIME_ITERATIONS = true;
 			

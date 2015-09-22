@@ -101,7 +101,7 @@ public class SpriteThetaPrior implements Serializable {
 	 * @param docCount Number of samples for document d
 	 * @param docTopicCount Number of samples of topic z for document d
 	 */
-	public void updateGradient(int z, int v, int d, int docCount, int docTopicCount, Integer docLock) {
+	public void updateGradient(int z, int v, int d, int docCount, int docTopicCount, Integer docLock, double priorWeight) {
 		double priorDZ    = thetaTilde[d][z];
 		double thetaNormD = thetaNorm[d];
 		
@@ -110,7 +110,7 @@ public class SpriteThetaPrior implements Serializable {
 		double dgW1 = MathUtils.digamma(priorDZ + docTopicCount + MathUtils.eps);
 		double dgW2 = MathUtils.digamma(priorDZ + MathUtils.eps);
 		
-		double gradientTerm = priorDZ * (dg1-dg2+dgW1-dgW2);
+		double gradientTerm = priorWeight * priorDZ * (dg1-dg2+dgW1-dgW2);
 		
 		synchronized(docLock) {
 			for (Factor f : factors) {
@@ -145,7 +145,7 @@ public class SpriteThetaPrior implements Serializable {
 	 * @param docCount Number of samples for document d
 	 * @param docTopicCount Number of samples of topic z for document d
 	 */
-	public void updateAlphaGradient(int z, int v, int d, int docCount, int docTopicCount, Integer docLock) {
+	public void updateAlphaGradient(int z, int v, int d, int docCount, int docTopicCount, Integer docLock, double priorWeight) {
 		double priorDZ    = thetaTilde[d][z];
 		double thetaNormD = thetaNorm[d];
 		
@@ -154,7 +154,7 @@ public class SpriteThetaPrior implements Serializable {
 		double dgW1 = MathUtils.digamma(priorDZ + docTopicCount + MathUtils.eps);
 		double dgW2 = MathUtils.digamma(priorDZ + MathUtils.eps);
 		
-		double gradientTerm = priorDZ * (dg1-dg2+dgW1-dgW2);
+		double gradientTerm = priorWeight * priorDZ * (dg1-dg2+dgW1-dgW2);
 		
 		synchronized(docLock) {
 			for (Factor f : factors) {

@@ -35,12 +35,18 @@ public class Sprite2ViewLinkedSharedThetaTopics extends SpriteFactoredTopicModel
 		super(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0);
 	}
 	
+	public Sprite2ViewLinkedSharedThetaTopics(SpriteThetaPrior[] thetaPriors0,
+			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
+			double stepSize0, double priorWeight0) {
+		super(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0, priorWeight0);
+	}
+	
 	private static Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> buildPriors(int Z, int C,
 				double sigmaDeltaBias, double initDeltaBias, double sigmaOmegaBias, double initOmegaBias,
-				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta) {
+				double sigmaBeta, double sigmaOmega, double sigmaAlpha, double sigmaDelta, double factorWeight0) {
 		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0, 1}, new int[] {Z, Z}, 1.0, true,
 										 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
-										 false, false, "supertopic", false, true, true, 1.0)};
+										 false, false, "supertopic", false, true, true, factorWeight0)};
 //		Factor[] factors = new Factor[] {new LinkedFactor(C, new int[] {0}, new int[] {Z}, 1.0, true,
 //				 sigmaBeta, sigmaOmega, sigmaAlpha, sigmaDelta, true,
 //				 false, false, "supertopic", false, 1.0)};
@@ -55,6 +61,7 @@ public class Sprite2ViewLinkedSharedThetaTopics extends SpriteFactoredTopicModel
 //		SpritePhiPrior[]   ppriors = {new SpritePhiPrior(factors, Z, 0, initOmegaBias, sigmaOmegaBias)};
 		
 		return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors);
+		//return new Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]>(factors, tpriors, ppriors, priorWeight0);
 	}
 	
 	public static void main(String[] args) {
@@ -64,8 +71,10 @@ public class Sprite2ViewLinkedSharedThetaTopics extends SpriteFactoredTopicModel
 		
 		if (p != null) {
 			Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> graph = buildPriors(p.z, p.C, p.sigmaDeltaBias, p.deltaBias, p.sigmaOmegaBias,
-																					 p.omegaBias, p.sigmaBeta, p.sigmaOmega, p.sigmaAlpha, p.sigmaDelta);
+																					 p.omegaBias, p.sigmaBeta, p.sigmaOmega, p.sigmaAlpha, p.sigmaDelta,
+																					 p.priorWeight);
 			topicModel = new Sprite2ViewLinkedSharedThetaTopics(graph._2(), graph._3(), graph._1(), p.numThreads, p.step);
+			//topicModel = new Sprite2ViewLinkedSharedThetaTopics(graph._2(), graph._3(), graph._1(), p.numThreads, p.step, p.priorWeight);
 			topicModel.outputDir = p.outDir;
 			topicModel.TIME_ITERATIONS = true;
 			

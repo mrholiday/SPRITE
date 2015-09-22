@@ -91,7 +91,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	
 	public String outputDir = null; // Where model parameters get written
 	
-	public double priorWeight = 1.0; // Normally fixed to 1.  Adjusting this to debug 2-view model for now.
+	public final double priorWeight; // Normally fixed to 1.  Adjusting this to debug 2-view model for now.
 	
 	/**
 	 * Gets the ranges over which we want to split our threads up for each view.
@@ -112,16 +112,9 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	public SpriteFactoredTopicModel(SpriteThetaPrior[] thetaPriors0,
 			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
 			double stepSize0, double priorWeight0) {
-		this(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0);
-		priorWeight = priorWeight0;
-	}
-	
-	public SpriteFactoredTopicModel(SpriteThetaPrior[] thetaPriors0,
-			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
-			double stepSize0) {
 		super.setParallelParams(numThreads0,
 				getDataRanges(thetaPriors0, phiPriors0));
-
+		
 		thetaPriors = thetaPriors0;
 		phiPriors = phiPriors0;
 		
@@ -162,6 +155,13 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 		}
 		
 		stepSize = stepSize0;
+		priorWeight = priorWeight0;
+	}
+	
+	public SpriteFactoredTopicModel(SpriteThetaPrior[] thetaPriors0,
+			SpritePhiPrior[] phiPriors0, Factor[] factors0, int numThreads0,
+			double stepSize0) {
+		this(thetaPriors0, phiPriors0, factors0, numThreads0, stepSize0, 1.0);
 	}
 	
 	private Integer getLock(int v, int[] runningSum, int index) {
@@ -802,7 +802,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 						// String.format("nZ=%d, nZW=%d", nZ[v][z], nZW[v][z][w]));
 						// }
 						phiPriors[v].updateGradient(z, v, w, nZ[v][z], nZW[v][z][w],
-								getLock(v, this.runningWSums, w));
+								getLock(v, this.runningWSums, w), priorWeight);
 					}
 				}
 			}
@@ -817,7 +817,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 						int docCount = nD[d][v];
 						int docTopicCount = nDZ[d][v][z];
 						thetaPriors[v].updateGradient(z, v, d, docCount,
-								docTopicCount, getLock(v, runningDSums, d));
+								docTopicCount, getLock(v, runningDSums, d), priorWeight);
 					}
 				}
 				
@@ -1158,7 +1158,7 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 					int docCount = nD[d][v];
 					int docTopicCount = nDZ[d][v][z];
 					thetaPriors[v].updateAlphaGradient(z, v, d, docCount,
-							docTopicCount, getLock(v, runningDSums, d));
+							docTopicCount, getLock(v, runningDSums, d), priorWeight);
 				}
 			}
 		}

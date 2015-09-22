@@ -137,7 +137,7 @@ public class SpritePhiPrior implements Serializable {
 	 * @param topicWordCount Number of times word w was sampled for topic z of this view
 	 * @param wordLock Lock for this thread
 	 */
-	public void updateGradient(int z, int v, int w, int topicCount, int topicWordCount, Integer wordLock) {
+	public void updateGradient(int z, int v, int w, int topicCount, int topicWordCount, Integer wordLock, double priorWeight) {
 		double priorZW  = phiTilde[z][w];
 		double phiNormZ = phiNorm[z];
 		
@@ -146,7 +146,7 @@ public class SpritePhiPrior implements Serializable {
 		double dgW1 = MathUtils.digamma(priorZW  + topicWordCount + MathUtils.eps);
 		double dgW2 = MathUtils.digamma(priorZW  + MathUtils.eps);
 		
-		double gradientTerm = priorZW * (dg1-dg2+dgW1-dgW2);
+		double gradientTerm = priorWeight * priorZW * (dg1-dg2+dgW1-dgW2);
 		
 		synchronized(wordLock) {
 			for (Factor f : factors) {
