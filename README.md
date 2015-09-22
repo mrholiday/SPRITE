@@ -116,7 +116,7 @@ Here are a few examples of common models you can run out-of-the-box.
 Looking into the initialization of each model is instructive.
 
     # Learning parameters
-    LEARNING_PARAMS=" -Z 20 -nthreads 2 -step 0.01 -iters 2000 -samples 100 "
+    LEARNING_PARAMS=" -Z 20 -C 5 -nthreads 2 -step 0.01 -iters 2000 -samples 100 "
     
     # Train DMR model on debates data
     OUTPUT_DIR=${SPRITE_HOME}/dmr_output; mkdir ${OUTPUT_DIR}
