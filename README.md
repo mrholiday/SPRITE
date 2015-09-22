@@ -126,7 +126,7 @@ Looking into the initialization of each model is instructive.
     OUTPUT_DIR=${SPRITE_HOME}/dmr_wordDist_output; mkdir ${OUTPUT_DIR}
     java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. main/models/factored/impl/SpriteTopicPerspective ${LEARNING_PARAMS} -input ../resources/test_data/input.debates.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/debates.dmr_wordDist.log
     
-    # Joint supertopic-perspective model on ratemd (in SPRITE paper)
+    # Joint supertopic-perspective model on ratemd (in SPRITE paper).  Supertopic factor has 5 components.
     OUTPUT_DIR=${SPRITE_HOME}/joint_output; mkdir ${OUTPUT_DIR}
     java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. main/models/factored/impl/SpriteSupertopicAndPerspective ${LEARNING_PARAMS} -input ../resources/test_data/input.ratemd.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/ratemd.joint.log
     
