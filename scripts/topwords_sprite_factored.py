@@ -297,7 +297,7 @@ def main(basename, numObserved, polarFactors):
       print '-'*12, 'Omega Negative', '-'*12
       words = sorted(words, key=itemgetter(1), reverse=False)
       for word, v in words[:NUM_TOPWORDS]:
-        print word, -1.0*v
+        print word, v
       
       print '\n'
     else:

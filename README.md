@@ -23,7 +23,7 @@ the moment)
     OUTPUT_DIR=${SPRITE_HOME}/LDA_output
     mkdir ${OUTPUT_DIR}
     cd ${SPRITE_HOME}/src/
-    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. main/models/factored/impl/SpriteLDA -Z 20 -nthreads 2 -step 0.01 -iters 2000 -samples 100 -input ../resources/test_data/input.acl.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/acl.lda.log
+    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. models/factored/impl/SpriteLDA -Z 20 -nthreads 2 -step 0.01 -iters 2000 -samples 100 -input ../resources/test_data/input.acl.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/acl.lda.log
 
 In the current implementations, 200 iterations of Gibbs sampling are
 performed, then we alternate between one step of Gibbs sampling and one
@@ -120,15 +120,18 @@ Looking into the initialization of each model is instructive.
     
     # Train DMR model on debates data
     OUTPUT_DIR=${SPRITE_HOME}/dmr_output; mkdir ${OUTPUT_DIR}
-    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. main/models/factored/impl/SpriteDMR ${LEARNING_PARAMS} -input ../resources/test_data/input.debates.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/debates.dmr.log
+    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. models/factored/impl/SpriteDMR ${LEARNING_PARAMS} -input ../resources/test_data/input.debates.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/debates.dmr.log
+    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.debates.txt 1 perspective > ${OUTPUT_DIR}/input.debates.topics # Print out topics
     
     # Train DMR variant where beta/delta are tied (also influence topic distribution) on debates
     OUTPUT_DIR=${SPRITE_HOME}/dmr_wordDist_output; mkdir ${OUTPUT_DIR}
-    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. main/models/factored/impl/SpriteTopicPerspective ${LEARNING_PARAMS} -input ../resources/test_data/input.debates.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/debates.dmr_wordDist.log
+    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. models/factored/impl/SpriteTopicPerspective ${LEARNING_PARAMS} -input ../resources/test_data/input.debates.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/debates.dmr_wordDist.log
+    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.debates.txt 1 perspective > ${OUTPUT_DIR}/input.debates.topics
     
     # Joint supertopic-perspective model on ratemd (in SPRITE paper).  Supertopic factor has 5 components.
     OUTPUT_DIR=${SPRITE_HOME}/joint_output; mkdir ${OUTPUT_DIR}
-    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. main/models/factored/impl/SpriteSupertopicAndPerspective ${LEARNING_PARAMS} -input ../resources/test_data/input.ratemd.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/ratemd.joint.log
+    java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. models/factored/impl/SpriteSupertopicAndPerspective ${LEARNING_PARAMS} -input ../resources/test_data/input.ratemd.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/ratemd.joint.log
+    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.ratemd.txt 1 perspective > ${OUTPUT_DIR}/input.ratemd.topics
     
 ### Multiple Views ###
 
@@ -189,12 +192,13 @@ output will be written to a *.topics* file for each model.
 + Calculate held-out perplexity/do prediction of factors
 + Set up arbitrary graph with configuration file and manipulate components
 by command line -- not major priority
-+ Low priority: support for more arbitrary functions to generate the prior
 + Verify multiview support is working correctly
++ Add annealing of sparsity term -- rho is fixed for all iterations in the current implementation.
++ Low priority: support for more arbitrary functions to generate the prior
 
 ## Cite ##
 
-If you use this library, please cite the following:
+If you use this library, please cite:
 
 Paul, Michael J., and Mark Dredze. "SPRITE: Generalizing topic models with structured priors." Transactions of the Association for Computational Linguistics 3 (2015): 43-57.
 
