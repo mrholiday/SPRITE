@@ -30,10 +30,10 @@ public class ArgParse {
 		public double sigmaOmegaBias = 10.0;
 		
 		@Parameter(names="-deltaB", description="Initial value for delta bias (on \\widetilde{\\theta})")
-		public double deltaBias = -5.0;
+		public double deltaBias = -2.0;
 		
 		@Parameter(names="-omegaB", description="Initial value for omega bias (on \\widetilde{\\phi})")
-		public double omegaBias = -5.0;
+		public double omegaBias = -4.0;
 		
 		@Parameter(names="-step", description="Master step size")
 		public double step = 0.01;
@@ -103,6 +103,7 @@ public class ArgParse {
 		
 		if (p.help) {
 			cmdr.usage();
+			System.exit(0);
 			return null;
 		}
 		else {

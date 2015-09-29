@@ -53,6 +53,7 @@ public class SpriteSupertopicAndPerspective extends SpriteFactoredTopicModel {
 		SpriteFactoredTopicModel topicModel = null;
 		
 		Arguments p = ArgParse.parseArgs(args);
+		
 		if (p.logPath != null) {
 			Log.initFileLogger(p.logPath);
 		}

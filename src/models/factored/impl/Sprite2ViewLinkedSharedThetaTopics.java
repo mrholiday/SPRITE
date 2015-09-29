@@ -73,8 +73,8 @@ public class Sprite2ViewLinkedSharedThetaTopics extends SpriteFactoredTopicModel
 			Tup3<Factor[], SpriteThetaPrior[], SpritePhiPrior[]> graph = buildPriors(p.z, p.C, p.sigmaDeltaBias, p.deltaBias, p.sigmaOmegaBias,
 																					 p.omegaBias, p.sigmaBeta, p.sigmaOmega, p.sigmaAlpha, p.sigmaDelta,
 																					 p.priorWeight);
-			topicModel = new Sprite2ViewLinkedSharedThetaTopics(graph._2(), graph._3(), graph._1(), p.numThreads, p.step);
-			//topicModel = new Sprite2ViewLinkedSharedThetaTopics(graph._2(), graph._3(), graph._1(), p.numThreads, p.step, p.priorWeight);
+//			topicModel = new Sprite2ViewLinkedSharedThetaTopics(graph._2(), graph._3(), graph._1(), p.numThreads, p.step);
+			topicModel = new Sprite2ViewLinkedSharedThetaTopics(graph._2(), graph._3(), graph._1(), p.numThreads, p.step, p.priorWeight);
 			topicModel.outputDir = p.outDir;
 			topicModel.TIME_ITERATIONS = true;
 			
