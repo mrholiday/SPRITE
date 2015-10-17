@@ -172,9 +172,9 @@ public abstract class ParallelTopicModel extends TopicModel implements Trainable
 				}
 			}
 			
-//			if (iter % 100 == 0) {
-//				Log.debug("Gradient breakpoint");
-//			}
+			if (iter % 100 == 0) {
+				Log.debug("Gradient breakpoint: " + iter);
+			}
 			
 			// Take a step along the gradient
 			try {

@@ -7,7 +7,9 @@ Adrian Benton
 2/4/2015
 '''
 
-import os, re, sys
+import argparse
+
+import os, re
 from operator import itemgetter
 from math import exp
 
@@ -18,17 +20,14 @@ DELTA_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.delta$'
 BETA_PATH_RE_BASE  = '^%s\.(?P<factor>.+)\.beta$'
 BETAB_PATH_RE_BASE = '^%s\.(?P<factor>.+)\.betaB$'
 
-NUM_TOPWORDS = 20 # How many words to print out.  May want to edit this
+NUM_TOPWORDS = 20 # How many words to print out.
 
-def main(basename, numObserved, polarFactors):
+def main(basename, numObserved, includePrior):
   '''
   Arguments
   basename:  Basename for training output files
   numObserved: Number of observed factors.
-  polarFactors: Names of factors with a single component that can be
-                interpreted as polarity (e.g., sentiment, gun control
-                stance).  Prints strongest as well as weakest tokens for
-                these factors.
+  includePrior: Includes pseudocounts from prior when  generating topics.
   
   Prints out top words per topics as well as learned parameters for each
   factor/topic.
@@ -284,7 +283,8 @@ def main(basename, numObserved, polarFactors):
   for factorName in FactorNames:
     print '============ Factor "%s" ============\n' % (factorName)
     
-    if factorName in polarFactors:
+    #if factorName in polarFactors:
+    if len(omega[factorName]) == 1: # If we have only one component, then print out top and bottom words
       print '-'*12, 'Omega Positive', '-'*12
       
       words = sorted(omega[factorName][0].items(),
@@ -297,7 +297,7 @@ def main(basename, numObserved, polarFactors):
       print '-'*12, 'Omega Negative', '-'*12
       words = sorted(words, key=itemgetter(1), reverse=False)
       for word, v in words[:NUM_TOPWORDS]:
-        print word, v
+        print word, -1.0*v
       
       print '\n'
     else:
@@ -356,21 +356,20 @@ def main(basename, numObserved, polarFactors):
       
     print '\n'
   
-  '''
-  # Adjust counts based on prior -- just using the samples for now
-  for view in range(NumViews):
-    for z in range(Z):
-      for w in count[view][z]:
-        prior = 0.
-        
-        if c in omega:
-          prior += beta[z][c] * omega[c][w]
-          for c in range(1, Cph):
-            prior += betaB[z][c] * beta[z][c] * omega[c][w]
-          prior += omegaBias[w]
-          prior = exp(prior)
-          #count[z][w] += prior
-  '''
+  # Adjust counts based on prior
+  if includePrior:
+    for view in range(NumViews):
+      for z in range(Z):
+        for w in count[view][z]:
+          prior = 0.
+          
+          for factorName in FactorNames:
+            for c in range(Cph[factorName]):
+              prior += betaB[factorName][view][z][c] * beta[factorName][view][z][c] * omega[factorName][c][w]
+              prior += omegaBias[w]
+              prior = exp(prior)
+          
+          count[view][z][w] += prior
   
   print '='*12, 'TOPICS', '='*12, '\n'
   for view in range(NumViews):
@@ -399,14 +398,17 @@ def main(basename, numObserved, polarFactors):
       print "\n"
 
 if __name__ ==  "__main__":
-  import sys
-  numScores = 0
-  polarFactors = set()
+  parser = argparse.ArgumentParser()
+  parser.add_argument('basename', help='points to the .assign file, without the .assign extension')
+  parser.add_argument('--numscores', help='how many supervised scores our data has', type=int, default=0)
+  parser.add_argument('--includeprior', help='include pseudocounts from prior when generating topics', type=boolean, action='store_true')
+  parser.add_argument('--numtopwords', help='number of top words to print out', type=int, default=20)
   
-  baseName = sys.argv[1]
-  if len(sys.argv) > 2:
-    numScores = int(sys.argv[2])
-  if len(sys.argv) > 3:
-    polarFactors = set(sys.argv[3].split(','))
+  args = parser.parse_args()
   
-  main(baseName, numScores, polarFactors)
+  numScores = ags.numscores
+  baseName = args.basename
+  includePrior = args.includeprior
+  NUM_TOPWORDS = args.numtopwords
+  
+  main(baseName, numScores, includePrior)

@@ -9,6 +9,7 @@ import java.io.ObjectOutputStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +31,7 @@ import utils.Utils;
 /**
  * Should be equivalent to SpriteJoint model but allows for multiple factors.
  * Factors may be observed, or latent this is an attempt to make SpriteJoint
- * more generic. At the moment, not hopeful though.
+ * more generic.
  * 
  * @author adrianb
  * 
@@ -50,7 +51,9 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 	// All of the factors used across views. Ordering should be the same as
 	// the observed scores in the input files.
 	protected Factor[] factors;
-
+	
+	private List<Factor> origObservedFactors;
+	
 	protected int[] Z; // Possibly different number of topics for each view.
 	protected int D;
 	protected int W;
@@ -1163,6 +1166,27 @@ public class SpriteFactoredTopicModel extends ParallelTopicModel {
 			}
 		}
 		
+	}
+	
+	/**
+	 * Sets \alpha to be updated through gradient descent, even if supervision was provided.
+	 * Each \alpha has a gaussian prior over it's initial (supervised) value.
+	 */
+	protected void updateAlphaAnyway() {
+		origObservedFactors = new LinkedList<Factor>();
+		
+		for (Factor f : this.factors) {
+			if (f.observed) {
+				f.observed = false;
+				origObservedFactors.add(f);
+			}
+		}
+	}
+	
+	protected void revertObserved() {
+		for (Factor f : origObservedFactors) {
+			f.observed = true;
+		}
 	}
 	
 }

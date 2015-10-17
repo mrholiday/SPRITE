@@ -42,11 +42,19 @@ public abstract class TopicModel implements Trainable, Serializable {
 	}
 	
 	public void train(int iters, int samples, String filename, String outputDir, int likelihoodFreq0) throws Exception {
+		train(iters, samples, filename, outputDir, likelihoodFreq0, false);
+	}
+	
+	public void train(int iters, int samples, String filename, String outputDir,
+			int likelihoodFreq0, boolean updateAlpha0) throws Exception {
 		likelihoodFreq = likelihoodFreq0;
 		try {
 			inputFilename = filename;
 			readDocs(filename);
 			initTrain();
+			
+			if (updateAlpha0)
+				updateAlphaAnyway();
 			
 			Log.info("train", "Sampling...");
 			
@@ -62,6 +70,9 @@ public abstract class TopicModel implements Trainable, Serializable {
 //					writeOutput(filename + iter);
 //				}
 			}
+			
+			if (updateAlpha0)
+				revertObserved();
 			
 			if (outputDir != null) {
 				writeOutput(filename, outputDir);
@@ -143,6 +154,10 @@ public abstract class TopicModel implements Trainable, Serializable {
 	protected abstract void initTrain();
 	
 	protected abstract void initTest();
+	
+	protected void updateAlphaAnyway() {}
+	
+	protected void revertObserved() {}
 	
 	/**
 	 * A single iteration of the main training loop.

@@ -47,6 +47,8 @@ public class Factor implements Serializable {
 	public double[][] omega;   // Component-to-token, for phi
 	// public double[][][] omega;   // Component-to-token, for phi.  Per view since we have different vocabularies for each view.
 	
+	public double[][] initAlpha; // Initial values of alpha.  If factor is not observed, all set to 0. 
+	
 	// Variance of Gaussian priors.  Default to 1.
 	private double sigmaBeta  = 1.0;
 	private double sigmaOmega = 1.0;
@@ -208,6 +210,7 @@ public class Factor implements Serializable {
 		// Init alpha, component weight for each document
 		if (docScores == null) {
 			alpha = new double[D][C]; // Latent factor
+			initAlpha = new double[D][C];
 			for (int d = 0; d < D; d++) {
 				for (int c = 0; c < C; c++) {
 					if (!alphaPositive) {
@@ -215,6 +218,7 @@ public class Factor implements Serializable {
 					}
 					else {
 						alpha[d][c] = -2.0 + (MathUtils.r.nextDouble() - 0.5)/100.; // Small positive number when exped
+						initAlpha[d][c] = -2.0;
 					}
 					
 //					if (!alphaPositive) {
@@ -228,6 +232,13 @@ public class Factor implements Serializable {
 		}
 		else {
 			alpha = docScores; // Observed
+			
+			initAlpha = new double[D][C];
+			for (int d = 0; d < D; d++) {
+				for (int c = 0; c < C; c++) {
+					initAlpha[d][c] = alpha[d][c];
+				}
+			}
 		}
 		
 		delta = new double[numViews][C][]; // Component-to-topic, for theta
@@ -355,6 +366,12 @@ public class Factor implements Serializable {
 		}
 		else {
 			alpha = docScores; // Observed
+			initAlpha = new double[D][C];
+			for (int d = 0; d < D; d++) {
+				for (int c = 0; c < C; c++) {
+					initAlpha[d][c] = alpha[d][c];
+				}
+			}
 		}
 	}
 	
@@ -636,7 +653,7 @@ public class Factor implements Serializable {
 			if (v == 0) { // Hack to make sure we only take a gradient step once for all views this factor is associated with
 				for (int d = minD; d < maxD; d++) {
 					for (int c = 0; c < C; c++) {
-						gradientAlpha[d][c] += -(alpha[d][c]) / sigmaAlpha_sqr;
+						gradientAlpha[d][c] += (initAlpha[d][c] - (alpha[d][c])) / sigmaAlpha_sqr;
 						adaAlpha[d][c] += Math.pow(gradientAlpha[d][c], 2);
 						alpha[d][c] += (stepSize / (Math.sqrt(adaAlpha[d][c]) + MathUtils.eps)) * gradientAlpha[d][c];
 						//					gradientAlpha[d][c] = 0.; // Clear gradient for the next iteration
