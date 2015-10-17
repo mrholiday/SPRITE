@@ -26,15 +26,41 @@ the moment)
     java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. models/factored/impl/SpriteLDA -Z 20 -nthreads 2 -step 0.01 -iters 2000 -samples 100 -input ../resources/test_data/input.acl.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/acl.lda.log
 
 In the current implementations, 200 iterations of Gibbs sampling are
-performed, then we alternate between one step of Gibbs sampling and one
-gradient udpate step until *-iters* iterations expire.
+performed as a burn-in period, then we alternate between one step of
+Gibbs sampling and one gradient udpate step until *-iters* iterations expire.
+
+To see the command line arguments for a given model, run the model
+implementation with the *--help* flag. For example, here are the arguments
+for the *SpriteSupertopicAndPerspective* model:
+
++ *-Z*: Number of topics. Default: 0
++ *-C*: Number of components for supertopic factors. Default: 5
++ *-numFactors*: How many supertopic factors to build our model with. Default: -1
++ *-input*: Path to training file.
++ *-logPath*: Where to log messages.  Defaults to stdout.
++ *-outDir*: Where to write output.  Defaults to directory where training file is.
++ *-iters*: Number of iterations for training total. Default: 5000
++ *-samples*: Number of samples to take for the final estimate. Default: 100
++ *-step*: Master step size (AdaGrad numerator). Default: 0.01
++ *-likelihoodFreq*: How often to print out likelihood/perplexity.  Setting less than 1 will disable printing. Default: 100
++ *-deltaB*: Initial value for delta bias (on \widetilde{\theta}). Default: -2.0
++ *-omegaB*: Initial value for omega bias (on \widetilde{\phi}). Default: -4.0
++ *-sigmaAlpha*: Stddev for alpha. Default: 1.0
++ *-sigmaBeta*: Stddev for beta. Default: 10.0
++ *-sigmaDelta*: Stddev for delta. Default: 1.0
++ *-sigmaDeltaB*: Stddev for delta bias. Default: 1.0
++ *-sigmaOmega*: Stddev for omega. Default: 10.0
++ *-sigmaOmegaB*: Stddev for omega bias. Default: 10.0
++ *-seed*: Seed for pseudorandom number generator.  Value of -1 will use clock time. Default: -1
++ *-nthreads*: Number of threads that will sample and take gradient steps in parallel. Default: 1
+
 
 ### Input Format ###
 
 Document ID, observed factor scores, and text in each view are each
 separated by tabs.  Tokens within each view and component scores for an
 observed factor are separated by a single space.  See sample input files
-under *resources/test_data*.
+under *resources/test_data* for examples.
 
 + *input.acl.txt*: ACL abstracts -- no observed factors
 + *input.debates.txt*: US congress floor debate transcripts -- single component observed factor, conservative (positive) -> liberal (negative)
@@ -62,7 +88,7 @@ Arguments:
 + *views*: Experimental.  Which views draw from this prior.  Set to array
 {0} for now (single view).
 + *initDeltaBias*: Initial value for delta bias term.
-+ *sigmaDeltaBias*: Determines strength of gaussian prior centered at 0 for delta bias.  Lower value -> stronger prior -> delta bias pulled more strongly towards 0.
++ *sigmaDeltaBias*: Determines strength of Gaussian prior centered at 0 for delta bias.  Lower value -> stronger prior -> delta bias pulled more strongly towards 0.
 + *optimizeMe*: If false, alpha/delta parameters will not be updated.  This
 goes for factors influencing this prior as well as the delta bias term.
 
@@ -74,7 +100,7 @@ Keeps track of prior over word distribution for each topic.  Constructor argumen
 + *Z*: Number of topics.
 + *views*: Set to {0} -- same as SpriteThetaPrior
 + *initOmegaBias*: Initial value for omega bias term
-+ *sigmaOmegaBias*: Strength of zero-centered gaussian prior on omega bias.
++ *sigmaOmegaBias*: Strength of zero-centered Gaussian prior on omega bias.
 + *optimizeMe*: If false, beta/omega parameters are not updated -- also
 applies to factors feeding into this prior.
 
@@ -94,10 +120,10 @@ delta parameters per topic, and omega vectors.
 otherwise (single view).
 + *Z*: Number of topics per view.  For a single view, set to {Z} where Z is
 the number of topics.
-+ *rho*: If greater than or equal to 1, no sparsity is learned over beta
-parameters?  If less than 1, this will determine how strongly we prefer a sparse beta (each topic influenced by one/few components of this factor).  This will learn betaB sparsity bits for each beta.
++ *rho*: The Dirichlet sparsity hyperparameter (see the SPRITE paper). If greater than or equal to 1, no sparsity is learned over beta
+parameters.  If less than 1, this will determine how strongly we prefer a sparse beta (each topic influenced by one/few components of this factor).  This will learn betaB sparsity bits for each beta.
 + *tieBetaAndDelta*: If true, then beta and delta will be tied together.  This allows alpha to influence the topic as well as document distribution.
-+ *sigmaBeta*: Determines strength of zero-mean gaussian prior on beta parameters.
++ *sigmaBeta*: Determines strength of zero-mean Gaussian prior on beta parameters.
 + *sigmaOmega*: ... prior on omega parameters.
 + *sigmaAlpha*: ... prior on alpha parameters.  Only applicable if this factor is not observed (unsupervised).
 + *sigmaDelta*: ... prior on delta parameters.
@@ -137,14 +163,14 @@ Looking into the initialization of each model is instructive.
 
 Although this library was written to allow a document to consist of tokens
 in multiple views (each view with its own topic distributions, but having
-a shared prior) we are not confident that the multiview implementation is
+a shared prior) we have not verified that the multiview implementation is
 correct.  Refer to src/models/factored/impl/*2View.java for
 implementations.  Use at your own risk.
 
-### Notes ###
+### Notes and Advice ###
 
 + See the models in *src/models/factored/impl/* for sample implementations.
-They are pretty straightforward -- just initialize thetaPriors, phiPriors,
+To create an implementation, initialize thetaPriors, phiPriors,
 and the factors that feed into them.  See the constructors for
 *prior.SpriteThetaPrior*, *prior.SpritePhiPrior*, *models.factored.Factor*
 for details.
@@ -159,6 +185,10 @@ file.
 + Legal command line arguments are listed in *utils.ArgParse.Arguments*.
 Feel free to extend these as you see like.  Calling a model implementation
 with *--help* prints legal arguments.
++ The best stddev values (set with the argument *-sigmaAlpha*, *-sigmaBeta*,
+and so on) are typically in the range of 0.1, 1.0, and 10.0.
++ For short documents like tweets, it is helpful to initialize delta to smaller
+values than the default, using the *-deltaB* argument. We recommend -4.0.
 
 ## Topwords ##
 
@@ -170,7 +200,7 @@ You can do so with *topwords_sprite_factored.py*
 
     python scripts/topwords_sprite_factored.py /PATH/TO/BASENAME NUM_OBSERVED_FACTORS CSV_POLAR_FACTORS > /PATH/TO/BASENAME.topics
 
-+ */PATH/TO/BASENAME* points to where 
++ */PATH/TO/BASENAME* points to the data file (see examples above) 
 + *NUM_OBSERVED_FACTORS* is an integer, number of observed factors
 + *CSV_POLAR_FACTORS* is a comma-separated list of factors that have a
 single component and you want the most positive and negative words listed
@@ -190,6 +220,7 @@ output will be written to a *.topics* file for each model.
 
 + Maven for build tool
 + Calculate held-out perplexity/do prediction of factors
++ Add option for annealing (as done in the original SPRITE paper)
 + Set up arbitrary graph with configuration file and manipulate components
 by command line -- not major priority
 + Verify multiview support is working correctly
@@ -200,7 +231,7 @@ by command line -- not major priority
 
 If you use this library, please cite:
 
-Paul, Michael J., and Mark Dredze. "SPRITE: Generalizing topic models with structured priors." Transactions of the Association for Computational Linguistics 3 (2015): 43-57.
+Paul, Michael J., and Mark Dredze (2015) SPRITE: Generalizing topic models with structured priors. Transactions of the Association for Computational Linguistics 3: 43-57.
 
 ## Contact ##
 
