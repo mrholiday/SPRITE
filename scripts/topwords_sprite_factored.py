@@ -359,15 +359,15 @@ def main(basename, numObserved, includePrior):
   # Adjust counts based on prior
   if includePrior:
     for view in range(NumViews):
-      for z in range(Z):
+      for z in range(Z[view]):
         for w in count[view][z]:
           prior = 0.
           
           for factorName in FactorNames:
             for c in range(Cph[factorName]):
               prior += betaB[factorName][view][z][c] * beta[factorName][view][z][c] * omega[factorName][c][w]
-              prior += omegaBias[w]
-              prior = exp(prior)
+              prior += omegaBias[view][w]
+          prior = exp(prior)
           
           count[view][z][w] += prior
   
@@ -401,12 +401,12 @@ if __name__ ==  "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('basename', help='points to the .assign file, without the .assign extension')
   parser.add_argument('--numscores', help='how many supervised scores our data has', type=int, default=0)
-  parser.add_argument('--includeprior', help='include pseudocounts from prior when generating topics', type=boolean, action='store_true')
+  parser.add_argument('--includeprior', help='include pseudocounts from prior when generating topics', action='store_true', default=False)
   parser.add_argument('--numtopwords', help='number of top words to print out', type=int, default=20)
   
   args = parser.parse_args()
   
-  numScores = ags.numscores
+  numScores = args.numscores
   baseName = args.basename
   includePrior = args.includeprior
   NUM_TOPWORDS = args.numtopwords
