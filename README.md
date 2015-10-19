@@ -147,17 +147,17 @@ Looking into the initialization of each model is instructive.
     # Train DMR model on debates data
     OUTPUT_DIR=${SPRITE_HOME}/dmr_output; mkdir ${OUTPUT_DIR}
     java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. models/factored/impl/SpriteDMR ${LEARNING_PARAMS} -input ../resources/test_data/input.debates.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/debates.dmr.log
-    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.debates.txt 1 perspective > ${OUTPUT_DIR}/input.debates.topics # Print out topics
+    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.debates.txt --numscores 1 > ${OUTPUT_DIR}/input.debates.topics # Print out topics
     
     # Train DMR variant where beta/delta are tied (also influence topic distribution) on debates
     OUTPUT_DIR=${SPRITE_HOME}/dmr_wordDist_output; mkdir ${OUTPUT_DIR}
     java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. models/factored/impl/SpriteTopicPerspective ${LEARNING_PARAMS} -input ../resources/test_data/input.debates.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/debates.dmr_wordDist.log
-    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.debates.txt 1 perspective > ${OUTPUT_DIR}/input.debates.topics
+    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.debates.txt --numscores 1 > ${OUTPUT_DIR}/input.debates.topics
     
     # Joint supertopic-perspective model on ratemd (in SPRITE paper).  Supertopic factor has 5 components.
     OUTPUT_DIR=${SPRITE_HOME}/joint_output; mkdir ${OUTPUT_DIR}
     java -cp ../lib/jcommander-1.49-SNAPSHOT.jar:. models/factored/impl/SpriteSupertopicAndPerspective ${LEARNING_PARAMS} -input ../resources/test_data/input.ratemd.txt -outDir ${OUTPUT_DIR} -logPath ${OUTPUT_DIR}/ratemd.joint.log
-    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.ratemd.txt 1 perspective > ${OUTPUT_DIR}/input.ratemd.topics
+    python scripts/topwords_sprite_factored.py ${OUTPUT_DIR}/input.ratemd.txt --numscores 1 > ${OUTPUT_DIR}/input.ratemd.topics
     
 ### Multiple Views ###
 
@@ -194,27 +194,17 @@ values than the default, using the *-deltaB* argument. We recommend -4.0.
 
 Once a model is trained, you probably want to see what topics are learned,
 and how the factors influence document/topic distributions for each topic.
-You can do so with *topwords_sprite_factored.py*
+You can do so with *topwords_sprite_factored.py*.  Run with '--help' for
+options.
 
 ### Usage ###
 
-    python scripts/topwords_sprite_factored.py /PATH/TO/BASENAME NUM_OBSERVED_FACTORS CSV_POLAR_FACTORS > /PATH/TO/BASENAME.topics
+    topwords_sprite_factored.py [-h] [--numscores NUMSCORES] [--includeprior] [--numtopwords NUMTOPWORDS] basename
 
-+ */PATH/TO/BASENAME* points to the data file (see examples above) 
-+ *NUM_OBSERVED_FACTORS* is an integer, number of observed factors
-+ *CSV_POLAR_FACTORS* is a comma-separated list of factors that have a
-single component and you want the most positive and negative words listed
-(e.g., sentiment).  For these factors, both the highest and lowest weighted
-words are printed separately.
-
-The number of top words to print out for each topic can be changed in the
-script.  To generate topics for a set of models:
-
-    python scripts topwords_batch.py /PATH/TO/OUTPUT/DIR1 /PATH/TO/OUTPUT/DIR2... 
-
-if trained model output is written to the directories listed.  This will
-treat no factors as polar (will only print out top N components).  Topic
-output will be written to a *.topics* file for each model.
++ *basename* points to where the .assign file is written, w/o ".assign" (see examples above) 
++ *--numscores NUMSCORES* an integer, number of observed factors
++ *--includeprior* whether to include prior pseudcounts when building topics.  Defaults to False.
++ *--numtopwords NUMTOPWORDS* number of top words to print out per topic or omega.  Defaults to 20
 
 ## TODO ##
 
