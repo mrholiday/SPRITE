@@ -366,7 +366,7 @@ def main(basename, numObserved, includePrior):
           for factorName in FactorNames:
             for c in range(Cph[factorName]):
               prior += betaB[factorName][view][z][c] * beta[factorName][view][z][c] * omega[factorName][c][w]
-              prior += omegaBias[view][w]
+          prior += omegaBias[view][w]
           prior = exp(prior)
           
           count[view][z][w] += prior
@@ -394,7 +394,7 @@ def main(basename, numObserved, includePrior):
                      key=itemgetter(1),
                      reverse=True)
       for word, v in words[:NUM_TOPWORDS]:
-        print word #, v
+        print '%s: %0.3f' % (word, v)
       print "\n"
 
 if __name__ ==  "__main__":
