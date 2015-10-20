@@ -225,4 +225,4 @@ Paul, Michael J., and Mark Dredze (2015) SPRITE: Generalizing topic models with 
 
 ## Contact ##
 
-*<INSERT CONTACT INFO>*
+Adrian Benton *adrian.benton@gmail.com*
