@@ -65,10 +65,17 @@ under *resources/test_data* for examples.
 + *input.debates.txt*: US congress floor debate transcripts -- single component observed factor, conservative (positive) -> liberal (negative)
 + *input.ratemd.txt*: doctor reviews from ratemd.com -- single component observed factor, average doctor review over multiple aspects
 
-Datasets used in the paper, "Collective Supervision of Topic Models for Predicting Surveys with Social Media". Adrian Benton, Michael J. Paul, Braden Hancock, and Mark Dredze. AAAI-2016.
-+ **
-+ 
-+ 
+Datasets, with supervised annotations, used in the paper,
+"Collective Supervision of Topic Models for Predicting Surveys with Social Media". Adrian Benton, Michael J. Paul, Braden Hancock, and Mark Dredze. AAAI-2016.
+under *resources/collsup_twitter_survey_data*
++ *input.guncontrol.allfeatures.onlyids.txt*: Gun control data
++ *input.tobacco.allfeatures.onlyids.txt*: Smoking
++ *input.vaccine.allfeatures.onlyids.txt*: Vaccine
+
+These datasets contain three features per tweet: a hashtag feature not used in
+the paper (whether the tweet contains a pro/anti hashtag with respect to the
+topic), the state-level survey feature, and a county-level census feature.
+Refer to paper for details.  Document ID corresponds to Twitter status ID.
 
 ## Modeling ##
 
@@ -212,7 +219,7 @@ options.
 
 ## TODO ##
 
-+ Maven for build tool
++ Maven build tool
 + Calculate held-out perplexity/do prediction of factors
 + Add option for annealing (as done in the original SPRITE paper)
 + Set up arbitrary graph with configuration file and manipulate components
@@ -223,7 +230,7 @@ by command line -- not major priority
 
 ## Cite ##
 
-If you use this library or provided datasets, please cite one of the following papers:
+If you use this library or datasets, please cite one of the following papers:
 
 Paul, Michael J., and Dredze, Mark (2015) SPRITE: Generalizing topic models with structured priors. Transactions of the Association for Computational Linguistics 3: 43-57.
 
