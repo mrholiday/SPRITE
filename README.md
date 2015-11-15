@@ -217,6 +217,21 @@ options.
 + *--includeprior* whether to include prior pseudcounts when building topics.  Defaults to False.
 + *--numtopwords NUMTOPWORDS* number of top words to print out per topic or omega.  Defaults to 20
 
+## Models used in "Collective Supervision of Topic Models for Predicting Surveys with Social Media" ##
+
+The different upstream models evaluated in the paper can be found here:
+
++ *LDA*: src/models/original/threefields/SpriteLDA.java
++ *Upstream*: src/models/original/threefields/DMRThreeFields.java
++ *Upstream-words*: src/models/original/threefields/DMROmegaThreeFields.java
++ *Upstream-ada*: src/models/original/threefields/SpriteICWSMNoSupervisedOmegaThreeFields.java
++ *Upstream-ada-words*: src/models/original/threefields/SpriteICWSMThreeFields.java
+
+The downstream collective supervision model, *Downstream-collective*,
+is included in src/cslda/CSLDA.java.  *Downstream-sLDA* is equivalent
+to assigning each document to its unique collection.  These are implemented
+in the Sprite framework, but are included for reproducibility of our results.
+
 ## TODO ##
 
 + Maven build tool
