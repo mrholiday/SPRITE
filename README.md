@@ -54,7 +54,6 @@ for the *SpriteSupertopicAndPerspective* model:
 + *-seed*: Seed for pseudorandom number generator.  Value of -1 will use clock time. Default: -1
 + *-nthreads*: Number of threads that will sample and take gradient steps in parallel. Default: 1
 
-
 ### Input Format ###
 
 Document ID, observed factor scores, and text in each view are each
@@ -65,6 +64,11 @@ under *resources/test_data* for examples.
 + *input.acl.txt*: ACL abstracts -- no observed factors
 + *input.debates.txt*: US congress floor debate transcripts -- single component observed factor, conservative (positive) -> liberal (negative)
 + *input.ratemd.txt*: doctor reviews from ratemd.com -- single component observed factor, average doctor review over multiple aspects
+
+Datasets used in the paper, "Collective Supervision of Topic Models for Predicting Surveys with Social Media". Adrian Benton, Michael J. Paul, Braden Hancock, and Mark Dredze. AAAI-2016.
++ **
++ 
++ 
 
 ## Modeling ##
 
@@ -219,9 +223,11 @@ by command line -- not major priority
 
 ## Cite ##
 
-If you use this library, please cite:
+If you use this library or provided datasets, please cite one of the following papers:
 
-Paul, Michael J., and Mark Dredze (2015) SPRITE: Generalizing topic models with structured priors. Transactions of the Association for Computational Linguistics 3: 43-57.
+Paul, Michael J., and Dredze, Mark (2015) SPRITE: Generalizing topic models with structured priors. Transactions of the Association for Computational Linguistics 3: 43-57.
+
+Benton, Adrian, Paul, Michael J., Hancock, Braden, and Dredze, Mark (2016) Collective Supervision of Topic Models for Predicting Surveys with Social Media. AAAI 2016.
 
 ## Contact ##
 

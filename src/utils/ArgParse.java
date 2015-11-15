@@ -112,4 +112,35 @@ public class ArgParse {
 		}
 	}
 	
+	public static String getArgString(Arguments p) {
+		StringBuilder b = new StringBuilder("{");
+		
+		b.append(String.format("\"C\":%d, ", p.C));
+		b.append(String.format("\"deltaBias\":%.2f, ", p.deltaBias));
+		b.append(String.format("\"filename\":%s, ", p.filename));
+		b.append(String.format("\"initOmegaPath\":%s, ", p.initOmegaPath));
+		b.append(String.format("\"iters\":%d, ", p.iters));
+		b.append(String.format("\"likelihoodFreq\":%d, ", p.likelihoodFreq));
+		b.append(String.format("\"logPath\":%s, ", p.logPath));
+		b.append(String.format("\"numFactors\":%d, ", p.numFactors));
+		b.append(String.format("\"numThreads\":%d, ", p.numThreads));
+		b.append(String.format("\"omegaBias\":%.2f, ", p.omegaBias));
+		b.append(String.format("\"outDir\":%s, ", p.outDir));
+		b.append(String.format("\"priorWeight\":%1f, ", p.priorWeight));
+		b.append(String.format("\"samples\":%d, ", p.samples));
+		b.append(String.format("\"seed\":%d, ", p.seed));
+		b.append(String.format("\"sigmaAlpha\":%1f, ", p.sigmaAlpha));
+		b.append(String.format("\"sigmaBeta\":%1f, ", p.sigmaBeta));
+		b.append(String.format("\"sigmaOmega\":%1f, ", p.sigmaOmega));
+		b.append(String.format("\"sigmaOmegaBias\":%1f, ", p.sigmaOmegaBias));
+		b.append(String.format("\"sigmaDelta\":%1f, ", p.sigmaDelta));
+		b.append(String.format("\"sigmaDeltaBias\":%1f, ", p.sigmaDeltaBias));
+		b.append(String.format("\"step\":%.3f, ", p.step));
+		b.append(String.format("\"z\":%d, ", p.z));
+		
+		b.append("}");
+		
+		return b.toString();
+	}
+	
 }

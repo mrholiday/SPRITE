@@ -41,6 +41,10 @@ public class SpriteLDA extends SpriteFactoredTopicModel {
 		Arguments p = ArgParse.parseArgs(args);
 		
 		if (p != null) {
+			
+			System.out.println("==== Arguments ====");
+			System.out.println(ArgParse.getArgString(p));
+			
 			topicModel = new SpriteLDA(p.z, p.numThreads, p.step, p.sigmaDeltaBias, p.sigmaOmegaBias, p.deltaBias, p.omegaBias);
 			topicModel.outputDir = p.outDir;
 			topicModel.TIME_ITERATIONS = true;
