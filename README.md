@@ -68,6 +68,7 @@ under *resources/test_data* for examples.
 Datasets, with supervised annotations, used in the paper,
 "Collective Supervision of Topic Models for Predicting Surveys with Social Media". Adrian Benton, Michael J. Paul, Braden Hancock, and Mark Dredze. AAAI-2016.
 under *resources/collsup_twitter_survey_data*
+
 + *input.guncontrol.allfeatures.onlyids.txt*: Gun control data
 + *input.tobacco.allfeatures.onlyids.txt*: Smoking
 + *input.vaccine.allfeatures.onlyids.txt*: Vaccine
