@@ -76,7 +76,10 @@ under *resources/collsup_twitter_survey_data*
 These datasets contain three features per tweet: a hashtag feature not used in
 the paper (whether the tweet contains a pro/anti hashtag with respect to the
 topic), the state-level survey feature, and a county-level census feature.
-Refer to paper for details.  Document ID corresponds to Twitter status ID.
+Refer to paper for details.  Document ID corresponds to Twitter status ID.  You
+can also find the tweets with the preprocessed text at
+<http://cs.jhu.edu/~abenton2/collsuptm/>.  Under the Twitter terms of service,
+only one of these 50K tweet datasets should be downloaded per day.
 
 ## Modeling ##
 
